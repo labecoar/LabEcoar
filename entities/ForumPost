@@ -1,0 +1,41 @@
+{
+  "name": "ForumPost",
+  "type": "object",
+  "properties": {
+    "topic_id": {
+      "type": "string",
+      "description": "ID do t\u00f3pico"
+    },
+    "content": {
+      "type": "string",
+      "description": "Conte\u00fado do post"
+    },
+    "author_email": {
+      "type": "string",
+      "description": "Email do autor"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Nome do autor"
+    },
+    "likes": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero de curtidas"
+    },
+    "liked_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Emails dos usu\u00e1rios que curtiram"
+    }
+  },
+  "required": [
+    "topic_id",
+    "content",
+    "author_email",
+    "author_name"
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "name": "PaymentInfo",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email do Ecoante"
+    },
+    "account_type": {
+      "type": "string",
+      "enum": [
+        "corrente",
+        "poupanca"
+      ],
+      "description": "Tipo de conta"
+    },
+    "bank_name": {
+      "type": "string",
+      "description": "Nome do banco"
+    },
+    "bank_code": {
+      "type": "string",
+      "description": "C\u00f3digo do banco"
+    },
+    "agency": {
+      "type": "string",
+      "description": "Ag\u00eancia"
+    },
+    "account_number": {
+      "type": "string",
+      "description": "N\u00famero da conta"
+    },
+    "account_digit": {
+      "type": "string",
+      "description": "D\u00edgito da conta"
+    },
+    "cpf": {
+      "type": "string",
+      "description": "CPF do titular"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Nome completo do titular"
+    },
+    "pix_key": {
+      "type": "string",
+      "description": "Chave PIX (opcional)"
+    },
+    "pix_type": {
+      "type": "string",
+      "enum": [
+        "cpf",
+        "email",
+        "telefone",
+        "aleatoria"
+      ],
+      "description": "Tipo de chave PIX"
+    },
+    "is_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se os dados foram verificados"
+    }
+  },
+  "required": [
+    "user_email",
+    "account_type",
+    "bank_name",
+    "agency",
+    "account_number",
+    "cpf",
+    "full_name"
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "name": "Payment",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email do Ecoante"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Nome do Ecoante"
+    },
+    "quarter": {
+      "type": "string",
+      "description": "Trimestre (ex: Q1-2025)"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "voz_e_violao",
+        "dueto",
+        "fanfarra",
+        "carnaval"
+      ],
+      "description": "Categoria alcan\u00e7ada"
+    },
+    "points": {
+      "type": "number",
+      "description": "Pontos acumulados"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Valor do pagamento em R$"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "processando",
+        "pago",
+        "erro"
+      ],
+      "default": "pendente",
+      "description": "Status do pagamento"
+    },
+    "paid_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data do pagamento"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "transferencia",
+        "pix"
+      ],
+      "description": "M\u00e9todo de pagamento"
+    },
+    "transaction_id": {
+      "type": "string",
+      "description": "ID da transa\u00e7\u00e3o externa"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es sobre o pagamento"
+    }
+  },
+  "required": [
+    "user_email",
+    "user_name",
+    "quarter",
+    "category",
+    "points",
+    "amount",
+    "status"
+  ]
+}

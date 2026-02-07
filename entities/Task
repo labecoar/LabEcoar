@@ -1,0 +1,133 @@
+{
+  "name": "Task",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo da tarefa"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o detalhada da tarefa"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "campanha",
+        "oficina",
+        "folhetim",
+        "compartilhar_ecoante"
+      ],
+      "description": "Categoria da tarefa"
+    },
+    "folhetim_type": {
+      "type": "string",
+      "enum": [
+        "compartilhar",
+        "criar"
+      ],
+      "description": "Tipo de folhetim (se categoria for folhetim)"
+    },
+    "content_types": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tipos de conte\u00fado solicitados (reels, tiktok, stories, carrossel, etc)"
+    },
+    "content_type_other": {
+      "type": "string",
+      "description": "Outro tipo de conte\u00fado especificado"
+    },
+    "points": {
+      "type": "number",
+      "description": "Pontos que a tarefa vale (para oficinas, folhetim e sidequests)"
+    },
+    "payment_value": {
+      "type": "number",
+      "description": "Valor em R$ oferecido (para campanhas e resposta r\u00e1pida)"
+    },
+    "deadline": {
+      "type": "string",
+      "format": "date",
+      "description": "Prazo para conclus\u00e3o"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e hora de expira\u00e7\u00e3o da tarefa"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ativa",
+        "concluida",
+        "expirada"
+      ],
+      "default": "ativa",
+      "description": "Status da tarefa"
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Requisitos para completar a tarefa"
+    },
+    "proof_required": {
+      "type": "string",
+      "enum": [
+        "link",
+        "screenshot",
+        "video",
+        "insights"
+      ],
+      "description": "Tipo de prova necess\u00e1ria"
+    },
+    "max_participants": {
+      "type": "number",
+      "description": "N\u00famero m\u00e1ximo de participantes"
+    },
+    "current_participants": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero atual de participantes"
+    },
+    "is_urgent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se \u00e9 uma campanha de resposta r\u00e1pida"
+    },
+    "campaign_type": {
+      "type": "string",
+      "enum": [
+        "comum",
+        "resposta_rapida"
+      ],
+      "description": "Tipo de campanha (se aplic\u00e1vel)"
+    },
+    "requires_application": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se requer inscri\u00e7\u00e3o e sele\u00e7\u00e3o de candidatos"
+    },
+    "profile_requirements": {
+      "type": "string",
+      "description": "Requisitos de perfil/caracter\u00edsticas do candidato"
+    },
+    "min_followers": {
+      "type": "number",
+      "description": "N\u00famero m\u00ednimo de seguidores (se aplic\u00e1vel)"
+    },
+    "target_audience": {
+      "type": "string",
+      "description": "P\u00fablico-alvo esperado do influenciador"
+    }
+  },
+  "required": [
+    "title",
+    "description",
+    "category",
+    "proof_required"
+  ]
+}

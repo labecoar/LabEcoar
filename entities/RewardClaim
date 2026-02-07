@@ -1,0 +1,63 @@
+{
+  "name": "RewardClaim",
+  "type": "object",
+  "properties": {
+    "reward_id": {
+      "type": "string",
+      "description": "ID da recompensa"
+    },
+    "reward_title": {
+      "type": "string",
+      "description": "T\u00edtulo da recompensa"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email do Ecoante"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Nome do Ecoante"
+    },
+    "points_spent": {
+      "type": "number",
+      "description": "Pontos gastos"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "processando",
+        "entregue",
+        "cancelado"
+      ],
+      "default": "pendente",
+      "description": "Status do resgate"
+    },
+    "claimed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data do resgate"
+    },
+    "delivered_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data da entrega"
+    },
+    "delivery_code": {
+      "type": "string",
+      "description": "C\u00f3digo de resgate/voucher"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es"
+    }
+  },
+  "required": [
+    "reward_id",
+    "reward_title",
+    "user_email",
+    "user_name",
+    "points_spent",
+    "status"
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "name": "TaskApplication",
+  "type": "object",
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "description": "ID da tarefa"
+    },
+    "task_title": {
+      "type": "string",
+      "description": "T\u00edtulo da tarefa"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email do Ecoante"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Nome do Ecoante"
+    },
+    "instagram_handle": {
+      "type": "string",
+      "description": "Instagram do candidato"
+    },
+    "followers_count": {
+      "type": "number",
+      "description": "N\u00famero de seguidores"
+    },
+    "justification": {
+      "type": "string",
+      "description": "Justificativa de porque se enquadra na vaga"
+    },
+    "portfolio_links": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Links de trabalhos anteriores (posts, v\u00eddeos, etc)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "selecionado",
+        "rejeitado"
+      ],
+      "default": "pendente",
+      "description": "Status da inscri\u00e7\u00e3o"
+    },
+    "selection_notes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es da sele\u00e7\u00e3o (admin)"
+    },
+    "applied_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data de inscri\u00e7\u00e3o"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data de avalia\u00e7\u00e3o"
+    }
+  },
+  "required": [
+    "task_id",
+    "task_title",
+    "user_email",
+    "user_name",
+    "justification",
+    "status"
+  ]
+}

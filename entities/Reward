@@ -1,0 +1,66 @@
+{
+  "name": "Reward",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo da recompensa"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o detalhada"
+    },
+    "points_required": {
+      "type": "number",
+      "description": "Pontos necess\u00e1rios para resgatar"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "alimentacao",
+        "educacao",
+        "cultura",
+        "bem_estar",
+        "tecnologia",
+        "outros"
+      ],
+      "description": "Categoria da recompensa"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "URL da imagem"
+    },
+    "quantity_available": {
+      "type": "number",
+      "description": "Quantidade dispon\u00edvel"
+    },
+    "quantity_claimed": {
+      "type": "number",
+      "default": 0,
+      "description": "Quantidade j\u00e1 resgatada"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se est\u00e1 ativa"
+    },
+    "partner_name": {
+      "type": "string",
+      "description": "Nome do parceiro/fornecedor"
+    },
+    "validity_months": {
+      "type": "number",
+      "description": "Validade em meses ap\u00f3s resgate"
+    },
+    "terms": {
+      "type": "string",
+      "description": "Termos e condi\u00e7\u00f5es"
+    }
+  },
+  "required": [
+    "title",
+    "description",
+    "points_required",
+    "category"
+  ]
+}

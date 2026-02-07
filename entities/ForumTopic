@@ -1,0 +1,60 @@
+{
+  "name": "ForumTopic",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo do t\u00f3pico"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o do t\u00f3pico"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "dicas",
+        "duvidas",
+        "conquistas",
+        "campanhas",
+        "geral",
+        "sugestoes"
+      ],
+      "description": "Categoria do t\u00f3pico"
+    },
+    "author_email": {
+      "type": "string",
+      "description": "Email do autor"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Nome do autor"
+    },
+    "total_posts": {
+      "type": "number",
+      "default": 0,
+      "description": "Total de posts no t\u00f3pico"
+    },
+    "last_activity": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data da \u00faltima atividade"
+    },
+    "is_pinned": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se o t\u00f3pico est\u00e1 fixado"
+    },
+    "views": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero de visualiza\u00e7\u00f5es"
+    }
+  },
+  "required": [
+    "title",
+    "category",
+    "author_email",
+    "author_name"
+  ]
+}
