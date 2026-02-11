@@ -1,6 +1,8 @@
 import React from "react";
-import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
+import { useTasks } from "@/hooks/useTasks";
+import { useMySubmissions } from "@/hooks/useSubmissions";
+import { useUserScore } from "@/hooks/useScores";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, Target, CheckCircle, Star, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -22,28 +24,13 @@ const CATEGORY_VALUES = {
 };
 
 export default function Dashboard() {
-  const { data: user } = useQuery({
-    queryKey: ['current-user'],
-    queryFn: () => base44.auth.me(),
-  });
+  const { user, profile } = useAuth();
+  const { data: allTasks = [] } = useTasks();
+  const { data: submissions = [] } = useMySubmissions(user?.id);
+  const { data: userScore } = useUserScore(user?.id);
 
-  const { data: submissions } = useQuery({
-    queryKey: ['my-submissions'],
-    queryFn: async () => {
-      const user = await base44.auth.me();
-      return base44.entities.TaskSubmission.filter({ user_email: user.email, quarter: user.current_quarter }, '-created_date', 10);
-    },
-    initialData: []
-  });
-
-  const { data: allTasks } = useQuery({
-    queryKey: ['all-tasks'],
-    queryFn: () => base44.entities.Task.list(),
-    initialData: []
-  });
-
-  const approvedSubmissions = submissions.filter((s) => s.status === 'aprovada');
-  const pendingSubmissions = submissions.filter((s) => s.status === 'pendente');
+  const approvedSubmissions = submissions.filter((s) => s.status === 'approved');
+  const pendingSubmissions = submissions.filter((s) => s.status === 'pending');
 
   // Conta quantas campanhas pagas foram feitas (máximo 3)
   const campaignsCompleted = React.useMemo(() => {
@@ -54,8 +41,8 @@ export default function Dashboard() {
     return Math.min(campaignSubmissions.length, 3);
   }, [approvedSubmissions, allTasks]);
 
-  const currentPoints = user?.total_points || 0;
-  const currentCategory = user?.current_category || 'voz_e_violao';
+  const currentPoints = userScore?.total_points || 0;
+  const currentCategory = profile?.current_category || 'voz_e_violao';
   const categoryValue = CATEGORY_VALUES[currentCategory];
 
   const progressPercentage = Math.min(currentPoints / 1500 * 100, 100);
@@ -63,6 +50,8 @@ export default function Dashboard() {
   const currentCategoryIndex = CATEGORY_THRESHOLDS.findIndex((cat) =>
     currentPoints >= cat.min && currentPoints <= cat.max
   );
+
+  const displayName = profile?.full_name?.split(' ')[0] || 'Ecoante';
 
   return (
     <div className="min-h-screen p-4 md:p-8" style={{ background: 'linear-gradient(to br, #f5fff8, #ffffff, #fff5f8)' }}>
@@ -72,7 +61,7 @@ export default function Dashboard() {
           <div>
             <h2 className="text-sm" style={{ color: '#929292' }}>Olá,</h2>
             <h1 className="text-2xl font-bold" style={{ color: '#3c0b14' }}>
-              {user?.display_name && user.display_name.trim() !== '' ? user.display_name : user?.full_name && user.full_name.trim() !== '' ? user.full_name.split(' ')[0] : 'Ecoante'} 👋
+              {displayName} 👋
             </h1>
           </div>
           <div className="flex items-center gap-3">
@@ -105,7 +94,7 @@ export default function Dashboard() {
                 <span className="text-sm" style={{ color: '#096e4c' }}>R$ {categoryValue.toLocaleString('pt-BR')}</span>
               </div>
               <div className="px-3 py-1 rounded-full" style={{ background: '#00c33120' }}>
-                <span className="text-sm font-medium" style={{ color: '#00c331' }}>{user?.current_quarter || 'Q1-2025'}</span>
+                <span className="text-sm font-medium" style={{ color: '#00c331' }}>{profile?.current_quarter || 'Q1-2025'}</span>
               </div>
             </div>
           </div>
@@ -275,7 +264,7 @@ export default function Dashboard() {
                 <div className="text-sm mt-1" style={{ color: '#929292' }}>Em Análise</div>
               </div>
               <div className="text-center p-4 rounded-xl" style={{ background: '#a6539f20' }}>
-                <div className="text-3xl font-bold" style={{ color: '#a6539f' }}>{user?.campaigns_participated || 0}</div>
+                <div className="text-3xl font-bold" style={{ color: '#a6539f' }}>{profile?.campaigns_participated || 0}</div>
                 <div className="text-sm mt-1" style={{ color: '#929292' }}>Campanhas</div>
               </div>
               <div className="text-center p-4 rounded-xl" style={{ background: '#00c33120' }}>

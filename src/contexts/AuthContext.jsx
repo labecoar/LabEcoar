@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
+import { createContext, useContext, useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
+import { authService } from '@/services/auth.service'
 
 const AuthContext = createContext({})
 
@@ -11,12 +12,13 @@ export const useAuth = () => {
   return context
 }
 
-export const AuthProvider = ({ children }) => {
+export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-  // Buscar perfil do usuário com role
+  // Buscar perfil do usuário
   const fetchProfile = async (userId) => {
     try {
       const { data, error } = await supabase
@@ -27,42 +29,38 @@ export const AuthProvider = ({ children }) => {
 
       if (error) throw error
       setProfile(data)
-      return data
     } catch (error) {
       console.error('Erro ao buscar perfil:', error)
-      return null
+      setProfile(null)
     }
   }
 
+  // Inicializar autenticação
   useEffect(() => {
-    // Verificar sessão atual
-    const initAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        
-        if (session?.user) {
-          setUser(session.user)
-          await fetchProfile(session.user.id)
-        }
-      } catch (error) {
-        console.error('Erro ao inicializar auth:', error)
-      } finally {
-        setLoading(false)
+    // Verificar sessão existente
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+      setIsAuthenticated(!!session?.user)
+      if (session?.user) {
+        fetchProfile(session.user.id)
       }
-    }
+      setLoading(false)
+    })
 
-    initAuth()
-
-    // Listener para mudanças de autenticação
+    // Escutar mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event)
+        
+        setUser(session?.user ?? null)
+        setIsAuthenticated(!!session?.user)
+
         if (session?.user) {
-          setUser(session.user)
           await fetchProfile(session.user.id)
         } else {
-          setUser(null)
           setProfile(null)
         }
+
         setLoading(false)
       }
     )
@@ -70,90 +68,48 @@ export const AuthProvider = ({ children }) => {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Login
+  // Função de login
   const signIn = async (email, password) => {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-      
-      if (error) throw error
-      
-      if (data.user) {
-        await fetchProfile(data.user.id)
-      }
-      
-      return { data, error: null }
-    } catch (error) {
-      console.error('Erro ao fazer login:', error)
-      return { data: null, error }
-    }
+    const data = await authService.signIn(email, password)
+    return data
   }
 
-  // Registro
-  const signUp = async (email, password, userData = {}) => {
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: userData
-        }
-      })
-      
-      if (error) throw error
-      return { data, error: null }
-    } catch (error) {
-      console.error('Erro ao registrar:', error)
-      return { data: null, error }
-    }
+  // Função de registro
+  const signUp = async (email, password, userData) => {
+    const data = await authService.signUp(email, password, userData)
+    return data
   }
 
-  // Logout
+  // Função de logout
   const signOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
-      setUser(null)
-      setProfile(null)
-    } catch (error) {
-      console.error('Erro ao fazer logout:', error)
-    }
+    await authService.signOut()
+    setUser(null)
+    setProfile(null)
+    setIsAuthenticated(false)
+  }
+
+  // Atualizar perfil
+  const updateProfile = async (updates) => {
+    if (!user) throw new Error('Usuário não autenticado')
+    const data = await authService.updateProfile(user.id, updates)
+    setProfile(data)
+    return data
   }
 
   // Verificar se é admin
-  const isAdmin = () => {
-    return profile?.role === 'admin'
-  }
-
-  // Verificar se é user
-  const isUser = () => {
-    return profile?.role === 'user'
-  }
-
-  // Verificar permissão específica
-  const hasPermission = (permission) => {
-    if (!profile) return false
-    
-    // Admin tem todas as permissões
-    if (profile.role === 'admin') return true
-    
-    // Verificar permissões específicas do perfil
-    return profile.permissions?.includes(permission) || false
-  }
+  const isAdmin = profile?.role === 'admin'
 
   const value = {
     user,
     profile,
     loading,
+    isAuthenticated,
+    isAdmin,
     signIn,
     signUp,
     signOut,
-    isAdmin,
-    isUser,
-    hasPermission,
-    refreshProfile: () => user && fetchProfile(user.id)
+    updateProfile,
+    refreshProfile: () => user ? fetchProfile(user.id) : null,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

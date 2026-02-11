@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -16,34 +16,27 @@ export default function Login() {
     setLoading(true)
 
     try {
-      const { data, error } = await signIn(email, password)
-      
-      if (error) {
-        setError('Email ou senha incorretos')
-        return
-      }
-
-      // Redirecionar baseado no role
-      if (data.user) {
-        navigate('/dashboard')
-      }
+      await signIn(email, password)
+      navigate('/dashboard')
     } catch (err) {
-      setError('Erro ao fazer login')
+      console.error('Erro ao fazer login:', err)
+      setError('Email ou senha incorretos')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
-      <div className="card max-w-md w-full mx-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-green-100">
+      <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary-700">LabEcoar</h1>
+          <div className="text-4xl mb-4">🌿</div>
+          <h1 className="text-3xl font-bold text-emerald-700">LabEcoar</h1>
           <p className="text-gray-600 mt-2">Plataforma de Gamificação</p>
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4">
+          <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4 border border-red-200">
             {error}
           </div>
         )}
@@ -57,9 +50,10 @@ export default function Login() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="input-field"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               placeholder="seu@email.com"
               required
+              disabled={loading}
             />
           </div>
 
@@ -71,16 +65,17 @@ export default function Login() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="input-field"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               placeholder="••••••••"
               required
+              disabled={loading}
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-emerald-600 text-white py-2 rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
