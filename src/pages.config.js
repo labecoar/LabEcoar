@@ -47,37 +47,21 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
-import AdminApplications from './pages/AdminApplications';
 import AdminApproval from './pages/AdminApproval';
-import AdminContentManagement from './pages/AdminContentManagement';
 import Dashboard from './pages/Dashboard';
-import Forum from './pages/Forum';
-import ForumTopic from './pages/ForumTopic';
 import Leaderboard from './pages/Leaderboard';
-import MyPayments from './pages/MyPayments';
+import Login from './pages/Login';
 import MySubmissions from './pages/MySubmissions';
-import MyTasks from './pages/MyTasks';
-import Profile from './pages/Profile';
-import Requirements from './pages/Requirements';
-import Rewards from './pages/Rewards';
 import Tasks from './pages/Tasks';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "AdminApplications": AdminApplications,
     "AdminApproval": AdminApproval,
-    "AdminContentManagement": AdminContentManagement,
     "Dashboard": Dashboard,
-    "Forum": Forum,
-    "ForumTopic": ForumTopic,
     "Leaderboard": Leaderboard,
-    "MyPayments": MyPayments,
+    "Login": Login,
     "MySubmissions": MySubmissions,
-    "MyTasks": MyTasks,
-    "Profile": Profile,
-    "Requirements": Requirements,
-    "Rewards": Rewards,
     "Tasks": Tasks,
 }
 

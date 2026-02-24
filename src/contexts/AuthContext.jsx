@@ -2,7 +2,18 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { authService } from '@/services/auth.service'
 
-const AuthContext = createContext({})
+const AuthContext = createContext({
+  user: null,
+  profile: null,
+  loading: true,
+  isAuthenticated: false,
+  isAdmin: false,
+  signIn: async (_email, _password) => null,
+  signUp: async (_email, _password, _userData) => null,
+  signOut: async () => null,
+  updateProfile: async (_updates) => null,
+  refreshProfile: async () => null,
+})
 
 export const useAuth = () => {
   const context = useContext(AuthContext)
@@ -44,19 +55,20 @@ export function AuthProvider({ children }) {
       if (session?.user) {
         fetchProfile(session.user.id)
       }
+    }).catch((err) => {
+      console.error('[AuthContext] Erro ao verificar sessão:', err)
+    }).finally(() => {
       setLoading(false)
     })
 
     // Escutar mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event)
-        
+      (event, session) => {
         setUser(session?.user ?? null)
         setIsAuthenticated(!!session?.user)
 
         if (session?.user) {
-          await fetchProfile(session.user.id)
+          fetchProfile(session.user.id)
         } else {
           setProfile(null)
         }

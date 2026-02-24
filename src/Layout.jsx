@@ -1,9 +1,9 @@
+// @ts-nocheck
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Home, Target, CheckCircle2, Trophy, User, LogOut, MessageSquare, DollarSign, Shield, Gift } from "lucide-react";
-import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import {
   Sidebar,
@@ -89,18 +89,14 @@ const CATEGORY_INFO = {
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
-  
-  const { data: user } = useQuery({
-    queryKey: ['current-user'],
-    queryFn: () => base44.auth.me(),
-  });
+  const { user, profile, isAdmin, signOut } = useAuth();
 
-  const handleLogout = () => {
-    base44.auth.logout();
+  const handleLogout = async () => {
+    await signOut();
+    window.location.href = '/Login';
   };
 
-  const categoryInfo = CATEGORY_INFO[user?.current_category || 'voz_e_violao'];
-  const isAdmin = user?.role === 'admin';
+  const categoryInfo = CATEGORY_INFO[profile?.current_category || 'voz_e_violao'];
 
   return (
     <SidebarProvider>
@@ -267,8 +263,7 @@ export default function Layout({ children, currentPageName }) {
               </div>
               <button
                 onClick={handleLogout}
-                className="p-2 rounded-lg transition-colors duration-200"
-                style={{ ':hover': { backgroundColor: '#ce161c10' } }}
+                className="p-2 rounded-lg transition-colors duration-200 hover:bg-[#ce161c10]"
                 title="Sair"
               >
                 <LogOut className="w-4 h-4" style={{ color: '#ce161c' }} />
@@ -281,7 +276,7 @@ export default function Layout({ children, currentPageName }) {
           <header className="bg-white/80 backdrop-blur-sm border-b px-6 py-4" style={{ borderColor: '#096e4c20' }}>
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <SidebarTrigger className="p-2 rounded-lg transition-colors duration-200 md:hidden" style={{ ':hover': { backgroundColor: '#096e4c10' } }} />
+                <SidebarTrigger className="p-2 rounded-lg transition-colors duration-200 md:hidden hover:bg-[#096e4c10]" />
                 <h1 className="text-xl font-bold md:hidden" style={{ color: '#3c0b14' }}>Lab Ecoar</h1>
               </div>
               <NotificationBell />
