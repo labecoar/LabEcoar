@@ -10,6 +10,7 @@ const AuthContext = createContext({
   isAdmin: false,
   signIn: async (_email, _password) => null,
   signUp: async (_email, _password, _userData) => null,
+  resetPassword: async (_email) => null,
   signOut: async () => null,
   updateProfile: async (_updates) => null,
   refreshProfile: async () => null,
@@ -92,6 +93,12 @@ export function AuthProvider({ children }) {
     return data
   }
 
+  // Recuperação de senha
+  const resetPassword = async (email) => {
+    const data = await authService.resetPassword(email)
+    return data
+  }
+
   // Função de logout
   const signOut = async () => {
     await authService.signOut()
@@ -119,6 +126,7 @@ export function AuthProvider({ children }) {
     isAdmin,
     signIn,
     signUp,
+    resetPassword,
     signOut,
     updateProfile,
     refreshProfile: () => user ? fetchProfile(user.id) : null,

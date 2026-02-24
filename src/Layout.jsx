@@ -2,7 +2,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Home, Target, CheckCircle2, Trophy, User, LogOut, MessageSquare, DollarSign, Shield, Gift } from "lucide-react";
+import { Home, Target, CheckCircle2, Trophy, LogOut, Shield, User, MessageSquare, Gift, DollarSign } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import {
@@ -89,7 +89,7 @@ const CATEGORY_INFO = {
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
-  const { user, profile, isAdmin, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
 
   const handleLogout = async () => {
     await signOut();
@@ -187,7 +187,7 @@ export default function Layout({ children, currentPageName }) {
                     </SidebarMenuItem>
                   ))}
                   
-                  {isAdmin && adminNavigationItems.map((item) => (
+                  {adminNavigationItems.map((item) => (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton 
                         asChild 

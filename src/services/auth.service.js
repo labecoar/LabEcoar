@@ -61,6 +61,18 @@ export const authService = {
   },
 
   /**
+   * Enviar email de recuperação de senha
+   */
+  async resetPassword(email) {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/Login`,
+    })
+
+    if (error) throw error
+    return data
+  },
+
+  /**
    * Logout
    */
   async signOut() {
