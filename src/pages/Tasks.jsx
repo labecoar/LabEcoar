@@ -62,19 +62,34 @@ export default function Tasks() {
     tasks :
     tasks.filter((task) => task.category === selectedCategory);
 
+  const getTaskSubmission = (taskId) => {
+    return mySubmissions.find((sub) => sub.task_id === taskId) || null;
+  };
+
   const isTaskClaimed = (taskId) => {
-    return mySubmissions.some((sub) => sub.task_id === taskId && sub.status === 'pending');
+    return mySubmissions.some((sub) =>
+      sub.task_id === taskId &&
+      ['application_pending', 'application_approved', 'proof_pending', 'pending'].includes(sub.status)
+    );
   };
 
   const isTaskApproved = (taskId) => {
     return mySubmissions.some((sub) => sub.task_id === taskId && sub.status === 'approved');
   };
 
+  const isTaskRejected = (taskId) => {
+    return mySubmissions.some((sub) =>
+      sub.task_id === taskId && ['application_rejected', 'rejected'].includes(sub.status)
+    );
+  };
+
   const TaskCard = ({ task }) => {
     const Icon = CATEGORY_ICONS[task.category] || Target;
     const colorClass = CATEGORY_COLORS[task.category] || "bg-gray-100 text-gray-700 border-gray-200";
+    const submission = getTaskSubmission(task.id);
     const claimed = isTaskClaimed(task.id);
     const approved = isTaskApproved(task.id);
+    const rejected = isTaskRejected(task.id);
 
     return (
       <Card
@@ -130,10 +145,24 @@ export default function Tasks() {
                 <CheckCircle2 className="w-3 h-3 mr-1" />
                 Concluída
               </Badge>
+            ) : submission?.status === 'proof_pending' ? (
+              <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
+                <Clock className="w-3 h-3 mr-1" />
+                Prova em Análise
+              </Badge>
+            ) : submission?.status === 'application_approved' ? (
+              <Badge className="bg-purple-100 text-purple-700 border-purple-200">
+                <Clock className="w-3 h-3 mr-1" />
+                Aprovado p/ Fazer
+              </Badge>
             ) : claimed ? (
               <Badge className="bg-blue-100 text-blue-700 border-blue-200">
                 <Clock className="w-3 h-3 mr-1" />
-                Em Análise
+                Inscrição em Análise
+              </Badge>
+            ) : rejected ? (
+              <Badge className="bg-red-100 text-red-700 border-red-200">
+                Rejeitada
               </Badge>
             ) : (
               <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
@@ -222,6 +251,7 @@ export default function Tasks() {
           onClose={() => setSelectedTask(null)}
           isTaskClaimed={isTaskClaimed(selectedTask.id)}
           isTaskApproved={isTaskApproved(selectedTask.id)}
+          currentSubmission={getTaskSubmission(selectedTask.id)}
         />
       )}
     </div>

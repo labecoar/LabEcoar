@@ -31,6 +31,26 @@ const CATEGORY_META = {
   compartilhar_ecoante: { label: 'Compartilhar Ecoante', icon: Users, color: 'bg-pink-100 text-pink-700 border-pink-200' },
 }
 
+const PROOF_TYPE_LABELS = {
+  link: 'Link',
+  imagem: 'Imagem',
+  image: 'Imagem',
+  video: 'Vídeo',
+  arquivo: 'Arquivo',
+  file: 'Arquivo',
+}
+
+const getProofTypeLabel = (task) => {
+  const raw = String(task?.proof_type || '').trim().toLowerCase()
+  if (raw) return PROOF_TYPE_LABELS[raw] || task.proof_type
+
+  if (Array.isArray(task?.content_formats) && task.content_formats.length > 0) {
+    return task.content_formats.join(', ')
+  }
+
+  return 'Não informado'
+}
+
 const initialFormData = {
   title: '',
   description: '',
@@ -487,7 +507,7 @@ export default function AdminContentManagement() {
                           </span>
                           <span className="inline-flex items-center gap-1">
                             <Target className="w-3.5 h-3.5" />
-                            Prova: {task.proof_type || 'link'}
+                            Prova: {getProofTypeLabel(task)}
                           </span>
                         </div>
                       </div>

@@ -21,6 +21,12 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
+const STATUS_LABELS = {
+  pending: 'Inscrição pendente',
+  application_pending: 'Inscrição pendente',
+  proof_pending: 'Prova pendente',
+}
+
 export default function AdminApproval() {
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -31,6 +37,7 @@ export default function AdminApproval() {
   const approveSubmission = useApproveSubmission();
   const rejectSubmission = useRejectSubmission();
   const addPoints = useAddPoints();
+  const proofPendingSubmissions = pendingSubmissions.filter((submission) => submission.status === 'proof_pending');
 
   // Verifica se é admin
   if (profile?.role !== 'admin') {
@@ -52,20 +59,24 @@ export default function AdminApproval() {
       const pointsToAward = submission.task?.points || 0;
       
       // Aprovar submissão
-      await approveSubmission.mutateAsync({
+      const approvedSubmission = await approveSubmission.mutateAsync({
         submissionId: submission.id,
         pointsAwarded: pointsToAward
       });
 
-      // Adicionar pontos ao usuário
-      if (pointsToAward > 0) {
+      // Adicionar pontos ao usuário apenas na aprovação final da prova
+      if (approvedSubmission?.status === 'approved' && pointsToAward > 0) {
         await addPoints.mutateAsync({
           userId: submission.user_id,
           points: pointsToAward
         });
       }
 
-      alert('Submissão aprovada com sucesso!');
+      alert(
+        approvedSubmission?.status === 'application_approved'
+          ? 'Inscrição aprovada! Agora o usuário pode enviar a prova.'
+          : 'Prova aprovada com sucesso! Pontos adicionados.'
+      );
       setSelectedSubmission(null);
     } catch (error) {
       console.error('Erro ao aprovar:', error);
@@ -142,10 +153,17 @@ export default function AdminApproval() {
             <Calendar className="w-4 h-4" />
             <span>{format(new Date(submission.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
           </div>
-          <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
-            <Clock className="w-3 h-3 mr-1" />
-            Pendente
-          </Badge>
+          {submission.status === 'proof_pending' ? (
+            <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
+              <Clock className="w-3 h-3 mr-1" />
+              Prova Pendente
+            </Badge>
+          ) : (
+            <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
+              <Clock className="w-3 h-3 mr-1" />
+              Inscrição Pendente
+            </Badge>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -166,8 +184,8 @@ export default function AdminApproval() {
     <div className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-emerald-50 via-white to-green-50">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Validação de Submissões</h1>
-          <p className="text-gray-600">Analise e aprove as submissões dos usuários</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Aprovação Final de Provas</h1>
+          <p className="text-gray-600">Valide as provas enviadas após aprovação de inscrição.</p>
         </div>
 
         {/* Estatísticas Rápidas */}
@@ -179,8 +197,8 @@ export default function AdminApproval() {
                   <Clock className="w-6 h-6 text-yellow-700" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">{pendingSubmissions.length}</p>
-                  <p className="text-sm text-gray-600">Aguardando Análise</p>
+                  <p className="text-2xl font-bold text-gray-900">{proofPendingSubmissions.length}</p>
+                  <p className="text-sm text-gray-600">Provas Aguardando Análise</p>
                 </div>
               </div>
             </CardContent>
@@ -188,21 +206,21 @@ export default function AdminApproval() {
         </div>
 
         {/* Lista de Submissões Pendentes */}
-        {pendingSubmissions.length === 0 ? (
+        {proofPendingSubmissions.length === 0 ? (
           <Card className="text-center py-12">
             <CardContent>
               <CheckCircle className="w-16 h-16 mx-auto mb-4 text-gray-400" />
               <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                Nenhuma submissão pendente
+                Nenhuma prova pendente
               </h3>
               <p className="text-gray-500">
-                Todas as submissões foram analisadas!
+                Todas as provas enviadas já foram analisadas.
               </p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {pendingSubmissions.map((submission) => (
+            {proofPendingSubmissions.map((submission) => (
               <SubmissionCard key={submission.id} submission={submission} />
             ))}
           </div>
@@ -227,6 +245,9 @@ export default function AdminApproval() {
                     <span className="font-semibold">{selectedSubmission.task?.points} pontos</span>
                   </div>
                   <Badge>{selectedSubmission.task?.category}</Badge>
+                  <Badge className="bg-gray-100 text-gray-700 border-gray-200">
+                    {STATUS_LABELS[selectedSubmission.status] || selectedSubmission.status}
+                  </Badge>
                 </div>
               </div>
 
@@ -277,7 +298,11 @@ export default function AdminApproval() {
                     className="flex-1 bg-green-600 hover:bg-green-700"
                   >
                     <CheckCircle className="w-4 h-4 mr-2" />
-                    {approveSubmission.isPending ? 'Aprovando...' : 'Aprovar'}
+                    {approveSubmission.isPending
+                      ? 'Aprovando...'
+                      : selectedSubmission.status === 'proof_pending'
+                        ? 'Aprovar Prova e Finalizar'
+                        : 'Aprovar Inscrição'}
                   </Button>
                   <Button
                     onClick={() => setIsRejecting(true)}
@@ -285,7 +310,7 @@ export default function AdminApproval() {
                     className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
                   >
                     <XCircle className="w-4 h-4 mr-2" />
-                    Rejeitar
+                    {selectedSubmission.status === 'proof_pending' ? 'Rejeitar Prova' : 'Rejeitar Inscrição'}
                   </Button>
                 </div>
               ) : (

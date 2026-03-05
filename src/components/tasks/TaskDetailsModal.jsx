@@ -1,6 +1,8 @@
+// @ts-nocheck
 import React, { useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCreateSubmission } from "@/hooks/useSubmissions";
+import { useCreateSubmission, useSubmitProof } from "@/hooks/useSubmissions";
+import { useUploadFile } from "@/hooks/useStorage";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +12,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Users, Star, CircleDollarSign, UserRoundCheck, Send } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Calendar, Users, Star, CircleDollarSign, UserRoundCheck, Send, Upload } from "lucide-react";
 
 const CATEGORY_NAMES = {
   campanha: "Campanha",
@@ -36,21 +40,60 @@ const formatTimeLeft = (expiresAt) => {
   return `${hours}h`;
 };
 
-export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskApproved }) {
+const STATUS_TEXT = {
+  application_pending: 'Inscrição em análise',
+  application_approved: 'Inscrição aprovada',
+  application_rejected: 'Inscrição rejeitada',
+  proof_pending: 'Prova em análise',
+  approved: 'Tarefa concluída',
+  rejected: 'Prova rejeitada',
+  pending: 'Inscrição em análise',
+}
+
+const PROOF_TYPE_LABELS = {
+  link: 'Link',
+  imagem: 'Imagem',
+  image: 'Imagem',
+  video: 'Vídeo',
+  arquivo: 'Arquivo',
+  file: 'Arquivo',
+}
+
+const getProofTypeLabel = (task) => {
+  const raw = String(task?.proof_type || '').trim().toLowerCase()
+  if (raw) return PROOF_TYPE_LABELS[raw] || task.proof_type
+
+  if (Array.isArray(task?.content_formats) && task.content_formats.length > 0) {
+    return task.content_formats.join(', ')
+  }
+
+  return 'Não informado'
+}
+
+export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskApproved, currentSubmission }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [proofDescription, setProofDescription] = useState('');
+  const [proofFile, setProofFile] = useState(null);
   const { user } = useAuth();
   const createSubmission = useCreateSubmission();
+  const submitProof = useSubmitProof();
+  const uploadFile = useUploadFile();
 
   if (!task) return null;
 
   const timeLeft = useMemo(() => formatTimeLeft(task.expires_at), [task.expires_at]);
   const displayCategory = CATEGORY_NAMES[task.category] || task.category;
+  const displayProofType = useMemo(() => getProofTypeLabel(task), [task]);
   const offeredValue = Number(task.offered_value || task.points || 0);
   const isFull = Boolean(task.max_participants) && Number(task.current_participants || 0) >= Number(task.max_participants);
+  const submissionStatus = currentSubmission?.status;
+  const canApply = !currentSubmission && !isTaskApproved && !isFull;
+  const canSubmitProof = submissionStatus === 'application_approved';
+  const isWaiting = ['application_pending', 'proof_pending', 'pending'].includes(submissionStatus);
 
   const handleApply = async (e) => {
     e.preventDefault();
-    if (isTaskClaimed || isTaskApproved || isFull) return;
+    if (!canApply) return;
 
     setIsSubmitting(true);
 
@@ -66,7 +109,39 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
       onClose();
     } catch (error) {
       console.error('Erro ao candidatar-se:', error);
-      alert('Erro ao enviar candidatura');
+      alert(`Erro ao enviar candidatura.\n\nDetalhes: ${error?.message || 'Sem detalhes.'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSendProof = async (e) => {
+    e.preventDefault();
+    if (!canSubmitProof || !currentSubmission?.id) return;
+
+    if (!proofFile) {
+      alert('Selecione um arquivo de prova para enviar.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const { url } = await uploadFile.mutateAsync({ file: proofFile, userId: user.id });
+
+      await submitProof.mutateAsync({
+        submissionId: currentSubmission.id,
+        proofData: {
+          description: proofDescription,
+          proof_url: url,
+        },
+      });
+
+      alert('Prova enviada com sucesso! Aguarde a aprovação final do administrador. ✅');
+      onClose();
+    } catch (error) {
+      console.error('Erro ao enviar prova:', error);
+      alert(`Erro ao enviar prova da tarefa.\n\nDetalhes: ${error?.message || 'Sem detalhes.'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -123,7 +198,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
             <p className="text-xs text-gray-700">Experiência com sustentabilidade</p>
             <ul className="text-xs text-gray-500 list-disc pl-5 space-y-0.5">
               <li>Mínimo de {task.min_followers || 0} seguidores</li>
-              <li>Tipo de prova: {task.proof_type || 'link'}</li>
+              <li>Tipo de prova: {displayProofType}</li>
               {Array.isArray(task.content_formats) && task.content_formats.length > 0 && (
                 <li>Conteúdo: {task.content_formats.join(', ')}</li>
               )}
@@ -150,14 +225,20 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
               <form onSubmit={handleApply}>
                 <Button
                   type="submit"
-                  disabled={isSubmitting || isTaskClaimed || isTaskApproved || isFull}
+                  disabled={isSubmitting || !canApply}
                   className="w-full bg-fuchsia-600 hover:bg-fuchsia-700"
                 >
                   <Send className="w-4 h-4 mr-2" />
-                  {isTaskApproved
+                  {isTaskApproved || submissionStatus === 'approved'
                     ? 'Tarefa já concluída'
-                    : isTaskClaimed
-                      ? 'Candidatura em análise'
+                    : canSubmitProof
+                      ? 'Inscrição aprovada - envie a prova abaixo'
+                      : isWaiting
+                        ? STATUS_TEXT[submissionStatus] || 'Inscrição em análise'
+                        : submissionStatus === 'application_rejected'
+                          ? 'Inscrição rejeitada'
+                          : submissionStatus === 'rejected'
+                            ? 'Prova rejeitada'
                       : isFull
                         ? 'Vagas encerradas'
                         : isSubmitting
@@ -167,6 +248,51 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
               </form>
             </div>
           </div>
+
+          {canSubmitProof && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-3 space-y-3">
+              <p className="font-semibold text-emerald-700">Etapa 2: Enviar prova de conclusão</p>
+              <form onSubmit={handleSendProof} className="space-y-3">
+                <div>
+                  <Label htmlFor="proof-description">Descrição da prova (opcional)</Label>
+                  <Textarea
+                    id="proof-description"
+                    value={proofDescription}
+                    onChange={(e) => setProofDescription(e.target.value)}
+                    placeholder="Explique como você concluiu a tarefa..."
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="proof-file">Arquivo da prova</Label>
+                  <input
+                    id="proof-file"
+                    type="file"
+                    onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                    className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || uploadFile.isPending || submitProof.isPending}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  {isSubmitting || uploadFile.isPending || submitProof.isPending
+                    ? 'Enviando prova...'
+                    : 'Enviar prova para aprovação final'}
+                </Button>
+              </form>
+            </div>
+          )}
+
+          {currentSubmission?.rejection_reason && (
+            <div className="rounded-lg bg-red-50 border border-red-200 p-3">
+              <p className="text-xs font-semibold text-red-700 mb-1">Motivo da rejeição</p>
+              <p className="text-sm text-red-600">{currentSubmission.rejection_reason}</p>
+            </div>
+          )}
 
           {task.expires_at && (
             <div className="flex items-center justify-end text-xs text-gray-500 gap-1">

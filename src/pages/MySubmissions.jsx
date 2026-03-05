@@ -7,16 +7,16 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Clock, CheckCircle, XCircle, Star } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import SubmissionDetailsModal from "../components/mytasks/SubmissionDetailsModal";
+import TaskDetailsModal from "../components/tasks/TaskDetailsModal";
 
 export default function MySubmissions() {
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const { user } = useAuth();
   const { data: submissions = [], isLoading } = useMySubmissions(user?.id);
 
-  const pendingSubmissions = submissions.filter((s) => s.status === 'pending');
+  const pendingSubmissions = submissions.filter((s) => ['pending', 'application_pending', 'application_approved', 'proof_pending'].includes(s.status));
   const approvedSubmissions = submissions.filter((s) => s.status === 'approved');
-  const rejectedSubmissions = submissions.filter((s) => s.status === 'rejected');
+  const rejectedSubmissions = submissions.filter((s) => ['application_rejected', 'rejected'].includes(s.status));
 
   const renderSubmissionCard = (submission) => (
     <Card
@@ -37,10 +37,22 @@ export default function MySubmissions() {
             )}
           </div>
           <div className="flex flex-col items-end gap-2">
-            {submission.status === 'pending' && (
+            {['pending', 'application_pending'].includes(submission.status) && (
               <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
                 <Clock className="w-3 h-3 mr-1" />
-                Pendente
+                Inscrição Pendente
+              </Badge>
+            )}
+            {submission.status === 'application_approved' && (
+              <Badge className="bg-purple-100 text-purple-700 border-purple-200">
+                <CheckCircle className="w-3 h-3 mr-1" />
+                Aguardando Envio da Prova
+              </Badge>
+            )}
+            {submission.status === 'proof_pending' && (
+              <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
+                <Clock className="w-3 h-3 mr-1" />
+                Prova em Análise
               </Badge>
             )}
             {submission.status === 'approved' && (
@@ -49,10 +61,10 @@ export default function MySubmissions() {
                 Aprovada
               </Badge>
             )}
-            {submission.status === 'rejected' && (
+            {['application_rejected', 'rejected'].includes(submission.status) && (
               <Badge className="bg-red-100 text-red-700 border-red-200">
                 <XCircle className="w-3 h-3 mr-1" />
-                Rejeitada
+                {submission.status === 'application_rejected' ? 'Inscrição Rejeitada' : 'Prova Rejeitada'}
               </Badge>
             )}
           </div>
@@ -145,7 +157,7 @@ export default function MySubmissions() {
                     Nenhuma submissão pendente
                   </h3>
                   <p className="text-gray-500">
-                    Suas submissões aparecerão aqui enquanto são analisadas.
+                    Suas inscrições e provas em andamento aparecerão aqui.
                   </p>
                 </CardContent>
               </Card>
@@ -199,9 +211,12 @@ export default function MySubmissions() {
       </div>
 
       {selectedSubmission && (
-        <SubmissionDetailsModal
-          submission={selectedSubmission}
+        <TaskDetailsModal
+          task={selectedSubmission.task || { id: selectedSubmission.task_id, title: 'Tarefa' }}
           onClose={() => setSelectedSubmission(null)}
+          isTaskClaimed={['application_pending', 'application_approved', 'proof_pending', 'pending'].includes(selectedSubmission.status)}
+          isTaskApproved={selectedSubmission.status === 'approved'}
+          currentSubmission={selectedSubmission}
         />
       )}
     </div>

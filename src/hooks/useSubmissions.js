@@ -38,6 +38,20 @@ export function useCreateSubmission() {
 }
 
 /**
+ * Hook para envio de prova após aprovação da inscrição
+ */
+export function useSubmitProof() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ submissionId, proofData }) => submissionsService.submitProof(submissionId, proofData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['submissions'] })
+    },
+  })
+}
+
+/**
  * Hook para aprovar submissão
  */
 export function useApproveSubmission() {

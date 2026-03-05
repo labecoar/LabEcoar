@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS submissions (
   proof_url TEXT,
   
   -- Status e validação
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  status TEXT DEFAULT 'application_pending' CHECK (status IN ('application_pending', 'application_approved', 'application_rejected', 'proof_pending', 'approved', 'rejected', 'pending')),
   points_awarded INTEGER DEFAULT 0,
   rejection_reason TEXT,
   
@@ -100,6 +100,16 @@ CREATE TABLE IF NOT EXISTS submissions (
   validated_at TIMESTAMPTZ,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Garantir compatibilidade de status em bases existentes
+ALTER TABLE submissions DROP CONSTRAINT IF EXISTS submissions_status_check;
+ALTER TABLE submissions
+  ADD CONSTRAINT submissions_status_check
+  CHECK (status IN ('application_pending', 'application_approved', 'application_rejected', 'proof_pending', 'approved', 'rejected', 'pending'));
+
+-- Índice para evitar duplicidade de workflow por usuário/tarefa
+CREATE UNIQUE INDEX IF NOT EXISTS idx_submissions_user_task_unique
+  ON submissions(user_id, task_id);
 
 -- ===================================
 -- TABELA: user_scores
@@ -226,6 +236,12 @@ CREATE POLICY "Admins can view all submissions"
 CREATE POLICY "Users can create submissions"
   ON submissions FOR INSERT
   WITH CHECK (user_id = auth.uid());
+
+-- Usuários podem atualizar apenas suas submissões aprovadas para enviar prova
+CREATE POLICY "Users can submit proof on approved applications"
+  ON submissions FOR UPDATE
+  USING (user_id = auth.uid() AND status = 'application_approved')
+  WITH CHECK (user_id = auth.uid() AND status = 'proof_pending');
 
 -- Apenas admins podem atualizar submissões (aprovar/rejeitar)
 CREATE POLICY "Admins can update submissions"
