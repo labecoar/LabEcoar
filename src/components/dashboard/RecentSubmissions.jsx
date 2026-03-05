@@ -5,6 +5,20 @@ import { Clock, CheckCircle, XCircle, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+const normalizeStatus = (status) => {
+  if (status === 'pending' || status === 'pendente') return 'pending'
+  if (status === 'approved' || status === 'aprovada') return 'approved'
+  if (status === 'rejected' || status === 'rejeitada') return 'rejected'
+  return 'pending'
+}
+
+const getSubmissionDate = (submission) => {
+  const rawDate = submission?.created_at || submission?.created_date || submission?.createdAt
+  if (!rawDate) return null
+  const parsed = new Date(rawDate)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
 export default function RecentSubmissions({ submissions }) {
   if (!submissions || submissions.length === 0) {
     return (
@@ -31,22 +45,30 @@ export default function RecentSubmissions({ submissions }) {
       <CardContent className="pt-6">
         <div className="space-y-4">
           {submissions.slice(0, 5).map((submission) => (
-            <div 
+            <div
               key={submission.id}
               className="flex items-start gap-4 p-4 rounded-xl hover:bg-emerald-50 transition-colors duration-200"
             >
+              {(() => {
+                const status = normalizeStatus(submission.status)
+                const submissionDate = getSubmissionDate(submission)
+                const taskTitle = submission?.task?.title || submission?.task_title || 'Tarefa'
+                const pointsEarned = submission?.points_awarded || submission?.points_earned
+
+                return (
+                  <>
               <div className="flex-shrink-0">
-                {submission.status === 'pendente' && (
+                {status === 'pending' && (
                   <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
                     <Clock className="w-5 h-5 text-yellow-600" />
                   </div>
                 )}
-                {submission.status === 'aprovada' && (
+                {status === 'approved' && (
                   <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
                     <CheckCircle className="w-5 h-5 text-green-600" />
                   </div>
                 )}
-                {submission.status === 'rejeitada' && (
+                {status === 'rejected' && (
                   <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
                     <XCircle className="w-5 h-5 text-red-600" />
                   </div>
@@ -54,31 +76,33 @@ export default function RecentSubmissions({ submissions }) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
-                  <h4 className="font-medium text-gray-900 truncate">{submission.task_title}</h4>
-                  {submission.status === 'pendente' && (
+                  <h4 className="font-medium text-gray-900 truncate">{taskTitle}</h4>
+                  {status === 'pending' && (
                     <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 flex-shrink-0">
                       Pendente
                     </Badge>
                   )}
-                  {submission.status === 'aprovada' && (
+                  {status === 'approved' && (
                     <Badge className="bg-green-100 text-green-700 border-green-200 flex-shrink-0">
                       Aprovada
                     </Badge>
                   )}
-                  {submission.status === 'rejeitada' && (
+                  {status === 'rejected' && (
                     <Badge className="bg-red-100 text-red-700 border-red-200 flex-shrink-0">
                       Rejeitada
                     </Badge>
                   )}
                 </div>
                 <p className="text-sm text-gray-500 mt-1">
-                  {format(new Date(submission.created_date), "dd MMM yyyy 'às' HH:mm", { locale: ptBR })}
+                  {submissionDate
+                    ? format(submissionDate, "dd MMM yyyy 'às' HH:mm", { locale: ptBR })
+                    : 'Data indisponível'}
                 </p>
-                {submission.status === 'aprovada' && submission.points_earned && (
+                {status === 'approved' && pointsEarned ? (
                   <p className="text-sm text-emerald-600 font-medium mt-1">
-                    +{submission.points_earned} pontos
+                    +{pointsEarned} pontos
                   </p>
-                )}
+                ) : null}
                 {submission.proof_url && (
                   <a
                     href={submission.proof_url}
@@ -90,6 +114,9 @@ export default function RecentSubmissions({ submissions }) {
                   </a>
                 )}
               </div>
+                  </>
+                )
+              })()}
             </div>
           ))}
         </div>

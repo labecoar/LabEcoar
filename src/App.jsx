@@ -10,14 +10,17 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
-const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
+const ADMIN_ONLY_PAGES = new Set(['AdminContentManagement', 'AdminApproval', 'AdminApplications', 'Leaderboard']);
+const isAdminPage = (pageName) => ADMIN_ONLY_PAGES.has(pageName);
 
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
 
 const AuthenticatedApp = () => {
-  const { loading, isAuthenticated } = useAuth();
+  const { loading, isAuthenticated, isAdmin } = useAuth();
+  const landingPageKey = isAdmin ? 'AdminApproval' : mainPageKey;
+  const LandingPage = landingPageKey ? Pages[landingPageKey] : null;
 
   // Show loading spinner while checking auth
   if (loading) {
@@ -37,20 +40,20 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route path="/Login" element={<Pages.Login />} />
       <Route path="/" element={
-        <ProtectedRoute>
-          <LayoutWrapper currentPageName={mainPageKey}>
-            <MainPage />
+        <ProtectedRoute requireAdmin={isAdminPage(landingPageKey)}>
+          <LayoutWrapper currentPageName={landingPageKey}>
+            {LandingPage ? <LandingPage /> : null}
           </LayoutWrapper>
         </ProtectedRoute>
       } />
       {Object.entries(Pages).map(([path, Page]) => {
-        if (path === 'Login') return null; // Skip login, already added
+        if (path === 'Login') return null; // Already mapped
         return (
           <Route
             key={path}
             path={`/${path}`}
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin={isAdminPage(path)}>
                 <LayoutWrapper currentPageName={path}>
                   <Page />
                 </LayoutWrapper>

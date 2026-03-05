@@ -110,7 +110,7 @@ export function AuthProvider({ children }) {
   // Atualizar perfil
   const updateProfile = async (updates) => {
     if (!user) throw new Error('Usuário não autenticado')
-    const data = await authService.updateProfile(user.id, updates)
+    const data = await authService.updateProfile(user.id, user.email, updates)
     setProfile(data)
     return data
   }

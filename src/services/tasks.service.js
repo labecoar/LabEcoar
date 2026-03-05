@@ -36,17 +36,33 @@ export const tasksService = {
    * Criar nova tarefa (Admin)
    */
   async createTask(taskData) {
-    const { data, error } = await supabase
-      .from('tasks')
-      .insert([{
-        ...taskData,
-        status: 'active'
-      }])
-      .select()
-      .single()
+    let mutablePayload = {
+      ...taskData,
+      status: 'active'
+    }
 
-    if (error) throw error
-    return data
+    while (true) {
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert([mutablePayload])
+        .select()
+        .single()
+
+      if (!error) return data
+
+      const message = String(error.message || '')
+
+      const postgresMissingColumn = message.match(/column\s+"([^"]+)"\s+of\s+relation\s+"tasks"\s+does\s+not\s+exist/i)
+      const postgrestMissingColumn = message.match(/Could not find the '([^']+)' column of 'tasks'/i)
+      const missingColumn = postgresMissingColumn?.[1] || postgrestMissingColumn?.[1]
+
+      if (missingColumn && missingColumn in mutablePayload && missingColumn !== 'id') {
+        delete mutablePayload[missingColumn]
+        continue
+      }
+
+      throw error
+    }
   },
 
   /**

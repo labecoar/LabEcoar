@@ -83,15 +83,45 @@ export const authService = {
   /**
    * Atualizar perfil do usuário
    */
-  async updateProfile(userId, updates) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', userId)
-      .select()
-      .single()
+  async updateProfile(userId, userEmail, updates) {
+    const payload = {
+      id: userId,
+      email: userEmail,
+      ...updates,
+      updated_at: new Date().toISOString(),
+    }
 
-    if (error) throw error
-    return data
+    // Compatibilidade com schemas antigos: se não houver display_name,
+    // manter pelo menos full_name atualizado.
+    if (!payload.full_name && typeof payload.display_name === 'string' && payload.display_name.trim() !== '') {
+      payload.full_name = payload.display_name.trim()
+    }
+
+    let mutablePayload = { ...payload }
+
+    while (true) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert(mutablePayload, { onConflict: 'id' })
+        .select()
+        .single()
+
+      if (!error) return data
+
+      const message = String(error.message || '')
+
+      // Postgres error: column "x" of relation "profiles" does not exist
+      const postgresMissingColumn = message.match(/column\s+"([^"]+)"\s+of\s+relation\s+"profiles"\s+does\s+not\s+exist/i)
+      // PostgREST error: Could not find the 'x' column of 'profiles' in the schema cache
+      const postgrestMissingColumn = message.match(/Could not find the '([^']+)' column of 'profiles'/i)
+      const missingColumn = postgresMissingColumn?.[1] || postgrestMissingColumn?.[1]
+
+      if (missingColumn && missingColumn in mutablePayload && missingColumn !== 'id') {
+        delete mutablePayload[missingColumn]
+        continue
+      }
+
+      throw error
+    }
   }
 }

@@ -46,11 +46,6 @@ const navigationItems = [
     icon: Gift,
   },
   {
-    title: "Ranking",
-    url: createPageUrl("Leaderboard"),
-    icon: Trophy,
-  },
-  {
     title: "Meus Pagamentos",
     url: createPageUrl("MyPayments"),
     icon: DollarSign,
@@ -78,6 +73,11 @@ const adminNavigationItems = [
     url: createPageUrl("AdminApplications"),
     icon: User,
   },
+  {
+    title: "Ranking",
+    url: createPageUrl("Leaderboard"),
+    icon: Trophy,
+  },
 ];
 
 const CATEGORY_INFO = {
@@ -89,7 +89,8 @@ const CATEGORY_INFO = {
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, isAdmin, signOut } = useAuth();
+  const visibleNavigationItems = isAdmin ? adminNavigationItems : navigationItems;
 
   const handleLogout = async () => {
     await signOut();
@@ -151,8 +152,8 @@ export default function Layout({ children, currentPageName }) {
           <SidebarHeader className="border-b p-6" style={{ borderColor: '#096e4c20' }}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden">
-                <img 
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68ef9c6da7cbfe8e7d0383c5/f4375f26c_Cuica_Ecoantes_Logos_fundo-colorido.png" 
+                <img
+                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68ef9c6da7cbfe8e7d0383c5/f4375f26c_Cuica_Ecoantes_Logos_fundo-colorido.png"
                   alt="Lab Ecoar"
                   className="w-full h-full object-cover"
                 />
@@ -163,39 +164,19 @@ export default function Layout({ children, currentPageName }) {
               </div>
             </div>
           </SidebarHeader>
-          
+
           <SidebarContent className="p-3">
             <SidebarGroup>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {navigationItems.map((item) => (
+                  {visibleNavigationItems.map((item) => (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton 
-                        asChild 
-                        className={`hover:bg-[#096e4c10] transition-all duration-200 rounded-xl mb-1 ${
-                          location.pathname === item.url ? 'text-white shadow-md' : 'text-[#3c0b14]'
-                        }`}
-                        style={location.pathname === item.url ? { 
-                          background: 'linear-gradient(135deg, #096e4c 0%, #00c331 100%)' 
-                        } : {}}
-                      >
-                        <Link to={item.url} className="flex items-center gap-3 px-4 py-3">
-                          <item.icon className="w-5 h-5" />
-                          <span className="font-medium">{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                  
-                  {adminNavigationItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton 
-                        asChild 
-                        className={`hover:bg-[#ce161c10] transition-all duration-200 rounded-xl mb-1 ${
-                          location.pathname === item.url ? 'text-white shadow-md' : 'text-[#3c0b14]'
-                        }`}
-                        style={location.pathname === item.url ? { 
-                          background: 'linear-gradient(135deg, #ce161c 0%, #ff6a2d 100%)' 
+                      <SidebarMenuButton
+                        asChild
+                        className={`hover:bg-[#096e4c10] transition-all duration-200 rounded-xl mb-1 ${location.pathname === item.url ? 'text-white shadow-md' : 'text-[#3c0b14]'
+                          }`}
+                        style={location.pathname === item.url ? {
+                          background: 'linear-gradient(135deg, #096e4c 0%, #00c331 100%)'
                         } : {}}
                       >
                         <Link to={item.url} className="flex items-center gap-3 px-4 py-3">
@@ -211,7 +192,7 @@ export default function Layout({ children, currentPageName }) {
 
             {user && (
               <SidebarGroup className="mt-6">
-                <div className="px-4 py-4 rounded-xl border-2" style={{ 
+                <div className="px-4 py-4 rounded-xl border-2" style={{
                   background: 'linear-gradient(135deg, #096e4c05 0%, #00c33105 100%)',
                   borderColor: '#096e4c'
                 }}>
@@ -248,8 +229,8 @@ export default function Layout({ children, currentPageName }) {
                     style={{ borderColor: '#096e4c' }}
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ 
-                    background: 'linear-gradient(135deg, #096e4c 0%, #00c331 100%)' 
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{
+                    background: 'linear-gradient(135deg, #096e4c 0%, #00c331 100%)'
                   }}>
                     <span className="text-white font-bold text-sm">
                       {(user?.display_name?.charAt(0) || user?.full_name?.charAt(0) || 'E').toUpperCase()}

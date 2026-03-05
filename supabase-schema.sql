@@ -14,6 +14,9 @@ CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT UNIQUE NOT NULL,
   full_name TEXT,
+  display_name TEXT,
+  bio TEXT,
+  instagram_handle TEXT,
   avatar_url TEXT,
   role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin')),
   
@@ -28,6 +31,11 @@ CREATE TABLE IF NOT EXISTS profiles (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Garantir colunas de perfil adicionais em bases já existentes
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS display_name TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS instagram_handle TEXT;
+
 -- ===================================
 -- TABELA: tasks
 -- Tarefas disponíveis
@@ -38,6 +46,14 @@ CREATE TABLE IF NOT EXISTS tasks (
   description TEXT NOT NULL,
   category TEXT NOT NULL CHECK (category IN ('campanha', 'resposta_rapida', 'oficina', 'folhetim', 'compartilhar_ecoante')),
   points INTEGER NOT NULL DEFAULT 0,
+  offered_value NUMERIC(12,2),
+  proof_type TEXT DEFAULT 'link' CHECK (proof_type IN ('link', 'imagem', 'video', 'arquivo')),
+  content_formats TEXT[] DEFAULT '{}',
+  expiration_value INTEGER DEFAULT 1,
+  expiration_unit TEXT DEFAULT 'days' CHECK (expiration_unit IN ('hours', 'days', 'weeks')),
+  delivery_deadline DATE,
+  campaign_type TEXT DEFAULT 'comum',
+  requires_application BOOLEAN DEFAULT false,
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'archived')),
   
   -- Requisitos
@@ -50,6 +66,16 @@ CREATE TABLE IF NOT EXISTS tasks (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Garantir colunas adicionais de tarefas em bases já existentes
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS offered_value NUMERIC(12,2);
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS proof_type TEXT DEFAULT 'link';
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS content_formats TEXT[] DEFAULT '{}';
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS expiration_value INTEGER DEFAULT 1;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS expiration_unit TEXT DEFAULT 'days';
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS delivery_deadline DATE;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS campaign_type TEXT DEFAULT 'comum';
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS requires_application BOOLEAN DEFAULT false;
 
 -- ===================================
 -- TABELA: submissions
