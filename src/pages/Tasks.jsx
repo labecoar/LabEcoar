@@ -38,6 +38,22 @@ const CATEGORY_NAMES = {
   compartilhar_ecoante: "Compartilhar Ecoante"
 };
 
+const normalizeSubmissionStatus = (status) => {
+  if (!status) return null;
+  const normalized = String(status).trim().toLowerCase();
+
+  if (normalized === 'pendente') return 'pending';
+  if (normalized === 'aprovada' || normalized === 'aprovado' || normalized === 'concluida' || normalized === 'concluído') return 'approved';
+  if (normalized === 'rejeitada' || normalized === 'rejeitado') return 'rejected';
+  if (normalized === 'em_analise' || normalized === 'em análise') return 'proof_pending';
+
+  return normalized;
+};
+
+const getSubmissionTaskId = (submission) => {
+  return submission?.task_id || submission?.task?.id || submission?.taskId || null;
+}
+
 export default function Tasks() {
   const [selectedCategory, setSelectedCategory] = useState("todas");
   const [selectedTask, setSelectedTask] = useState(null);
@@ -63,30 +79,31 @@ export default function Tasks() {
     tasks.filter((task) => task.category === selectedCategory);
 
   const getTaskSubmission = (taskId) => {
-    return mySubmissions.find((sub) => sub.task_id === taskId) || null;
+    return mySubmissions.find((sub) => String(getSubmissionTaskId(sub)) === String(taskId)) || null;
   };
 
   const isTaskClaimed = (taskId) => {
-    return mySubmissions.some((sub) =>
-      sub.task_id === taskId &&
-      ['application_pending', 'application_approved', 'proof_pending', 'pending'].includes(sub.status)
-    );
+    const submission = getTaskSubmission(taskId);
+    const status = normalizeSubmissionStatus(submission?.status);
+    if (!submission) return false;
+    return ['application_pending', 'application_approved', 'proof_pending', 'pending'].includes(status);
   };
 
   const isTaskApproved = (taskId) => {
-    return mySubmissions.some((sub) => sub.task_id === taskId && sub.status === 'approved');
+    const submission = getTaskSubmission(taskId);
+    return normalizeSubmissionStatus(submission?.status) === 'approved';
   };
 
   const isTaskRejected = (taskId) => {
-    return mySubmissions.some((sub) =>
-      sub.task_id === taskId && ['application_rejected', 'rejected'].includes(sub.status)
-    );
+    const submission = getTaskSubmission(taskId);
+    return ['application_rejected', 'rejected'].includes(normalizeSubmissionStatus(submission?.status));
   };
 
   const TaskCard = ({ task }) => {
     const Icon = CATEGORY_ICONS[task.category] || Target;
     const colorClass = CATEGORY_COLORS[task.category] || "bg-gray-100 text-gray-700 border-gray-200";
     const submission = getTaskSubmission(task.id);
+    const submissionStatus = normalizeSubmissionStatus(submission?.status);
     const claimed = isTaskClaimed(task.id);
     const approved = isTaskApproved(task.id);
     const rejected = isTaskRejected(task.id);
@@ -145,12 +162,12 @@ export default function Tasks() {
                 <CheckCircle2 className="w-3 h-3 mr-1" />
                 Concluída
               </Badge>
-            ) : submission?.status === 'proof_pending' ? (
+            ) : submissionStatus === 'proof_pending' ? (
               <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
                 <Clock className="w-3 h-3 mr-1" />
                 Prova em Análise
               </Badge>
-            ) : submission?.status === 'application_approved' ? (
+            ) : submissionStatus === 'application_approved' ? (
               <Badge className="bg-purple-100 text-purple-700 border-purple-200">
                 <Clock className="w-3 h-3 mr-1" />
                 Aprovado p/ Fazer
@@ -163,6 +180,10 @@ export default function Tasks() {
             ) : rejected ? (
               <Badge className="bg-red-100 text-red-700 border-red-200">
                 Rejeitada
+              </Badge>
+            ) : submission ? (
+              <Badge className="bg-slate-100 text-slate-700 border-slate-200">
+                Em andamento
               </Badge>
             ) : (
               <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">

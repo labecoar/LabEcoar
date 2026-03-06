@@ -8,27 +8,19 @@ export const submissionsService = {
    * Buscar submissões do usuário
    */
   async getUserSubmissions(userId) {
+    const baseSelect = `
+      *,
+      task:tasks (
+        id,
+        title,
+        category,
+        points
+      )
+    `
+
     const { data, error } = await supabase
       .from('submissions')
-      .select(`
-        *,
-        task:tasks (
-          id,
-          title,
-          category,
-          points,
-          description,
-          proof_type,
-          content_formats,
-          offered_value,
-          campaign_type,
-          requires_application,
-          max_participants,
-          current_participants,
-          min_followers,
-          expires_at
-        )
-      `)
+      .select(baseSelect)
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
