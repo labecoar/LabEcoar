@@ -8,7 +8,9 @@ const AuthContext = createContext({
   loading: true,
   isAuthenticated: false,
   isAdmin: false,
+  isProfileComplete: false,
   signIn: async (_email, _password) => null,
+  signInWithGoogle: async () => null,
   signUp: async (_email, _password, _userData) => null,
   resetPassword: async (_email) => null,
   signOut: async () => null,
@@ -93,6 +95,12 @@ export function AuthProvider({ children }) {
     return data
   }
 
+  // Função de login com Google
+  const signInWithGoogle = async () => {
+    const data = await authService.signInWithGoogle()
+    return data
+  }
+
   // Recuperação de senha
   const resetPassword = async (email) => {
     const data = await authService.resetPassword(email)
@@ -117,6 +125,14 @@ export function AuthProvider({ children }) {
 
   // Verificar se é admin
   const isAdmin = profile?.role === 'admin'
+  const isProfileComplete = Boolean(
+    profile
+    && (profile.display_name || profile.full_name)
+    && String(profile.cpf || '').trim()
+    && String(profile.instagram_handle || '').trim()
+    && profile.followers_count !== null
+    && profile.followers_count !== undefined
+  )
 
   const value = {
     user,
@@ -124,7 +140,9 @@ export function AuthProvider({ children }) {
     loading,
     isAuthenticated,
     isAdmin,
+    isProfileComplete,
     signIn,
+    signInWithGoogle,
     signUp,
     resetPassword,
     signOut,

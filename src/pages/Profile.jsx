@@ -20,6 +20,7 @@ const CATEGORY_LABELS = {
 
 const getProfileFormData = (profile) => ({
   display_name: profile?.display_name || profile?.full_name || '',
+  cpf: profile?.cpf || '',
   bio: profile?.bio || profile?.biography || '',
   instagram_handle: profile?.instagram_handle || profile?.instagram || '',
   followers_count: profile?.followers_count ?? 0,
@@ -28,6 +29,7 @@ const getProfileFormData = (profile) => ({
 
 const normalizeFormData = (data) => ({
   display_name: (data?.display_name || '').trim(),
+  cpf: (data?.cpf || '').trim(),
   bio: (data?.bio || '').trim(),
   instagram_handle: (data?.instagram_handle || '').trim(),
   followers_count: Number(data?.followers_count || 0),
@@ -104,6 +106,7 @@ export default function Profile() {
     if (!isEditing || !hasChanges) return
     updateProfileMutation.mutate({
       display_name: formData.display_name,
+      cpf: formData.cpf,
       bio: formData.bio,
       biography: formData.bio,
       instagram_handle: formData.instagram_handle,
@@ -242,6 +245,18 @@ export default function Profile() {
                       disabled={!isEditing}
                       className={!isEditing ? 'bg-gray-50' : ''}
                       onChange={(event) => setFormData((previous) => ({ ...previous, display_name: event.target.value }))}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="cpf">CPF</Label>
+                    <Input
+                      id="cpf"
+                      placeholder="000.000.000-00"
+                      value={formData.cpf}
+                      disabled={!isEditing}
+                      className={!isEditing ? 'bg-gray-50' : ''}
+                      onChange={(event) => setFormData((previous) => ({ ...previous, cpf: event.target.value }))}
                     />
                   </div>
 

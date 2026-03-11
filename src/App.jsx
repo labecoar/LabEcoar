@@ -39,6 +39,14 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       <Route path="/Login" element={<Pages.Login />} />
+      <Route
+        path="/CompleteProfile"
+        element={
+          <ProtectedRoute requireCompleteProfile={false}>
+            <Pages.CompleteProfile />
+          </ProtectedRoute>
+        }
+      />
       <Route path="/" element={
         <ProtectedRoute requireAdmin={isAdminPage(landingPageKey)}>
           <LayoutWrapper currentPageName={landingPageKey}>
@@ -47,7 +55,7 @@ const AuthenticatedApp = () => {
         </ProtectedRoute>
       } />
       {Object.entries(Pages).map(([path, Page]) => {
-        if (path === 'Login') return null; // Already mapped
+        if (path === 'Login' || path === 'CompleteProfile') return null; // Already mapped
         return (
           <Route
             key={path}

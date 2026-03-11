@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   email TEXT UNIQUE NOT NULL,
   full_name TEXT,
   display_name TEXT,
+  cpf TEXT,
   bio TEXT,
   instagram_handle TEXT,
   avatar_url TEXT,
@@ -33,6 +34,7 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 -- Garantir colunas de perfil adicionais em bases já existentes
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS display_name TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS cpf TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS instagram_handle TEXT;
 

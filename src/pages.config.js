@@ -50,6 +50,7 @@
 import AdminApplications from './pages/AdminApplications';
 import AdminApproval from './pages/AdminApproval';
 import AdminContentManagement from './pages/AdminContentManagement';
+import CompleteProfile from './pages/CompleteProfile';
 import Dashboard from './pages/Dashboard';
 import Forum from './pages/Forum';
 import Leaderboard from './pages/Leaderboard';
@@ -66,6 +67,7 @@ export const PAGES = {
     "AdminApplications": AdminApplications,
     "AdminApproval": AdminApproval,
     "AdminContentManagement": AdminContentManagement,
+    "CompleteProfile": CompleteProfile,
     "Dashboard": Dashboard,
     "Forum": Forum,
     "Leaderboard": Leaderboard,

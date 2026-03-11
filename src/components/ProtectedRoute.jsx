@@ -1,8 +1,9 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 
-export function ProtectedRoute({ children, requireAdmin = false, redirectTo = '/Dashboard' }) {
-  const { isAuthenticated, isAdmin, loading } = useAuth()
+export function ProtectedRoute({ children, requireAdmin = false, requireCompleteProfile = true, redirectTo = '/Dashboard' }) {
+  const { isAuthenticated, isAdmin, isProfileComplete, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return (
@@ -17,6 +18,14 @@ export function ProtectedRoute({ children, requireAdmin = false, redirectTo = '/
 
   if (!isAuthenticated) {
     return <Navigate to="/Login" replace />
+  }
+
+  if (!isAdmin && requireCompleteProfile && !isProfileComplete) {
+    return <Navigate to="/CompleteProfile" replace />
+  }
+
+  if (!isAdmin && location.pathname === '/CompleteProfile' && isProfileComplete) {
+    return <Navigate to="/Dashboard" replace />
   }
 
   if (requireAdmin && !isAdmin) {
