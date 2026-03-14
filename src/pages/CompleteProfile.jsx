@@ -74,7 +74,7 @@ export default function CompleteProfile() {
         bio: bio.trim() || null,
       })
 
-      navigate('/Dashboard', { replace: true })
+      navigate('/', { replace: true })
     } catch (submitError) {
       console.error('Erro ao completar cadastro:', submitError)
       setError('Não foi possível salvar os dados. Tente novamente.')

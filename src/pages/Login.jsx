@@ -172,7 +172,7 @@ export default function Login() {
           return
         }
         await signIn(email, password)
-        navigate('/Dashboard')
+        navigate('/')
         return
       }
 
@@ -188,7 +188,7 @@ export default function Login() {
 
       const data = await signUp(email, password, { full_name: name })
       if (data?.session) {
-        navigate('/Dashboard')
+        navigate('/')
       } else {
         setInfo('Conta criada. Verifique seu email para confirmar o cadastro.')
       }

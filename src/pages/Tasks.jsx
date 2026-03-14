@@ -54,6 +54,56 @@ const getSubmissionTaskId = (submission) => {
   return submission?.task_id || submission?.task?.id || submission?.taskId || null;
 }
 
+const getDeadlineState = (expiresAtValue) => {
+  if (!expiresAtValue) {
+    return {
+      expiresAt: null,
+      isExpired: false,
+      isCritical: false,
+      isWarning: false,
+      timeLabel: 'Sem data',
+    };
+  }
+
+  const expiresAt = new Date(expiresAtValue);
+  if (Number.isNaN(expiresAt.getTime())) {
+    return {
+      expiresAt: null,
+      isExpired: false,
+      isCritical: false,
+      isWarning: false,
+      timeLabel: 'Data inválida',
+    };
+  }
+
+  const diffMs = expiresAt.getTime() - Date.now();
+  const isExpired = diffMs <= 0;
+  const oneDayMs = 24 * 60 * 60 * 1000;
+  const threeDaysMs = 3 * oneDayMs;
+
+  if (isExpired) {
+    return {
+      expiresAt,
+      isExpired: true,
+      isCritical: false,
+      isWarning: false,
+      timeLabel: 'Expirada',
+    };
+  }
+
+  const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+
+  return {
+    expiresAt,
+    isExpired: false,
+    isCritical: diffMs <= oneDayMs,
+    isWarning: diffMs > oneDayMs && diffMs <= threeDaysMs,
+    timeLabel: days > 0 ? `${days}d ${hours}h` : `${hours}h`,
+  };
+};
+
 export default function Tasks() {
   const [selectedCategory, setSelectedCategory] = useState("todas");
   const [selectedTask, setSelectedTask] = useState(null);
@@ -107,10 +157,11 @@ export default function Tasks() {
     const claimed = isTaskClaimed(task.id);
     const approved = isTaskApproved(task.id);
     const rejected = isTaskRejected(task.id);
+    const deadline = getDeadlineState(task.expires_at);
 
     return (
       <Card
-        className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2"
+        className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 border-gray-200 bg-white hover:border-emerald-300"
         onClick={() => setSelectedTask(task)}
       >
         <CardHeader className="pb-3">
@@ -144,9 +195,16 @@ export default function Tasks() {
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-4 text-gray-500">
               {task.expires_at && (
-                <div className="flex items-center gap-1">
+                <div className={`flex items-center gap-1 px-2 py-1 rounded-md border ${
+                  deadline.isCritical
+                    ? 'bg-red-100 text-red-700 border-red-200'
+                    : deadline.isWarning
+                      ? 'bg-amber-100 text-amber-700 border-amber-200'
+                      : 'bg-gray-100 text-gray-600 border-gray-200'
+                }`}>
                   <Calendar className="w-4 h-4" />
                   <span>{format(new Date(task.expires_at), "dd MMM", { locale: ptBR })}</span>
+                  <span className="font-semibold">({deadline.timeLabel})</span>
                 </div>
               )}
               {task.max_participants && (

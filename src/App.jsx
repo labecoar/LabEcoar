@@ -10,7 +10,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
-const ADMIN_ONLY_PAGES = new Set(['AdminContentManagement', 'AdminApproval', 'AdminApplications', 'Leaderboard']);
+const ADMIN_ONLY_PAGES = new Set(['AdminContentManagement', 'AdminApproval', 'AdminApplications', 'AdminMetrics', 'Leaderboard']);
 const isAdminPage = (pageName) => ADMIN_ONLY_PAGES.has(pageName);
 
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
@@ -19,7 +19,7 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 
 const AuthenticatedApp = () => {
   const { loading, isAuthenticated, isAdmin } = useAuth();
-  const landingPageKey = isAdmin ? 'AdminApproval' : mainPageKey;
+  const landingPageKey = isAdmin ? 'AdminContentManagement' : mainPageKey;
   const LandingPage = landingPageKey ? Pages[landingPageKey] : null;
 
   // Show loading spinner while checking auth
@@ -27,7 +27,6 @@ const AuthenticatedApp = () => {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-50 to-green-100">
         <div className="text-center">
-          <div className="text-4xl mb-4">🌿</div>
           <div className="w-12 h-12 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mx-auto"></div>
           <p className="mt-4 text-gray-600">Carregando... </p>
         </div>

@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateSubmission, useSubmitProof } from "@/hooks/useSubmissions";
+import { useMyMetricsSubmissions, useSubmitMetricsSubmission } from "@/hooks/useMetrics";
 import { useUploadFile } from "@/hooks/useStorage";
 import {
   Dialog,
@@ -13,8 +14,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar, Users, Star, CircleDollarSign, UserRoundCheck, Send, Upload } from "lucide-react";
+import { Calendar, Users, Star, CircleDollarSign, UserRoundCheck, Send, Upload, BarChart3 } from "lucide-react";
 
 const CATEGORY_NAMES = {
   campanha: "Campanha",
@@ -74,10 +76,15 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [proofDescription, setProofDescription] = useState('');
   const [proofFile, setProofFile] = useState(null);
+  const [metricsDescription, setMetricsDescription] = useState('');
+  const [metricsLink, setMetricsLink] = useState('');
+  const [metricsFile, setMetricsFile] = useState(null);
   const { user } = useAuth();
   const createSubmission = useCreateSubmission();
   const submitProof = useSubmitProof();
+  const submitMetrics = useSubmitMetricsSubmission();
   const uploadFile = useUploadFile();
+  const { data: myMetricsSubmissions = [] } = useMyMetricsSubmissions(user?.id);
 
   if (!task) return null;
 
@@ -90,6 +97,27 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const canApply = !currentSubmission && !isTaskApproved && !isFull;
   const canSubmitProof = submissionStatus === 'application_approved';
   const isWaiting = ['application_pending', 'proof_pending', 'pending'].includes(submissionStatus);
+  const isCampaignTask = task?.category === 'campanha';
+  const currentMetricsSubmission = useMemo(
+    () => myMetricsSubmissions.find((item) => String(item.task_id) === String(task.id)) || null,
+    [myMetricsSubmissions, task.id]
+  );
+  const metricsStatus = currentMetricsSubmission?.status;
+  const canSubmitMetrics = isCampaignTask && submissionStatus === 'approved' && (!currentMetricsSubmission || metricsStatus === 'rejected');
+  const postingDeadline = task.posting_deadline ? new Date(task.posting_deadline) : null;
+  const hasValidPostingDeadline = postingDeadline && !Number.isNaN(postingDeadline.getTime());
+  const metricsWindowStart = hasValidPostingDeadline
+    ? new Date(postingDeadline.getTime() + 5 * 24 * 60 * 60 * 1000)
+    : null;
+  const metricsWindowEnd = hasValidPostingDeadline
+    ? new Date(postingDeadline.getTime() + 8 * 24 * 60 * 60 * 1000)
+    : null;
+  const now = new Date();
+  const isInsideMetricsWindow =
+    metricsWindowStart && metricsWindowEnd
+      ? now >= metricsWindowStart && now <= metricsWindowEnd
+      : true;
+  const hasMetricsWindowPassed = metricsWindowEnd ? now > metricsWindowEnd : false;
 
   const handleApply = async (e) => {
     e.preventDefault();
@@ -142,6 +170,40 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     } catch (error) {
       console.error('Erro ao enviar prova:', error);
       alert(`Erro ao enviar prova da tarefa.\n\nDetalhes: ${error?.message || 'Sem detalhes.'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSendMetrics = async (e) => {
+    e.preventDefault();
+    if (!canSubmitMetrics || !metricsFile) return;
+    if (!isInsideMetricsWindow) {
+      alert('As métricas só podem ser enviadas entre o 5º e o 8º dia após a postagem.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const { url } = await uploadFile.mutateAsync({ file: metricsFile, userId: user.id });
+
+      await submitMetrics.mutateAsync({
+        user,
+        task,
+        metricsFileUrl: url,
+        metricsLink,
+        description: metricsDescription,
+      });
+
+      alert('Métricas enviadas com sucesso! Aguarde a análise do administrador.');
+      setMetricsDescription('');
+      setMetricsLink('');
+      setMetricsFile(null);
+      onClose();
+    } catch (error) {
+      console.error('Erro ao enviar métricas:', error);
+      alert(`Erro ao enviar métricas.\n\nDetalhes: ${error?.message || 'Sem detalhes.'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -208,6 +270,11 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
           <div>
             <h3 className="font-semibold mb-1 text-[#3c0b14]">Descrição</h3>
             <p className="text-sm text-gray-700 whitespace-pre-wrap">{task.description}</p>
+            {task.posting_deadline && (
+              <p className="text-xs text-gray-500 mt-2">
+                Data limite de postagem: {new Date(task.posting_deadline).toLocaleDateString('pt-BR')} {new Date(task.posting_deadline).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            )}
           </div>
 
           <div className="pt-3 border-t">
@@ -284,6 +351,105 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                     : 'Enviar prova para aprovação final'}
                 </Button>
               </form>
+            </div>
+          )}
+
+          {isCampaignTask && submissionStatus === 'approved' && (
+            <div className="rounded-xl border border-sky-200 bg-sky-50/50 p-3 space-y-3">
+              <p className="font-semibold text-sky-700 inline-flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" />
+                Etapa 3: Postar e enviar métricas
+              </p>
+              <p className="text-xs text-gray-600">
+                Você está autorizado a postar. Lembre-se de enviar um arquivo com comprovação da data da postagem.
+              </p>
+
+              {metricsWindowStart && metricsWindowEnd && (
+                <div className="text-xs rounded-lg p-3 border bg-amber-50 border-amber-200 text-amber-800">
+                  Janela de envio de métricas: de {metricsWindowStart.toLocaleDateString('pt-BR')} até {metricsWindowEnd.toLocaleDateString('pt-BR')}.
+                </div>
+              )}
+
+              {!isInsideMetricsWindow && !hasMetricsWindowPassed && (
+                <div className="text-xs rounded-lg p-3 border bg-blue-50 border-blue-200 text-blue-800">
+                  O envio ainda não está disponível. Aguarde até o 5º dia após a postagem.
+                </div>
+              )}
+
+              {hasMetricsWindowPassed && (
+                <div className="text-xs rounded-lg p-3 border bg-red-50 border-red-200 text-red-800">
+                  A janela para envio de métricas foi encerrada (após o 8º dia).
+                </div>
+              )}
+
+              {!currentMetricsSubmission || metricsStatus === 'rejected' ? (
+                <form onSubmit={handleSendMetrics} className="space-y-3">
+                  <div>
+                    <Label htmlFor="metrics-link">Link do post (opcional)</Label>
+                    <Input
+                      id="metrics-link"
+                      type="url"
+                      value={metricsLink}
+                      onChange={(e) => setMetricsLink(e.target.value)}
+                      placeholder="https://..."
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="metrics-description">Descrição das métricas (opcional)</Label>
+                    <Textarea
+                      id="metrics-description"
+                      value={metricsDescription}
+                      onChange={(e) => setMetricsDescription(e.target.value)}
+                      placeholder="Explique os dados enviados..."
+                      rows={3}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="metrics-file">Arquivo de métricas</Label>
+                    <input
+                      id="metrics-file"
+                      type="file"
+                      onChange={(e) => setMetricsFile(e.target.files?.[0] || null)}
+                      className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-sky-100 file:text-sky-700 hover:file:bg-sky-200"
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting || uploadFile.isPending || submitMetrics.isPending || !metricsFile || !isInsideMetricsWindow}
+                    className="w-full bg-sky-600 hover:bg-sky-700"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {isSubmitting || uploadFile.isPending || submitMetrics.isPending
+                      ? 'Enviando métricas...'
+                      : currentMetricsSubmission?.status === 'rejected'
+                        ? 'Reenviar métricas'
+                        : 'Enviar métricas para aprovação'}
+                  </Button>
+                </form>
+              ) : (
+                <div className="space-y-2">
+                  {metricsStatus === 'pending' && (
+                    <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+                      Métricas em análise
+                    </Badge>
+                  )}
+                  {metricsStatus === 'approved' && (
+                    <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+                      Métricas aprovadas - pagamento a caminho
+                    </Badge>
+                  )}
+                </div>
+              )}
+
+              {currentMetricsSubmission?.status === 'rejected' && currentMetricsSubmission?.rejection_reason && (
+                <div className="rounded-lg bg-red-50 border border-red-200 p-3">
+                  <p className="text-xs font-semibold text-red-700 mb-1">Motivo da rejeição das métricas</p>
+                  <p className="text-sm text-red-600">{currentMetricsSubmission.rejection_reason}</p>
+                </div>
+              )}
             </div>
           )}
 

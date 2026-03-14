@@ -101,13 +101,16 @@ export default function AdminApplications() {
 
   return (
     <div className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-emerald-50 via-white to-green-50">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Seleção de Candidatos</h1>
+      <div className="max-w-7xl mx-auto space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-emerald-700 mb-2 inline-flex items-center gap-2">
+            Seleção de Candidatos
+            <Users className="w-7 h-7" />
+          </h1>
           <p className="text-gray-600">Aprove ou rejeite inscrições nas tarefas antes do envio de provas.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="border-yellow-200 shadow-sm">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
@@ -115,8 +118,8 @@ export default function AdminApplications() {
                   <Eye className="w-5 h-5 text-yellow-700" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Pendentes</p>
-                  <p className="text-4xl font-bold text-yellow-600">{pendingApplications.length}</p>
+                  <p className="text-sm text-gray-600">Pendentes</p>
+                  <p className="text-2xl font-bold text-gray-900">{pendingApplications.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -129,8 +132,8 @@ export default function AdminApplications() {
                   <CheckCircle className="w-5 h-5 text-emerald-700" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Selecionados</p>
-                  <p className="text-4xl font-bold text-emerald-600">{selectedApplications.length}</p>
+                  <p className="text-sm text-gray-600">Selecionados</p>
+                  <p className="text-2xl font-bold text-gray-900">{selectedApplications.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -143,8 +146,8 @@ export default function AdminApplications() {
                   <XCircle className="w-5 h-5 text-gray-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Não Selecionados</p>
-                  <p className="text-4xl font-bold text-gray-500">{rejectedApplications.length}</p>
+                  <p className="text-sm text-gray-600">Não Selecionados</p>
+                  <p className="text-2xl font-bold text-gray-900">{rejectedApplications.length}</p>
                 </div>
               </div>
             </CardContent>

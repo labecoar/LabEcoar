@@ -12,6 +12,16 @@ export function useTasks() {
 }
 
 /**
+ * Hook para listar todas as tarefas (Admin)
+ */
+export function useAdminTasks() {
+  return useQuery({
+    queryKey: ['tasks', 'admin-all'],
+    queryFn: () => tasksService.getAllTasks(),
+  })
+}
+
+/**
  * Hook para buscar tarefa específica
  */
 export function useTask(taskId) {
@@ -32,6 +42,7 @@ export function useCreateTask() {
     mutationFn: (taskData) => tasksService.createTask(taskData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks', 'admin-all'] })
     },
   })
 }
@@ -46,6 +57,7 @@ export function useUpdateTask() {
     mutationFn: ({ taskId, updates }) => tasksService.updateTask(taskId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks', 'admin-all'] })
     },
   })
 }
@@ -60,6 +72,7 @@ export function useDeleteTask() {
     mutationFn: (taskId) => tasksService.deleteTask(taskId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks', 'admin-all'] })
     },
   })
 }

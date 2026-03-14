@@ -125,14 +125,18 @@ export function AuthProvider({ children }) {
 
   // Verificar se é admin
   const isAdmin = profile?.role === 'admin'
-  const isProfileComplete = Boolean(
+  const hasLegacyProfileCompletion = Boolean(
     profile
     && (profile.display_name || profile.full_name)
-    && String(profile.cpf || '').trim()
-    && String(profile.instagram_handle || '').trim()
+    && String(profile.instagram_handle || profile.instagram || '').trim()
     && profile.followers_count !== null
     && profile.followers_count !== undefined
   )
+  const hasCurrentProfileCompletion = Boolean(
+    hasLegacyProfileCompletion
+    && String(profile?.cpf || '').trim()
+  )
+  const isProfileComplete = Boolean(hasCurrentProfileCompletion || hasLegacyProfileCompletion)
 
   const value = {
     user,

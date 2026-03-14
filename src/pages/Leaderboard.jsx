@@ -38,17 +38,18 @@ export default function Leaderboard() {
 
   return (
     <div className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-emerald-50 via-white to-green-50">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+      <div className="max-w-7xl mx-auto space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-emerald-700 inline-flex items-center gap-2">
             Ranking de Ecoantes
+            <Trophy className="w-7 h-7" />
           </h1>
-          <p className="text-gray-600 mt-2">Veja quem está liderando o movimento climático</p>
+          <p className="text-gray-600">Veja quem está liderando o movimento climático</p>
         </div>
 
         {/* Top 3 */}
         {topThree.length > 0 && (
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <div className="grid md:grid-cols-3 gap-6">
             {topThree.map((entry, index) => {
               const rank = index + 1;
               return (

@@ -1,15 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePendingSubmissions, useApproveSubmission, useRejectSubmission } from "@/hooks/useSubmissions";
 import { useAddPoints } from "@/hooks/useScores";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  CheckCircle, XCircle, Download, ExternalLink,
-  Clock, User, Calendar, FileText, Star
+  CheckCircle, XCircle, ExternalLink,
+  Clock, User, Calendar, Star, Shield
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -31,13 +30,63 @@ export default function AdminApproval() {
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [isRejecting, setIsRejecting] = useState(false);
+  const [, setNowTick] = useState(Date.now());
   const { profile } = useAuth();
   
   const { data: pendingSubmissions = [], isLoading } = usePendingSubmissions();
   const approveSubmission = useApproveSubmission();
   const rejectSubmission = useRejectSubmission();
   const addPoints = useAddPoints();
-  const proofPendingSubmissions = pendingSubmissions.filter((submission) => submission.status === 'proof_pending');
+
+  useEffect(() => {
+    const interval = setInterval(() => setNowTick(Date.now()), 60000);
+    return () => clearInterval(interval);
+  }, []);
+  const getReviewDeadline = (submission) => {
+    const referenceDate = submission.updated_at || submission.created_at;
+    if (!referenceDate) return null;
+    const base = new Date(referenceDate);
+    if (Number.isNaN(base.getTime())) return null;
+    return new Date(base.getTime() + 5 * 60 * 60 * 1000);
+  };
+
+  const formatRemainingReviewTime = (submission) => {
+    const deadline = getReviewDeadline(submission);
+    if (!deadline) return 'Sem prazo';
+    const diffMs = deadline.getTime() - Date.now();
+    if (diffMs <= 0) return 'Prazo estourado';
+
+    const totalMinutes = Math.floor(diffMs / (1000 * 60));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}h ${minutes}min`;
+  };
+
+  const isReviewOverdue = (submission) => {
+    const deadline = getReviewDeadline(submission);
+    if (!deadline) return false;
+    return deadline.getTime() <= Date.now();
+  };
+
+  const isReviewCritical = (submission) => {
+    const deadline = getReviewDeadline(submission);
+    if (!deadline) return false;
+    const diffMs = deadline.getTime() - Date.now();
+    return diffMs > 0 && diffMs <= 60 * 60 * 1000;
+  };
+
+  const proofPendingSubmissions = pendingSubmissions
+    .filter((submission) => submission.status === 'proof_pending')
+    .sort((a, b) => {
+      const aDeadline = getReviewDeadline(a);
+      const bDeadline = getReviewDeadline(b);
+      if (!aDeadline && !bDeadline) return 0;
+      if (!aDeadline) return 1;
+      if (!bDeadline) return -1;
+      return aDeadline.getTime() - bDeadline.getTime();
+    });
+  const overdueProofSubmissions = proofPendingSubmissions.filter((submission) => isReviewOverdue(submission));
+  const activeProofSubmissions = proofPendingSubmissions.filter((submission) => !isReviewOverdue(submission));
 
   // Verifica se é admin
   if (profile?.role !== 'admin') {
@@ -108,7 +157,13 @@ export default function AdminApproval() {
 
   const SubmissionCard = ({ submission }) => (
     <Card
-      className="cursor-pointer hover:shadow-lg transition-all border-2 border-gray-200 hover:border-emerald-300"
+      className={`cursor-pointer hover:shadow-lg transition-all border-2 ${
+        isReviewOverdue(submission)
+          ? 'border-red-400 bg-red-50/70 hover:border-red-500'
+          : isReviewCritical(submission)
+            ? 'border-amber-300 bg-amber-50/50 hover:border-amber-400'
+            : 'border-gray-200 hover:border-emerald-300'
+      }`}
       onClick={() => setSelectedSubmission(submission)}
     >
       <CardHeader className="pb-3">
@@ -153,17 +208,32 @@ export default function AdminApproval() {
             <Calendar className="w-4 h-4" />
             <span>{format(new Date(submission.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
           </div>
-          {submission.status === 'proof_pending' ? (
-            <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
-              <Clock className="w-3 h-3 mr-1" />
-              Prova Pendente
-            </Badge>
-          ) : (
-            <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
-              <Clock className="w-3 h-3 mr-1" />
-              Inscrição Pendente
-            </Badge>
-          )}
+          <div className="flex flex-col items-end gap-1">
+            {submission.status === 'proof_pending' ? (
+              <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
+                <Clock className="w-3 h-3 mr-1" />
+                Prova Pendente
+              </Badge>
+            ) : (
+              <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
+                <Clock className="w-3 h-3 mr-1" />
+                Inscrição Pendente
+              </Badge>
+            )}
+            {isReviewOverdue(submission) ? (
+              <Badge className="bg-red-600 text-white border-red-700 animate-pulse">
+                Prazo estourado
+              </Badge>
+            ) : isReviewCritical(submission) ? (
+              <Badge className="bg-amber-500 text-white border-amber-600">
+                Urgente: {formatRemainingReviewTime(submission)}
+              </Badge>
+            ) : (
+              <Badge className="bg-red-100 text-red-700 border-red-200">
+                Revisar em {formatRemainingReviewTime(submission)}
+              </Badge>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -182,14 +252,17 @@ export default function AdminApproval() {
 
   return (
     <div className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-emerald-50 via-white to-green-50">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Aprovação Final de Provas</h1>
+      <div className="max-w-7xl mx-auto space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-emerald-700 mb-2 inline-flex items-center gap-2">
+            Aprovação Final de Provas
+            <Shield className="w-7 h-7" />
+          </h1>
           <p className="text-gray-600">Valide as provas enviadas após aprovação de inscrição.</p>
         </div>
 
         {/* Estatísticas Rápidas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
@@ -199,6 +272,21 @@ export default function AdminApproval() {
                 <div>
                   <p className="text-2xl font-bold text-gray-900">{proofPendingSubmissions.length}</p>
                   <p className="text-sm text-gray-600">Provas Aguardando Análise</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className={overdueProofSubmissions.length > 0 ? 'border-2 border-red-300 bg-red-50/60' : ''}>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-full ${overdueProofSubmissions.length > 0 ? 'bg-red-100' : 'bg-gray-100'}`}>
+                  <Clock className={`w-6 h-6 ${overdueProofSubmissions.length > 0 ? 'text-red-700' : 'text-gray-500'}`} />
+                </div>
+                <div>
+                  <p className={`text-2xl font-bold ${overdueProofSubmissions.length > 0 ? 'text-red-700' : 'text-gray-900'}`}>
+                    {overdueProofSubmissions.length}
+                  </p>
+                  <p className="text-sm text-gray-600">Com Prazo Estourado (&gt;5h)</p>
                 </div>
               </div>
             </CardContent>
@@ -219,10 +307,31 @@ export default function AdminApproval() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {proofPendingSubmissions.map((submission) => (
-              <SubmissionCard key={submission.id} submission={submission} />
-            ))}
+          <div className="space-y-6">
+            {overdueProofSubmissions.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-lg font-bold text-red-700">Prioridade Máxima: Provas Atrasadas</h2>
+                  <Badge className="bg-red-600 text-white border-red-700">{overdueProofSubmissions.length} atrasada(s)</Badge>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {overdueProofSubmissions.map((submission) => (
+                    <SubmissionCard key={submission.id} submission={submission} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeProofSubmissions.length > 0 && (
+              <div>
+                <h2 className="text-lg font-bold text-gray-800 mb-3">Demais Provas Pendentes</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {activeProofSubmissions.map((submission) => (
+                    <SubmissionCard key={submission.id} submission={submission} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -245,6 +354,11 @@ export default function AdminApproval() {
                     <span className="font-semibold">{selectedSubmission.task?.points} pontos</span>
                   </div>
                   <Badge>{selectedSubmission.task?.category}</Badge>
+                  {selectedSubmission.task?.category === 'campanha' && (
+                    <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+                      Após prova, aguarda etapa de métricas
+                    </Badge>
+                  )}
                   <Badge className="bg-gray-100 text-gray-700 border-gray-200">
                     {STATUS_LABELS[selectedSubmission.status] || selectedSubmission.status}
                   </Badge>

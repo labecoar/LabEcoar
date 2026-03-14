@@ -2,8 +2,9 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Home, Target, CheckCircle2, Trophy, LogOut, Shield, User, MessageSquare, Gift, DollarSign } from "lucide-react";
+import { Home, Target, CheckCircle2, Trophy, LogOut, Shield, User, MessageSquare, Gift, DollarSign, BarChart3 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserScore } from "@/hooks/useScores";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import {
   Sidebar,
@@ -74,6 +75,11 @@ const adminNavigationItems = [
     icon: User,
   },
   {
+    title: "Métricas",
+    url: createPageUrl("AdminMetrics"),
+    icon: BarChart3,
+  },
+  {
     title: "Ranking",
     url: createPageUrl("Leaderboard"),
     icon: Trophy,
@@ -87,9 +93,17 @@ const CATEGORY_INFO = {
   carnaval: { name: "Carnaval", color: "bg-orange-500", range: "999+ pts", value: "R$ 4.500" }
 };
 
+const getCategoryByPoints = (points = 0) => {
+  if (points >= 1001) return 'carnaval';
+  if (points >= 501) return 'fanfarra';
+  if (points >= 201) return 'dueto';
+  return 'voz_e_violao';
+};
+
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const { user, profile, isAdmin, signOut } = useAuth();
+  const { data: userScore } = useUserScore(user?.id);
   const visibleNavigationItems = isAdmin ? adminNavigationItems : navigationItems;
 
   const handleLogout = async () => {
@@ -97,7 +111,19 @@ export default function Layout({ children, currentPageName }) {
     window.location.href = '/Login';
   };
 
-  const categoryInfo = CATEGORY_INFO[profile?.current_category || 'voz_e_violao'];
+  const hasScoreLoaded = typeof userScore?.total_points === 'number';
+  const currentPoints = Number(userScore?.total_points || 0);
+  const categoryKey = hasScoreLoaded
+    ? getCategoryByPoints(currentPoints)
+    : (profile?.current_category || 'voz_e_violao');
+  const categoryInfo = CATEGORY_INFO[categoryKey] || CATEGORY_INFO.voz_e_violao;
+  const displayUserName = isAdmin
+    ? 'Administrador'
+    : (user?.display_name && user.display_name.trim() !== ''
+      ? user.display_name
+      : user?.full_name && user.full_name.trim() !== ''
+        ? user.full_name
+        : 'Ecoante');
 
   return (
     <SidebarProvider>
@@ -190,7 +216,7 @@ export default function Layout({ children, currentPageName }) {
               </SidebarGroupContent>
             </SidebarGroup>
 
-            {user && (
+            {user && !isAdmin && (
               <SidebarGroup className="mt-6">
                 <div className="px-4 py-4 rounded-xl border-2" style={{
                   background: 'linear-gradient(135deg, #096e4c05 0%, #00c33105 100%)',
@@ -206,7 +232,7 @@ export default function Layout({ children, currentPageName }) {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm" style={{ color: '#3c0b14' }}>Pontos</span>
-                      <span className="font-bold" style={{ color: '#096e4c' }}>{user.total_points || 0}</span>
+                      <span className="font-bold" style={{ color: '#096e4c' }}>{currentPoints}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm" style={{ color: '#3c0b14' }}>Ganho Previsto</span>
@@ -238,7 +264,7 @@ export default function Layout({ children, currentPageName }) {
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate" style={{ color: '#3c0b14' }}>{user?.display_name && user.display_name.trim() !== '' ? user.display_name : user?.full_name && user.full_name.trim() !== '' ? user.full_name : 'Ecoante'}</p>
+                  <p className="font-medium text-sm truncate" style={{ color: '#3c0b14' }}>{displayUserName}</p>
                   <p className="text-xs truncate" style={{ color: '#929292' }}>{user?.instagram_handle || user?.email}</p>
                 </div>
               </div>

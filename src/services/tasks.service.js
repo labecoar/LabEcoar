@@ -19,6 +19,19 @@ export const tasksService = {
   },
 
   /**
+   * Listar todas as tarefas (Admin)
+   */
+  async getAllTasks() {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data || []
+  },
+
+  /**
    * Buscar tarefa por ID
    */
   async getTaskById(taskId) {

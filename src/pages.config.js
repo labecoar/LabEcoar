@@ -50,9 +50,11 @@
 import AdminApplications from './pages/AdminApplications';
 import AdminApproval from './pages/AdminApproval';
 import AdminContentManagement from './pages/AdminContentManagement';
+import AdminMetrics from './pages/AdminMetrics';
 import CompleteProfile from './pages/CompleteProfile';
 import Dashboard from './pages/Dashboard';
 import Forum from './pages/Forum';
+import ForumTopic from './pages/ForumTopic';
 import Leaderboard from './pages/Leaderboard';
 import Login from './pages/Login';
 import MyPayments from './pages/MyPayments';
@@ -67,9 +69,11 @@ export const PAGES = {
     "AdminApplications": AdminApplications,
     "AdminApproval": AdminApproval,
     "AdminContentManagement": AdminContentManagement,
+    "AdminMetrics": AdminMetrics,
     "CompleteProfile": CompleteProfile,
     "Dashboard": Dashboard,
     "Forum": Forum,
+    "ForumTopic": ForumTopic,
     "Leaderboard": Leaderboard,
     "Login": Login,
     "MyPayments": MyPayments,
