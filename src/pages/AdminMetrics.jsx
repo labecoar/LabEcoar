@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminMetricsByStatus, useApproveMetricsSubmission, useRejectMetricsSubmission } from "@/hooks/useMetrics";

@@ -7,6 +7,25 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ===================================
+-- FUNÇÃO: Trimestre atual automático (Q1-AAAA / Q2-AAAA / Q3-AAAA / Q4-AAAA)
+-- ===================================
+CREATE OR REPLACE FUNCTION public.current_quarter_label()
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT CASE
+    WHEN EXTRACT(MONTH FROM NOW()) <= 3
+      THEN 'Q1-' || EXTRACT(YEAR FROM NOW())::TEXT
+    WHEN EXTRACT(MONTH FROM NOW()) <= 6
+      THEN 'Q2-' || EXTRACT(YEAR FROM NOW())::TEXT
+    WHEN EXTRACT(MONTH FROM NOW()) <= 9
+      THEN 'Q3-' || EXTRACT(YEAR FROM NOW())::TEXT
+    ELSE 'Q4-' || EXTRACT(YEAR FROM NOW())::TEXT
+  END;
+$$;
+
+-- ===================================
 -- TABELA: profiles
 -- Perfis dos usuários
 -- ===================================
@@ -24,7 +43,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   -- Dados de gamificação
   followers_count INTEGER DEFAULT 0,
   current_category TEXT DEFAULT 'voz_e_violao',
-  current_quarter TEXT DEFAULT 'Q1-2025',
+  current_quarter TEXT DEFAULT public.current_quarter_label(),
   campaigns_participated INTEGER DEFAULT 0,
   
   -- Timestamps
@@ -37,6 +56,7 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS display_name TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS cpf TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS instagram_handle TEXT;
+ALTER TABLE profiles ALTER COLUMN current_quarter SET DEFAULT public.current_quarter_label();
 
 -- ===================================
 -- TABELA: tasks
@@ -134,6 +154,174 @@ CREATE TABLE IF NOT EXISTS user_scores (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ===================================
+-- TABELA: payment_info
+-- Dados bancários do usuário
+-- ===================================
+CREATE TABLE IF NOT EXISTS payment_info (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL UNIQUE REFERENCES profiles(id) ON DELETE CASCADE,
+  account_type TEXT NOT NULL DEFAULT 'corrente' CHECK (account_type IN ('corrente', 'poupanca')),
+  bank_name TEXT NOT NULL,
+  bank_code TEXT,
+  agency TEXT NOT NULL,
+  account_number TEXT NOT NULL,
+  account_digit TEXT NOT NULL,
+  cpf TEXT NOT NULL,
+  full_name TEXT NOT NULL,
+  pix_key TEXT,
+  pix_type TEXT DEFAULT 'cpf' CHECK (pix_type IN ('cpf', 'email', 'telefone', 'aleatoria')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE payment_info ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+ALTER TABLE payment_info ADD COLUMN IF NOT EXISTS account_type TEXT DEFAULT 'corrente';
+ALTER TABLE payment_info ADD COLUMN IF NOT EXISTS bank_name TEXT;
+ALTER TABLE payment_info ADD COLUMN IF NOT EXISTS bank_code TEXT;
+ALTER TABLE payment_info ADD COLUMN IF NOT EXISTS agency TEXT;
+ALTER TABLE payment_info ADD COLUMN IF NOT EXISTS account_number TEXT;
+ALTER TABLE payment_info ADD COLUMN IF NOT EXISTS account_digit TEXT;
+ALTER TABLE payment_info ADD COLUMN IF NOT EXISTS cpf TEXT;
+ALTER TABLE payment_info ADD COLUMN IF NOT EXISTS full_name TEXT;
+ALTER TABLE payment_info ADD COLUMN IF NOT EXISTS pix_key TEXT;
+ALTER TABLE payment_info ADD COLUMN IF NOT EXISTS pix_type TEXT DEFAULT 'cpf';
+ALTER TABLE payment_info ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE payment_info ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'payment_info_user_id_key'
+  ) THEN
+    BEGIN
+      ALTER TABLE payment_info ADD CONSTRAINT payment_info_user_id_key UNIQUE (user_id);
+    EXCEPTION
+      WHEN duplicate_table OR duplicate_object THEN NULL;
+    END;
+  END IF;
+END $$;
+
+-- ===================================
+-- TABELA: payments
+-- Histórico de pagamentos do usuário
+-- ===================================
+CREATE TABLE IF NOT EXISTS payments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  quarter TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'voz_e_violao',
+  points INTEGER NOT NULL DEFAULT 0,
+  amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente', 'processando', 'pago', 'erro')),
+  payment_method TEXT,
+  paid_at TIMESTAMPTZ,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS quarter TEXT;
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'voz_e_violao';
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0;
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS amount NUMERIC(12,2) DEFAULT 0;
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pendente';
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS payment_method TEXT;
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ;
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_status_check;
+ALTER TABLE payments
+  ADD CONSTRAINT payments_status_check
+  CHECK (status IN ('pendente', 'processando', 'pago', 'erro'));
+
+-- ===================================
+-- TABELA: rewards
+-- Catálogo de recompensas
+-- ===================================
+CREATE TABLE IF NOT EXISTS rewards (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title TEXT NOT NULL,
+  description TEXT,
+  category TEXT NOT NULL DEFAULT 'outros' CHECK (category IN ('alimentacao', 'educacao', 'cultura', 'bem_estar', 'tecnologia', 'outros')),
+  points_required INTEGER NOT NULL CHECK (points_required > 0),
+  partner_name TEXT,
+  image_url TEXT,
+  terms TEXT,
+  validity_months INTEGER,
+  quantity_available INTEGER,
+  quantity_claimed INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'outros';
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS points_required INTEGER;
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS partner_name TEXT;
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS terms TEXT;
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS validity_months INTEGER;
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS quantity_available INTEGER;
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS quantity_claimed INTEGER DEFAULT 0;
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES profiles(id) ON DELETE SET NULL;
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+ALTER TABLE rewards DROP CONSTRAINT IF EXISTS rewards_category_check;
+ALTER TABLE rewards
+  ADD CONSTRAINT rewards_category_check
+  CHECK (category IN ('alimentacao', 'educacao', 'cultura', 'bem_estar', 'tecnologia', 'outros'));
+
+-- ===================================
+-- TABELA: reward_claims
+-- Resgates de recompensas dos usuários
+-- ===================================
+CREATE TABLE IF NOT EXISTS reward_claims (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  reward_id UUID NOT NULL REFERENCES rewards(id) ON DELETE RESTRICT,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  reward_title TEXT,
+  user_email TEXT,
+  user_name TEXT,
+  points_spent INTEGER NOT NULL CHECK (points_spent > 0),
+  status TEXT NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente', 'processando', 'entregue', 'cancelado', 'erro')),
+  claimed_at TIMESTAMPTZ DEFAULT NOW(),
+  processed_at TIMESTAMPTZ,
+  delivered_at TIMESTAMPTZ,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS reward_id UUID REFERENCES rewards(id) ON DELETE RESTRICT;
+ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS reward_title TEXT;
+ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS user_email TEXT;
+ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS user_name TEXT;
+ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS points_spent INTEGER;
+ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pendente';
+ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS claimed_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS processed_at TIMESTAMPTZ;
+ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ;
+ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+ALTER TABLE reward_claims DROP CONSTRAINT IF EXISTS reward_claims_status_check;
+ALTER TABLE reward_claims
+  ADD CONSTRAINT reward_claims_status_check
+  CHECK (status IN ('pendente', 'processando', 'entregue', 'cancelado', 'erro'));
 
 -- ===================================
 -- TABELA: forum_topics
@@ -272,6 +460,10 @@ ALTER TABLE user_scores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE metrics_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE forum_topics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE forum_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_info ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rewards ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reward_claims ENABLE ROW LEVEL SECURITY;
 
 -- Função helper para checar admin sem recursão de policy em profiles
 CREATE OR REPLACE FUNCTION public.is_admin(uid UUID)
@@ -449,6 +641,7 @@ CREATE POLICY "Authenticated users can view forum topics"
   ON forum_topics FOR SELECT
   USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Authenticated users can create forum topics" ON forum_topics;
 DROP POLICY IF EXISTS "Admins can create forum topics" ON forum_topics;
 CREATE POLICY "Authenticated users can create forum topics"
   ON forum_topics FOR INSERT
@@ -488,6 +681,207 @@ DROP POLICY IF EXISTS "Admins can delete forum posts" ON forum_posts;
 CREATE POLICY "Admins can delete forum posts"
   ON forum_posts FOR DELETE
   USING (public.is_admin(auth.uid()));
+
+-- ===================================
+-- POLICIES: payment_info
+-- ===================================
+
+DROP POLICY IF EXISTS "Users can view own payment info" ON payment_info;
+CREATE POLICY "Users can view own payment info"
+  ON payment_info FOR SELECT
+  USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "Users can create own payment info" ON payment_info;
+CREATE POLICY "Users can create own payment info"
+  ON payment_info FOR INSERT
+  WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "Users can update own payment info" ON payment_info;
+CREATE POLICY "Users can update own payment info"
+  ON payment_info FOR UPDATE
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "Admins can view all payment info" ON payment_info;
+CREATE POLICY "Admins can view all payment info"
+  ON payment_info FOR SELECT
+  USING (public.is_admin(auth.uid()));
+
+-- ===================================
+-- POLICIES: payments
+-- ===================================
+
+DROP POLICY IF EXISTS "Users can view own payments" ON payments;
+CREATE POLICY "Users can view own payments"
+  ON payments FOR SELECT
+  USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "Admins can view all payments" ON payments;
+CREATE POLICY "Admins can view all payments"
+  ON payments FOR SELECT
+  USING (public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admins can create payments" ON payments;
+CREATE POLICY "Admins can create payments"
+  ON payments FOR INSERT
+  WITH CHECK (public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admins can update payments" ON payments;
+CREATE POLICY "Admins can update payments"
+  ON payments FOR UPDATE
+  USING (public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admins can delete payments" ON payments;
+CREATE POLICY "Admins can delete payments"
+  ON payments FOR DELETE
+  USING (public.is_admin(auth.uid()));
+
+-- ===================================
+-- POLICIES: rewards
+-- ===================================
+
+DROP POLICY IF EXISTS "Users can view active rewards" ON rewards;
+CREATE POLICY "Users can view active rewards"
+  ON rewards FOR SELECT
+  USING (is_active = true OR public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admins can create rewards" ON rewards;
+CREATE POLICY "Admins can create rewards"
+  ON rewards FOR INSERT
+  WITH CHECK (public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admins can update rewards" ON rewards;
+CREATE POLICY "Admins can update rewards"
+  ON rewards FOR UPDATE
+  USING (public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admins can delete rewards" ON rewards;
+CREATE POLICY "Admins can delete rewards"
+  ON rewards FOR DELETE
+  USING (public.is_admin(auth.uid()));
+
+-- ===================================
+-- POLICIES: reward_claims
+-- ===================================
+
+DROP POLICY IF EXISTS "Users can view own reward claims" ON reward_claims;
+CREATE POLICY "Users can view own reward claims"
+  ON reward_claims FOR SELECT
+  USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "Users can create own reward claims" ON reward_claims;
+CREATE POLICY "Users can create own reward claims"
+  ON reward_claims FOR INSERT
+  WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "Admins can view all reward claims" ON reward_claims;
+CREATE POLICY "Admins can view all reward claims"
+  ON reward_claims FOR SELECT
+  USING (public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admins can update reward claims" ON reward_claims;
+CREATE POLICY "Admins can update reward claims"
+  ON reward_claims FOR UPDATE
+  USING (public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admins can delete reward claims" ON reward_claims;
+CREATE POLICY "Admins can delete reward claims"
+  ON reward_claims FOR DELETE
+  USING (public.is_admin(auth.uid()));
+
+-- ===================================
+-- FUNÇÃO RPC: Resgatar recompensa
+-- Atualiza claim + saldo de pontos + estoque de forma transacional
+-- ===================================
+
+CREATE OR REPLACE FUNCTION public.claim_reward(p_reward_id UUID)
+RETURNS reward_claims
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user_id UUID := auth.uid();
+  v_reward rewards%ROWTYPE;
+  v_points INTEGER;
+  v_claim reward_claims%ROWTYPE;
+  v_profile profiles%ROWTYPE;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Usuário não autenticado';
+  END IF;
+
+  SELECT * INTO v_reward
+  FROM rewards
+  WHERE id = p_reward_id
+    AND is_active = true
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Recompensa não encontrada ou inativa';
+  END IF;
+
+  IF v_reward.quantity_available IS NOT NULL
+     AND COALESCE(v_reward.quantity_claimed, 0) >= v_reward.quantity_available THEN
+    RAISE EXCEPTION 'Recompensa esgotada';
+  END IF;
+
+  INSERT INTO user_scores (user_id, total_points, tasks_completed)
+  VALUES (v_user_id, 0, 0)
+  ON CONFLICT (user_id) DO NOTHING;
+
+  SELECT total_points INTO v_points
+  FROM user_scores
+  WHERE user_id = v_user_id
+  FOR UPDATE;
+
+  IF COALESCE(v_points, 0) < v_reward.points_required THEN
+    RAISE EXCEPTION 'Pontos insuficientes';
+  END IF;
+
+  SELECT * INTO v_profile
+  FROM profiles
+  WHERE id = v_user_id;
+
+  INSERT INTO reward_claims (
+    reward_id,
+    user_id,
+    reward_title,
+    user_email,
+    user_name,
+    points_spent,
+    status,
+    claimed_at
+  )
+  VALUES (
+    v_reward.id,
+    v_user_id,
+    v_reward.title,
+    v_profile.email,
+    COALESCE(v_profile.display_name, v_profile.full_name, v_profile.email),
+    v_reward.points_required,
+    'pendente',
+    NOW()
+  )
+  RETURNING * INTO v_claim;
+
+  UPDATE user_scores
+  SET
+    total_points = COALESCE(total_points, 0) - v_reward.points_required,
+    updated_at = NOW()
+  WHERE user_id = v_user_id;
+
+  UPDATE rewards
+  SET
+    quantity_claimed = COALESCE(quantity_claimed, 0) + 1,
+    updated_at = NOW()
+  WHERE id = v_reward.id;
+
+  RETURN v_claim;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.claim_reward(UUID) TO authenticated;
 
 -- ===================================
 -- POLICIES: Storage (submissions bucket)
@@ -576,6 +970,34 @@ CREATE TRIGGER update_forum_topics_updated_at
 DROP TRIGGER IF EXISTS update_forum_posts_updated_at ON forum_posts;
 CREATE TRIGGER update_forum_posts_updated_at
   BEFORE UPDATE ON forum_posts
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Trigger para payment_info
+DROP TRIGGER IF EXISTS update_payment_info_updated_at ON payment_info;
+CREATE TRIGGER update_payment_info_updated_at
+  BEFORE UPDATE ON payment_info
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Trigger para payments
+DROP TRIGGER IF EXISTS update_payments_updated_at ON payments;
+CREATE TRIGGER update_payments_updated_at
+  BEFORE UPDATE ON payments
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Trigger para rewards
+DROP TRIGGER IF EXISTS update_rewards_updated_at ON rewards;
+CREATE TRIGGER update_rewards_updated_at
+  BEFORE UPDATE ON rewards
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Trigger para reward_claims
+DROP TRIGGER IF EXISTS update_reward_claims_updated_at ON reward_claims;
+CREATE TRIGGER update_reward_claims_updated_at
+  BEFORE UPDATE ON reward_claims
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
@@ -717,6 +1139,14 @@ CREATE INDEX IF NOT EXISTS idx_forum_topics_category ON forum_topics(category);
 CREATE INDEX IF NOT EXISTS idx_forum_topics_last_activity ON forum_topics(last_activity DESC);
 CREATE INDEX IF NOT EXISTS idx_forum_posts_topic_id ON forum_posts(topic_id);
 CREATE INDEX IF NOT EXISTS idx_forum_posts_created_at ON forum_posts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_payment_info_user_id ON payment_info(user_id);
+CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
+CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
+CREATE INDEX IF NOT EXISTS idx_payments_quarter ON payments(quarter);
+CREATE INDEX IF NOT EXISTS idx_rewards_active_points ON rewards(is_active, points_required DESC);
+CREATE INDEX IF NOT EXISTS idx_reward_claims_user_id ON reward_claims(user_id);
+CREATE INDEX IF NOT EXISTS idx_reward_claims_status ON reward_claims(status);
+CREATE INDEX IF NOT EXISTS idx_reward_claims_claimed_at ON reward_claims(claimed_at DESC);
 
 -- ===================================
 -- FIM DO SCHEMA
@@ -726,7 +1156,7 @@ CREATE INDEX IF NOT EXISTS idx_forum_posts_created_at ON forum_posts(created_at 
 DO $$
 BEGIN
   RAISE NOTICE '✅ Schema LabEcoar criado com sucesso!';
-  RAISE NOTICE '📋 Tabelas: profiles, tasks, submissions, metrics_submissions, forum_topics, forum_posts, user_scores';
+  RAISE NOTICE '📋 Tabelas: profiles, tasks, submissions, metrics_submissions, forum_topics, forum_posts, user_scores, payment_info, payments, rewards, reward_claims';
   RAISE NOTICE '🔒 RLS policies ativadas';
   RAISE NOTICE '📁 Storage bucket: submissions';
   RAISE NOTICE '';

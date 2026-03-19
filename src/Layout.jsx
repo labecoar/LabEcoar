@@ -5,6 +5,7 @@ import { createPageUrl } from "@/utils";
 import { Home, Target, CheckCircle2, Trophy, LogOut, Shield, User, MessageSquare, Gift, DollarSign, BarChart3 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserScore } from "@/hooks/useScores";
+import logoCuica from "@/assets/images/logo_cuica.png";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import {
   Sidebar,
@@ -105,6 +106,13 @@ export default function Layout({ children, currentPageName }) {
   const { user, profile, isAdmin, signOut } = useAuth();
   const { data: userScore } = useUserScore(user?.id);
   const visibleNavigationItems = isAdmin ? adminNavigationItems : navigationItems;
+  const landingPageUrl = currentPageName ? createPageUrl(currentPageName) : null;
+
+  const isNavItemActive = (itemUrl) => {
+    if (location.pathname === itemUrl) return true;
+    if (location.pathname === '/' && landingPageUrl && itemUrl === landingPageUrl) return true;
+    return false;
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -179,7 +187,7 @@ export default function Layout({ children, currentPageName }) {
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden">
                 <img
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68ef9c6da7cbfe8e7d0383c5/f4375f26c_Cuica_Ecoantes_Logos_fundo-colorido.png"
+                  src={logoCuica}
                   alt="Lab Ecoar"
                   className="w-full h-full object-cover"
                 />
@@ -199,9 +207,9 @@ export default function Layout({ children, currentPageName }) {
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton
                         asChild
-                        className={`hover:bg-[#096e4c10] transition-all duration-200 rounded-xl mb-1 ${location.pathname === item.url ? 'text-white shadow-md' : 'text-[#3c0b14]'
+                        className={`hover:bg-[#096e4c10] transition-all duration-200 rounded-xl mb-1 ${isNavItemActive(item.url) ? 'text-white shadow-md' : 'text-[#3c0b14]'
                           }`}
-                        style={location.pathname === item.url ? {
+                        style={isNavItemActive(item.url) ? {
                           background: 'linear-gradient(135deg, #096e4c 0%, #00c331 100%)'
                         } : {}}
                       >

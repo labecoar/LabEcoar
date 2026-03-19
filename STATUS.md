@@ -1,91 +1,43 @@
-# LabEcoar - Status da Adaptação para Supabase
+# LabEcoar - Status Atual
 
 ## ✅ Concluído
 
-### Configuração Base
-- [x] Remover dependências Base44 (`@base44/sdk`, `@base44/vite-plugin`)
-- [x] Atualizar `vite.config.js` para remover plugin Base44
-- [x] Criar cliente Supabase em `/src/api/base44Client.js`
-- [x] Criar adaptador de compatibilidade `/src/api/base44Adapter.js`
-- [x] Atualizar `package.json` com novas dependências
+### Plataforma
+- [x] Arquitetura 100% Supabase no frontend e backend
+- [x] Rotas protegidas com controle por perfil (`admin` e `user`)
+- [x] Fluxo de autenticação e perfil concluído
+- [x] Fórum com tópicos, respostas, curtidas e contadores
+- [x] Dashboard e telas administrativas principais em operação
 
-### Autenticação
-- [x] Reescrever `AuthContext` para usar Supabase Auth
-- [x] Adaptar página de Login para Supabase
-- [x] Suportar login/logout com Supabase
+### Banco de Dados
+- [x] Schema SQL consolidado em `supabase-schema.sql`
+- [x] RLS habilitado para tabelas críticas
+- [x] Triggers e funções para manter metadados de fórum consistentes
+- [x] Bucket de storage configurado para submissões
 
-### Estrutura
-- [x] Preparar `.env.example` com variáveis Supabase
-- [x] Criar `SETUP.md` com instruções
-- [x] Copiar projeto completo do Base44
+### Frontend
+- [x] Navegação principal e layout alinhados ao fluxo atual
+- [x] Tela de login atualizada
+- [x] Tratamento de erros e validações principais
 
-## 📋 Próximos Passos (Para Amanhã)
+## 📋 Próximos Passos
 
-### 1. **Testar e Validar**
-```bash
-npm install
-npm run dev
-```
+### 1. Validar fluxo em produção
+- Testar login/logout em diferentes perfis
+- Testar criação e validação de submissões ponta a ponta
+- Testar moderação de fórum e métricas administrativas
 
-### 2. **Configurar Supabase**
-- Criar projeto no Supabase
-- Executar schema SQL
-- Adicionar credenciais no `.env`
+### 2. Qualidade e observabilidade
+- Revisar mensagens de erro para UX
+- Adicionar testes de regressão dos fluxos críticos
+- Definir rotina de backup e monitoramento do Supabase
 
-### 3. **Adaptar Páginas Restantes** (Segundo o mapeamento abaixo)
+### 3. Produto
+- Refinar relatórios e exportações
+- Revisar performance de queries mais pesadas
+- Consolidar documentação funcional para operação
 
-**Mapeamento Base44 → Supabase:**
-- `base44.auth.me()` → `supabase.auth.getUser()` + buscar profile
-- `base44.entities.Task.filter()` → `supabase.from('tasks').select().eq()`
-- `base44.entities.TaskSubmission.create()` → `supabase.from('submissions').insert()`
-- `base44.integrations.Core.UploadFile()` → `supabase.storage.upload()`
+## 📝 Observações
 
-### 4. **Tabelas que Faltam Mapping**
-- `TaskApplication` - Pode ser uma coluna em `submissions` ou tabela separada
-- `ForumTopic`, `ForumPost` - Criar tabelas equivalentes
-- `Reward`, `RewardClaim` - Criar tabelas equivalentes
-- `PaymentInfo`, `Payment` - Criar tabelas equivalentes
-- `Notification` - Já está no schema
-
-### 5. **Componentes que Precisam Atualização**
-Todos os imports de `base44` já funcionam via adaptador, mas precisam testes:
-- `/src/components/tasks/TaskDetailsModal.jsx`
-- `/src/components/notifications/NotificationBell.jsx`
-- `/src/pages/*.jsx` - Testará via adaptador
-
-## 🔗 Adaptador de Compatibilidade
-
-O arquivo `/src/api/base44Adapter.js` fornece interface compatível com código antigo:
-```javascript
-import { base44 } from '@/api/base44Client'
-
-// Funciona como antes:
-const user = await base44.auth.me()
-const tasks = await base44.entities.Task.list()
-const submission = await base44.entities.TaskSubmission.create(data)
-```
-
-Internamente, converte para Supabase:
-```javascript
-// base44.auth.me() → supabase.auth.getUser() + profiles
-// base44.entities.Task.list() → supabase.from('tasks').select()
-```
-
-## 🚀 Fluxo de Implementação
-
-1. **Hoje/Agora**: ✅ Estrutura + Autenticação pronta
-2. **Amanhã**: Testes + Configuração Supabase
-3. **Próximos dias**: Adaptar dados + Testar páginas
-4. **Finalizaçãp**: Refinements + Deploy
-
-## 📝 Notas Importantes
-
-- O adaptador permite código antigo funcionar SEM mudanças
-- Páginas podem continuar usando `import { base44 }` normalmente
-- Com o tempo, podemos refatorar para usar Supabase diretamente (melhor performance)
-- RLS no Supabase automaticamente protege dados por usuário
-
-## 🔧 Arquivo Base44 Antigo
-- Original: `/src/api/base44Client.js`
-- Substituído por Supabase client
-- Adaptador mantém compatibilidade
+- O projeto não possui dependências legadas de backend no código ativo.
+- Para novo setup, seguir as instruções de `SETUP.md`.

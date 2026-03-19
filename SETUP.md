@@ -60,7 +60,7 @@ Acesse: http://localhost:3000
 - **Autenticação**: O projeto usa Supabase Auth
 - **Permissões**: Admin vs User são controlados via RLS
 - **Storage**: Arquivos são salvos em buckets do Supabase
-- **Base44**: O código antigo funciona através de um adaptador (src/api/base44Adapter.js)
+- **Arquitetura**: Não há dependências legadas de backend no frontend atual
 
 ## 🔗 Links Úteis
 
