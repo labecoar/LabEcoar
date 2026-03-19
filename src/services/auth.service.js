@@ -1,5 +1,13 @@
 import { supabase } from '@/lib/supabase'
 
+const getAuthRedirectUrl = () => {
+  const configured = import.meta.env.VITE_AUTH_REDIRECT_URL
+  if (configured && String(configured).trim()) {
+    return String(configured).trim().replace(/\/$/, '') + '/'
+  }
+  return `${window.location.origin}/`
+}
+
 /**
  * Serviço de Autenticação
  */
@@ -51,7 +59,10 @@ export const authService = {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: getAuthRedirectUrl(),
+        queryParams: {
+          prompt: 'select_account',
+        },
       },
     })
 
@@ -67,7 +78,8 @@ export const authService = {
       email,
       password,
       options: {
-        data: userData
+        data: userData,
+        emailRedirectTo: getAuthRedirectUrl(),
       }
     })
 
@@ -80,7 +92,23 @@ export const authService = {
    */
   async resetPassword(email) {
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/Login`,
+      redirectTo: `${getAuthRedirectUrl()}ResetPassword`,
+    })
+
+    if (error) throw error
+    return data
+  },
+
+  /**
+   * Reenviar email de confirmação de cadastro
+   */
+  async resendSignupConfirmation(email) {
+    const { data, error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: {
+        emailRedirectTo: getAuthRedirectUrl(),
+      },
     })
 
     if (error) throw error

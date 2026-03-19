@@ -298,7 +298,7 @@ export default function Layout({ children, currentPageName }) {
             </div>
           </header>
 
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto forum-typography">
             {children}
           </div>
         </main>

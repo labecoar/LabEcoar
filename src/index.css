@@ -86,3 +86,41 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .forum-typography {
+    @apply text-gray-700;
+  }
+
+  .forum-typography h1 {
+    @apply text-3xl font-bold text-emerald-700 tracking-tight;
+  }
+
+  .forum-typography h2 {
+    @apply text-xl font-semibold text-gray-900;
+  }
+
+  .forum-typography h3 {
+    @apply text-lg font-semibold text-gray-900;
+  }
+
+  .forum-typography p {
+    @apply text-base leading-relaxed text-gray-600;
+  }
+
+  .forum-typography label {
+    @apply text-sm font-medium text-gray-700;
+  }
+
+  .forum-typography input,
+  .forum-typography textarea,
+  .forum-typography select,
+  .forum-typography button {
+    @apply text-sm;
+  }
+
+  .forum-typography .card-title,
+  .forum-typography [data-slot="card-title"] {
+    @apply text-lg font-semibold text-gray-900;
+  }
+}

@@ -10,6 +10,19 @@ const RESEND_COOLDOWN_SECONDS = 60
 
 const isValidEmail = (value) => EMAIL_REGEX.test(value.trim())
 
+const isExistingEmailSignupResponse = (data) => {
+  const identities = data?.user?.identities
+  return Array.isArray(identities) && identities.length === 0
+}
+
+const isEmailAlreadyInUseError = (message) => {
+  const normalized = String(message || '').toLowerCase()
+  return normalized.includes('already registered')
+    || normalized.includes('email already')
+    || normalized.includes('email_exists')
+    || normalized.includes('user already registered')
+}
+
 export default function Login() {
   const [mode, setMode] = useState('login')
   const [name, setName] = useState('')
@@ -97,13 +110,8 @@ export default function Login() {
     setInfo('')
 
     try {
-      const { supabase } = await import('@/lib/supabase')
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: normalizedEmail,
-      })
-
-      if (error) throw error
+      const { authService } = await import('@/services/auth.service')
+      await authService.resendSignupConfirmation(normalizedEmail)
       setInfo('Email de confirmação reenviado! Verifique sua caixa de entrada.')
       setShowResendButton(false)
       setResendCooldown(RESEND_COOLDOWN_SECONDS)
@@ -187,6 +195,12 @@ export default function Login() {
       }
 
       const data = await signUp(email, password, { full_name: name })
+
+      if (isExistingEmailSignupResponse(data)) {
+        setError('Este email ja esta em uso. Entre com Google se essa conta foi criada por la, ou use "Esqueci minha senha".')
+        return
+      }
+
       if (data?.session) {
         navigate('/')
       } else {
@@ -202,8 +216,10 @@ export default function Login() {
         return
       }
 
-      // Verificar se o erro é de email não confirmado
-      if (err.message?.includes('Email not confirmed')) {
+      if (isEmailAlreadyInUseError(err?.message)) {
+        setError('Este email ja esta em uso. Entre com Google se essa conta foi criada por la, ou use "Esqueci minha senha".')
+      } else if (err.message?.includes('Email not confirmed')) {
+        // Verificar se o erro é de email não confirmado
         setError('Email não confirmado. Verifique sua caixa de entrada ou clique em reenviar.')
         setShowResendButton(true)
       } else {

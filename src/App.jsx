@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-d
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import ResetPassword from '@/pages/ResetPassword';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -38,6 +39,7 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       <Route path="/Login" element={<Pages.Login />} />
+      <Route path="/ResetPassword" element={<ResetPassword />} />
       <Route
         path="/CompleteProfile"
         element={
@@ -54,7 +56,7 @@ const AuthenticatedApp = () => {
         </ProtectedRoute>
       } />
       {Object.entries(Pages).map(([path, Page]) => {
-        if (path === 'Login' || path === 'CompleteProfile') return null; // Already mapped
+        if (path === 'Login' || path === 'CompleteProfile' || path === 'ResetPassword') return null; // Already mapped
         return (
           <Route
             key={path}

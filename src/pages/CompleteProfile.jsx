@@ -84,7 +84,7 @@ export default function CompleteProfile() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f6f5] py-10 px-4">
+    <div className="min-h-screen bg-[#f4f6f5] py-10 px-4 forum-typography">
       <div className="max-w-xl mx-auto">
         <h1 className="text-4xl font-semibold text-slate-900 mb-6">Cadastro</h1>
 

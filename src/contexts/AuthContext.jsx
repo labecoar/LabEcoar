@@ -43,26 +43,34 @@ export function AuthProvider({ children }) {
 
       if (error) throw error
       setProfile(data)
+      return data
     } catch (error) {
       console.error('Erro ao buscar perfil:', error)
       setProfile(null)
+      return null
     }
   }
 
   // Inicializar autenticação
   useEffect(() => {
     // Verificar sessão existente
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      setIsAuthenticated(!!session?.user)
-      if (session?.user) {
-        fetchProfile(session.user.id)
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        setUser(session?.user ?? null)
+        setIsAuthenticated(!!session?.user)
+
+        if (session?.user) {
+          await fetchProfile(session.user.id)
+        }
+      } catch (err) {
+        console.error('[AuthContext] Erro ao verificar sessão:', err)
+      } finally {
+        setLoading(false)
       }
-    }).catch((err) => {
-      console.error('[AuthContext] Erro ao verificar sessão:', err)
-    }).finally(() => {
-      setLoading(false)
-    })
+    }
+
+    initializeAuth()
 
     // Escutar mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -70,13 +78,19 @@ export function AuthProvider({ children }) {
         setUser(session?.user ?? null)
         setIsAuthenticated(!!session?.user)
 
-        if (session?.user) {
-          fetchProfile(session.user.id)
-        } else {
+        if (!session?.user) {
           setProfile(null)
+          return
         }
 
-        setLoading(false)
+        // Evita tela travada ao trocar de aba: TOKEN_REFRESHED acontece com frequência
+        // e não precisa bloquear a UI com loading global.
+        if (event === 'TOKEN_REFRESHED') {
+          return
+        }
+
+        // Busca o perfil sem bloquear o callback de auth.
+        fetchProfile(session.user.id)
       }
     )
 
