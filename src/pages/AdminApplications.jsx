@@ -1,13 +1,15 @@
 // @ts-nocheck
 import React, { useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePendingSubmissions, useApproveSubmission, useRejectSubmission } from "@/hooks/useSubmissions";
+import { usePendingSubmissions, useApproveSubmission, useRejectSubmission, useResetSubmissionReview } from "@/hooks/useSubmissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, CheckCircle, XCircle, User, Calendar, Users, Star, Instagram, Eye } from "lucide-react";
+import { Clock, CheckCircle, XCircle, User, Calendar, Users, Star, Eye, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+const CONTACT_HELP_TEXT = 'Se precisar, fale com a equipe no Fórum (categoria Dúvidas) para esclarecimentos.';
 
 export default function AdminApplications() {
   const [activeTab, setActiveTab] = useState('pending');
@@ -16,6 +18,7 @@ export default function AdminApplications() {
   const { data: pendingSubmissions = [], isLoading } = usePendingSubmissions();
   const approveSubmission = useApproveSubmission();
   const rejectSubmission = useRejectSubmission();
+  const resetSubmissionReview = useResetSubmissionReview();
 
   const pendingApplications = useMemo(
     () => pendingSubmissions.filter((submission) => ['application_pending', 'pending'].includes(submission.status)),
@@ -53,7 +56,18 @@ export default function AdminApplications() {
         pointsAwarded: submission.task?.points || 0,
       });
 
-      alert('Inscrição aprovada! O usuário já pode enviar a prova.');
+      const proofDeadline = submission.task?.delivery_deadline
+        ? new Date(submission.task.delivery_deadline)
+        : null
+      const proofDeadlineLabel = proofDeadline && !Number.isNaN(proofDeadline.getTime())
+        ? proofDeadline.toLocaleDateString('pt-BR')
+        : null
+
+      alert(
+        proofDeadlineLabel
+          ? `Inscrição aprovada! O usuário já pode enviar a prova até ${proofDeadlineLabel} (prazo D-2 dias úteis da postagem).`
+          : 'Inscrição aprovada! O usuário já pode enviar a prova.'
+      );
     } catch (error) {
       console.error('Erro ao aprovar inscrição:', error);
       alert('Erro ao aprovar inscrição.');
@@ -70,13 +84,23 @@ export default function AdminApplications() {
     try {
       await rejectSubmission.mutateAsync({
         submissionId: submission.id,
-        rejectionReason: reason.trim(),
+        rejectionReason: `${reason.trim()}\n\n${CONTACT_HELP_TEXT}`,
       });
 
       alert('Inscrição rejeitada.');
     } catch (error) {
       console.error('Erro ao rejeitar inscrição:', error);
       alert('Erro ao rejeitar inscrição.');
+    }
+  };
+
+  const handleResetReview = async (submission) => {
+    try {
+      await resetSubmissionReview.mutateAsync({ submissionId: submission.id });
+      alert('Inscrição voltou para análise pendente.');
+    } catch (error) {
+      console.error('Erro ao reabrir análise:', error);
+      alert('Erro ao reabrir análise.');
     }
   };
 
@@ -262,6 +286,51 @@ export default function AdminApplications() {
                       >
                         <XCircle className="w-4 h-4 mr-2" />
                         Não Selecionar
+                      </Button>
+                    </div>
+                  )}
+
+                  {activeTab === 'selected' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4">
+                      <Button
+                        onClick={() => handleResetReview(submission)}
+                        disabled={resetSubmissionReview.isPending}
+                        variant="outline"
+                        className="border-gray-300"
+                      >
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Voltar para Análise
+                      </Button>
+                      <Button
+                        onClick={() => handleReject(submission)}
+                        disabled={rejectSubmission.isPending}
+                        variant="outline"
+                        className="border-gray-300"
+                      >
+                        <XCircle className="w-4 h-4 mr-2" />
+                        Não Selecionar
+                      </Button>
+                    </div>
+                  )}
+
+                  {activeTab === 'rejected' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4">
+                      <Button
+                        onClick={() => handleResetReview(submission)}
+                        disabled={resetSubmissionReview.isPending}
+                        variant="outline"
+                        className="border-gray-300"
+                      >
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Reabrir Análise
+                      </Button>
+                      <Button
+                        onClick={() => handleApprove(submission)}
+                        disabled={approveSubmission.isPending}
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Selecionar Agora
                       </Button>
                     </div>
                   )}

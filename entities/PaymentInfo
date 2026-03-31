@@ -1,4 +1,4 @@
-{
+  {
   "name": "PaymentInfo",
   "type": "object",
   "properties": {

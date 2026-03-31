@@ -81,3 +81,15 @@ export function useRejectSubmission() {
     },
   })
 }
+
+export function useResetSubmissionReview() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ submissionId }) => submissionsService.resetSubmissionReview(submissionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['submissions'] })
+      queryClient.invalidateQueries({ queryKey: ['scores'] })
+    },
+  })
+}

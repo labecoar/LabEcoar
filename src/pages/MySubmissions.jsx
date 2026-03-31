@@ -35,6 +35,15 @@ export default function MySubmissions() {
   const renderSubmissionCard = (submission) => (
     (() => {
       const status = normalizeSubmissionStatus(submission.status);
+      const proofDeadline = submission?.task?.delivery_deadline
+        ? new Date(submission.task.delivery_deadline)
+        : null;
+      const hasProofDeadline = proofDeadline && !Number.isNaN(proofDeadline.getTime());
+      const postingDeadline = submission?.task?.posting_deadline
+        ? new Date(submission.task.posting_deadline)
+        : null;
+      const hasPostingDeadline = postingDeadline && !Number.isNaN(postingDeadline.getTime());
+      const isApprovedCampaign = status === 'approved' && submission?.task?.category === 'campanha';
       return (
     <Card
       key={submission.id}
@@ -94,6 +103,32 @@ export default function MySubmissions() {
             {submission.description}
           </p>
         )}
+
+        {status === 'application_approved' && hasProofDeadline && (
+          <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+            <p className="text-xs font-medium text-purple-800 mb-1">Prazo para envio da prova</p>
+            <p className="text-sm text-purple-700 font-semibold">
+              Até {proofDeadline.toLocaleDateString('pt-BR')} (D-2 dias úteis da postagem)
+            </p>
+          </div>
+        )}
+
+        {isApprovedCampaign && (
+          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+            <p className="text-xs font-medium text-emerald-800 mb-1">Autorizado a postar: checklist rápido</p>
+            <ul className="text-xs text-emerald-700 list-disc pl-4 space-y-1">
+              <li>
+                Publique no dia/hora corretos
+                {hasPostingDeadline
+                  ? ` (até ${postingDeadline.toLocaleDateString('pt-BR')} às ${postingDeadline.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })})`
+                  : ''}
+                .
+              </li>
+              <li>Use a hashtag e os requisitos da campanha.</li>
+              <li>Envie as métricas para validação no prazo.</li>
+            </ul>
+          </div>
+        )}
         
         <div className="flex items-center justify-between pt-3 border-t border-gray-100">
           <div className="flex items-center gap-4">
@@ -117,6 +152,9 @@ export default function MySubmissions() {
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-xs font-medium text-red-700 mb-1">Motivo da rejeição:</p>
             <p className="text-sm text-red-600">{submission.rejection_reason}</p>
+            <p className="text-xs text-red-700 mt-2">
+              Dúvidas? Entre em contato com a equipe no Fórum, na categoria Dúvidas.
+            </p>
           </div>
         )}
 

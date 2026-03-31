@@ -267,6 +267,9 @@ export default function MyPayments() {
                     Quanto mais pontos voce acumular, maior sera sua categoria e seu ganho.
                     Os pontos sao zerados a cada trimestre, mas voce sempre comeca na categoria conquistada.
                   </p>
+                  <p className="text-sm text-blue-700 mt-2">
+                    O pagamento e feito fora da plataforma. Aqui voce so mantem os dados bancarios para o time nao precisar pedir novamente.
+                  </p>
                 </div>
               </div>
             </div>

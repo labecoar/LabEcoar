@@ -3,6 +3,7 @@ import React, { useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateSubmission, useSubmitProof } from "@/hooks/useSubmissions";
 import { useMyMetricsSubmissions, useSubmitMetricsSubmission } from "@/hooks/useMetrics";
+import { usePaymentInfo } from "@/hooks/usePayments";
 import { useUploadFile } from "@/hooks/useStorage";
 import {
   Dialog,
@@ -79,11 +80,13 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const [metricsDescription, setMetricsDescription] = useState('');
   const [metricsLink, setMetricsLink] = useState('');
   const [metricsFile, setMetricsFile] = useState(null);
+  const [metricsPostedAt, setMetricsPostedAt] = useState('');
   const { user } = useAuth();
   const createSubmission = useCreateSubmission();
   const submitProof = useSubmitProof();
   const submitMetrics = useSubmitMetricsSubmission();
   const uploadFile = useUploadFile();
+  const { data: paymentInfo } = usePaymentInfo(user?.id);
   const { data: myMetricsSubmissions = [] } = useMyMetricsSubmissions(user?.id);
 
   if (!task) return null;
@@ -94,8 +97,14 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const offeredValue = Number(task.offered_value || task.points || 0);
   const isFull = Boolean(task.max_participants) && Number(task.current_participants || 0) >= Number(task.max_participants);
   const submissionStatus = currentSubmission?.status;
+  const proofDeadline = task?.expires_at ? new Date(task.expires_at) : null;
+  const hasProofDeadline = proofDeadline && !Number.isNaN(proofDeadline.getTime());
+  const isProofDeadlineExpired = hasProofDeadline ? new Date() > proofDeadline : false;
   const canApply = !currentSubmission && !isTaskApproved && !isFull;
-  const canSubmitProof = submissionStatus === 'application_approved';
+  const canSubmitProof = (
+    (submissionStatus === 'application_approved' || submissionStatus === 'rejected')
+    && !isProofDeadlineExpired
+  );
   const isWaiting = ['application_pending', 'proof_pending', 'pending'].includes(submissionStatus);
   const isCampaignTask = task?.category === 'campanha';
   const currentMetricsSubmission = useMemo(
@@ -103,7 +112,20 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     [myMetricsSubmissions, task.id]
   );
   const metricsStatus = currentMetricsSubmission?.status;
-  const canSubmitMetrics = isCampaignTask && submissionStatus === 'approved' && (!currentMetricsSubmission || metricsStatus === 'rejected');
+  const now = new Date();
+  const metricsReviewedAt = currentMetricsSubmission?.reviewed_at
+    ? new Date(currentMetricsSubmission.reviewed_at)
+    : null;
+  const hasMetricsReviewedAt = metricsReviewedAt && !Number.isNaN(metricsReviewedAt.getTime());
+  const metricsResubmissionDeadline = hasMetricsReviewedAt
+    ? new Date(metricsReviewedAt.getTime() + 2 * 24 * 60 * 60 * 1000)
+    : null;
+  const hasResubmissionWindowExpired = metricsStatus === 'rejected'
+    && metricsResubmissionDeadline
+    && now > metricsResubmissionDeadline;
+  const canSubmitMetrics = isCampaignTask
+    && submissionStatus === 'approved'
+    && (!currentMetricsSubmission || (metricsStatus === 'rejected' && !hasResubmissionWindowExpired));
   const postingDeadline = task.posting_deadline ? new Date(task.posting_deadline) : null;
   const hasValidPostingDeadline = postingDeadline && !Number.isNaN(postingDeadline.getTime());
   const metricsWindowStart = hasValidPostingDeadline
@@ -112,12 +134,28 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const metricsWindowEnd = hasValidPostingDeadline
     ? new Date(postingDeadline.getTime() + 8 * 24 * 60 * 60 * 1000)
     : null;
-  const now = new Date();
   const isInsideMetricsWindow =
     metricsWindowStart && metricsWindowEnd
       ? now >= metricsWindowStart && now <= metricsWindowEnd
       : true;
   const hasMetricsWindowPassed = metricsWindowEnd ? now > metricsWindowEnd : false;
+  const hasCompletePaymentInfo = Boolean(
+    paymentInfo
+    && paymentInfo.bank_name
+    && paymentInfo.agency
+    && paymentInfo.account_number
+    && paymentInfo.account_digit
+    && paymentInfo.full_name
+    && paymentInfo.cpf
+  );
+  const shouldShowMetricsReminder = Boolean(
+    isCampaignTask
+    && submissionStatus === 'approved'
+    && !currentMetricsSubmission
+    && metricsWindowStart
+    && now >= metricsWindowStart
+    && !hasMetricsWindowPassed
+  );
 
   const handleApply = async (e) => {
     e.preventDefault();
@@ -182,24 +220,30 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
       alert('As métricas só podem ser enviadas entre o 5º e o 8º dia após a postagem.');
       return;
     }
+    if (!hasCompletePaymentInfo) {
+      alert('Complete seus dados bancários em Meus Pagamentos antes de enviar métricas para pagamento.');
+      return;
+    }
 
     setIsSubmitting(true);
 
     try {
-      const { url } = await uploadFile.mutateAsync({ file: metricsFile, userId: user.id });
+      const { url: metricsUrl } = await uploadFile.mutateAsync({ file: metricsFile, userId: user.id });
 
       await submitMetrics.mutateAsync({
         user,
         task,
-        metricsFileUrl: url,
+        metricsFileUrl: metricsUrl,
         metricsLink,
         description: metricsDescription,
+        postedAt: metricsPostedAt,
       });
 
       alert('Métricas enviadas com sucesso! Aguarde a análise do administrador.');
       setMetricsDescription('');
       setMetricsLink('');
       setMetricsFile(null);
+      setMetricsPostedAt('');
       onClose();
     } catch (error) {
       console.error('Erro ao enviar métricas:', error);
@@ -299,7 +343,9 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                   {isTaskApproved || submissionStatus === 'approved'
                     ? 'Tarefa já concluída'
                     : canSubmitProof
-                      ? 'Inscrição aprovada - envie a prova abaixo'
+                      ? submissionStatus === 'rejected'
+                        ? 'Prova rejeitada - reenviar abaixo'
+                        : 'Inscrição aprovada - envie a prova abaixo'
                       : isWaiting
                         ? STATUS_TEXT[submissionStatus] || 'Inscrição em análise'
                         : submissionStatus === 'application_rejected'
@@ -319,6 +365,11 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
           {canSubmitProof && (
             <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-3 space-y-3">
               <p className="font-semibold text-emerald-700">Etapa 2: Enviar prova de conclusão</p>
+              {hasProofDeadline && (
+                <p className="text-xs text-emerald-800">
+                  Prazo para envio da prova: até {proofDeadline.toLocaleDateString('pt-BR')} às {proofDeadline.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.
+                </p>
+              )}
               <form onSubmit={handleSendProof} className="space-y-3">
                 <div>
                   <Label htmlFor="proof-description">Descrição da prova (opcional)</Label>
@@ -348,7 +399,9 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                   <Upload className="w-4 h-4 mr-2" />
                   {isSubmitting || uploadFile.isPending || submitProof.isPending
                     ? 'Enviando prova...'
-                    : 'Enviar prova para aprovação final'}
+                    : submissionStatus === 'rejected'
+                      ? 'Reenviar prova para nova análise'
+                      : 'Enviar prova para aprovação final'}
                 </Button>
               </form>
             </div>
@@ -364,9 +417,37 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                 Você está autorizado a postar. Lembre-se de enviar um arquivo com comprovação da data da postagem.
               </p>
 
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                <p className="text-xs font-semibold text-emerald-800 mb-2">Checklist para receber o pagamento</p>
+                <ul className="text-xs text-emerald-900 list-disc pl-5 space-y-1">
+                  <li>
+                    Publique no dia e horário combinados
+                    {hasValidPostingDeadline
+                      ? ` (até ${postingDeadline.toLocaleDateString('pt-BR')} às ${postingDeadline.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })})`
+                      : ''}
+                    .
+                  </li>
+                  <li>Use as hashtags e requisitos definidos na campanha.</li>
+                  <li>Envie as métricas com comprovante dentro da janela informada abaixo.</li>
+                  <li>Mantenha seus dados bancários atualizados para pagamento manual fora da plataforma.</li>
+                </ul>
+              </div>
+
               {metricsWindowStart && metricsWindowEnd && (
                 <div className="text-xs rounded-lg p-3 border bg-amber-50 border-amber-200 text-amber-800">
                   Janela de envio de métricas: de {metricsWindowStart.toLocaleDateString('pt-BR')} até {metricsWindowEnd.toLocaleDateString('pt-BR')}.
+                </div>
+              )}
+
+              {metricsStatus === 'rejected' && metricsResubmissionDeadline && (
+                <div className={`text-xs rounded-lg p-3 border ${hasResubmissionWindowExpired ? 'bg-red-50 border-red-200 text-red-800' : 'bg-orange-50 border-orange-200 text-orange-800'}`}>
+                  Reenvio após rejeição: até {metricsResubmissionDeadline.toLocaleDateString('pt-BR')} às {metricsResubmissionDeadline.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.
+                </div>
+              )}
+
+              {shouldShowMetricsReminder && (
+                <div className="text-xs rounded-lg p-3 border bg-emerald-50 border-emerald-200 text-emerald-800">
+                  Hora de começar a organizar as métricas. Confira abaixo os itens obrigatórios para evitar retrabalho.
                 </div>
               )}
 
@@ -382,8 +463,40 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                 </div>
               )}
 
+              {hasResubmissionWindowExpired && (
+                <div className="text-xs rounded-lg p-3 border bg-red-50 border-red-200 text-red-800">
+                  Prazo de reenvio encerrado (2 dias após rejeição). Fluxo concluído sem pontos e sem pagamento.
+                </div>
+              )}
+
               {!currentMetricsSubmission || metricsStatus === 'rejected' ? (
                 <form onSubmit={handleSendMetrics} className="space-y-3">
+                  {!hasCompletePaymentInfo && (
+                    <div className="text-xs rounded-lg p-3 border bg-red-50 border-red-200 text-red-800">
+                      Para receber pagamento, complete primeiro seus dados bancários em Meus Pagamentos.
+                    </div>
+                  )}
+
+                  <div>
+                    <Label htmlFor="metrics-posted-at">Data e hora real da postagem *</Label>
+                    <Input
+                      id="metrics-posted-at"
+                      type="datetime-local"
+                      value={metricsPostedAt}
+                      onChange={(e) => setMetricsPostedAt(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="rounded-lg border border-sky-200 bg-sky-50 p-3">
+                    <p className="text-xs font-semibold text-sky-800 mb-2">Checklist obrigatório no print/arquivo de métricas</p>
+                    <ul className="text-xs text-sky-700 list-disc pl-4 space-y-1">
+                      <li>Data da postagem visível (principal para validação de prazo).</li>
+                      <li>Alcance e impressões do conteúdo.</li>
+                      <li>Interações (curtidas, comentários, compartilhamentos/salvamentos).</li>
+                    </ul>
+                  </div>
+
                   <div>
                     <Label htmlFor="metrics-link">Link do post (opcional)</Label>
                     <Input
@@ -418,7 +531,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
                   <Button
                     type="submit"
-                    disabled={isSubmitting || uploadFile.isPending || submitMetrics.isPending || !metricsFile || !isInsideMetricsWindow}
+                    disabled={isSubmitting || uploadFile.isPending || submitMetrics.isPending || !metricsFile || !isInsideMetricsWindow || hasResubmissionWindowExpired || !hasCompletePaymentInfo}
                     className="w-full bg-sky-600 hover:bg-sky-700"
                   >
                     <Upload className="w-4 h-4 mr-2" />

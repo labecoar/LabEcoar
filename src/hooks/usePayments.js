@@ -28,3 +28,15 @@ export function useUpsertPaymentInfo(userId) {
     },
   })
 }
+
+export function useRegisterManualPayment() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload) => paymentsService.registerManualPayment(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] })
+      queryClient.invalidateQueries({ queryKey: ['metrics-submissions'] })
+    },
+  })
+}

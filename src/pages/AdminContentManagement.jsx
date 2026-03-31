@@ -214,8 +214,23 @@ export default function AdminContentManagement() {
       return { postingDeadline: null, proofDeadline: null }
     }
 
-    const proofDeadline = new Date(postingDeadline)
-    proofDeadline.setDate(proofDeadline.getDate() - 1)
+    const subtractBusinessDays = (date, days) => {
+      const result = new Date(date)
+      let remaining = days
+
+      while (remaining > 0) {
+        result.setDate(result.getDate() - 1)
+        const day = result.getDay()
+        const isWeekend = day === 0 || day === 6
+        if (!isWeekend) {
+          remaining -= 1
+        }
+      }
+
+      return result
+    }
+
+    const proofDeadline = subtractBusinessDays(postingDeadline, 2)
 
     return {
       postingDeadline: postingDeadline.toISOString(),
@@ -667,7 +682,7 @@ export default function AdminContentManagement() {
                       Data e Hora Limite de Postagem *
                     </Label>
                     <p className="text-xs text-gray-500">
-                      O sistema calcula automaticamente: prazo da prova = 1 dia antes da postagem.
+                      O sistema calcula automaticamente: prazo da prova = 2 dias uteis antes da postagem.
                     </p>
                     <Input
                       id="posting_deadline"

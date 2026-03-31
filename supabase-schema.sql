@@ -212,6 +212,7 @@ END $$;
 CREATE TABLE IF NOT EXISTS payments (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  metrics_submission_id UUID,
   quarter TEXT NOT NULL,
   category TEXT NOT NULL DEFAULT 'voz_e_violao',
   points INTEGER NOT NULL DEFAULT 0,
@@ -225,6 +226,7 @@ CREATE TABLE IF NOT EXISTS payments (
 );
 
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES profiles(id) ON DELETE CASCADE;
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS metrics_submission_id UUID;
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS quarter TEXT;
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'voz_e_violao';
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0;
@@ -391,11 +393,14 @@ CREATE TABLE IF NOT EXISTS metrics_submissions (
   user_email TEXT,
   user_name TEXT,
   metrics_file_url TEXT,
+  invoice_file_url TEXT,
+  invoice_number TEXT,
   metrics_link TEXT,
   description TEXT,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
   rejection_reason TEXT,
   submitted_at TIMESTAMPTZ DEFAULT NOW(),
+  posted_at TIMESTAMPTZ,
   reviewed_at TIMESTAMPTZ,
   quarter TEXT,
   attempt_number INTEGER NOT NULL DEFAULT 1,
@@ -409,11 +414,14 @@ ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS task_title TEXT;
 ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS user_email TEXT;
 ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS user_name TEXT;
 ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS metrics_file_url TEXT;
+ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS invoice_file_url TEXT;
+ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS invoice_number TEXT;
 ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS metrics_link TEXT;
 ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS description TEXT;
 ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
 ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
 ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS submitted_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS posted_at TIMESTAMPTZ;
 ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ;
 ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS quarter TEXT;
 ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS attempt_number INTEGER DEFAULT 1;

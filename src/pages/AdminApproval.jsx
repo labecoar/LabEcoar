@@ -27,6 +27,75 @@ const STATUS_LABELS = {
   proof_pending: 'Prova pendente',
 }
 
+const BUSINESS_START_HOUR = 8;
+const BUSINESS_END_HOUR = 18;
+const REVIEW_SLA_BUSINESS_HOURS = 5;
+
+const isBusinessDay = (date) => {
+  const day = date.getDay();
+  return day >= 1 && day <= 5;
+};
+
+const nextBusinessDayStart = (baseDate) => {
+  const date = new Date(baseDate);
+  date.setDate(date.getDate() + 1);
+  date.setHours(BUSINESS_START_HOUR, 0, 0, 0);
+  while (!isBusinessDay(date)) {
+    date.setDate(date.getDate() + 1);
+  }
+  return date;
+};
+
+const normalizeToBusinessWindow = (baseDate) => {
+  const date = new Date(baseDate);
+
+  if (!isBusinessDay(date)) {
+    date.setHours(BUSINESS_START_HOUR, 0, 0, 0);
+    while (!isBusinessDay(date)) {
+      date.setDate(date.getDate() + 1);
+    }
+    return date;
+  }
+
+  const hour = date.getHours();
+  if (hour < BUSINESS_START_HOUR) {
+    date.setHours(BUSINESS_START_HOUR, 0, 0, 0);
+    return date;
+  }
+
+  if (hour >= BUSINESS_END_HOUR) {
+    return nextBusinessDayStart(date);
+  }
+
+  return date;
+};
+
+const addBusinessHours = (baseDate, hoursToAdd) => {
+  let current = normalizeToBusinessWindow(baseDate);
+  let remainingHours = Number(hoursToAdd || 0);
+
+  while (remainingHours > 0) {
+    const endOfBusinessDay = new Date(current);
+    endOfBusinessDay.setHours(BUSINESS_END_HOUR, 0, 0, 0);
+
+    const availableTodayHours = Math.max(0, (endOfBusinessDay.getTime() - current.getTime()) / (1000 * 60 * 60));
+    if (availableTodayHours <= 0) {
+      current = nextBusinessDayStart(current);
+      continue;
+    }
+
+    const consumeHours = Math.min(remainingHours, availableTodayHours);
+    current = new Date(current.getTime() + consumeHours * 60 * 60 * 1000);
+    remainingHours -= consumeHours;
+
+    if (remainingHours > 0) {
+      current = nextBusinessDayStart(current);
+    }
+  }
+
+  return current;
+};
+
 export default function AdminApproval() {
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -43,12 +112,13 @@ export default function AdminApproval() {
     const interval = setInterval(() => setNowTick(Date.now()), 60000);
     return () => clearInterval(interval);
   }, []);
+
   const getReviewDeadline = (submission) => {
     const referenceDate = submission.updated_at || submission.created_at;
     if (!referenceDate) return null;
     const base = new Date(referenceDate);
     if (Number.isNaN(base.getTime())) return null;
-    return new Date(base.getTime() + 5 * 60 * 60 * 1000);
+    return addBusinessHours(base, REVIEW_SLA_BUSINESS_HOURS);
   };
 
   const formatRemainingReviewTime = (submission) => {
@@ -287,7 +357,7 @@ export default function AdminApproval() {
                   <p className={`text-2xl font-bold ${overdueProofSubmissions.length > 0 ? 'text-red-700' : 'text-gray-900'}`}>
                     {overdueProofSubmissions.length}
                   </p>
-                  <p className="text-sm text-gray-600">Com Prazo Estourado (&gt;5h)</p>
+                  <p className="text-sm text-gray-600">Com Prazo Estourado (&gt;5h úteis)</p>
                 </div>
               </div>
             </CardContent>

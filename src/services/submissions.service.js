@@ -1,5 +1,120 @@
 import { supabase } from '@/lib/supabase'
 
+const toDateOrNull = (value) => {
+  if (!value) return null
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+const resolveProofDeadline = (task) => {
+  const expiresAt = toDateOrNull(task?.expires_at)
+  if (expiresAt) return expiresAt
+
+  const postingDeadline = toDateOrNull(task?.posting_deadline)
+  if (postingDeadline) return postingDeadline
+
+  const deliveryDate = toDateOrNull(task?.delivery_deadline)
+  if (!deliveryDate) return null
+
+  // Fallback para bases antigas: deadline ao fim do dia informado.
+  const endOfDay = new Date(deliveryDate)
+  endOfDay.setHours(23, 59, 59, 999)
+  return endOfDay
+}
+
+const FIRST_ATTEMPT_WINDOW_RATIO = 0.3
+
+async function decrementTaskParticipants(taskId) {
+  if (!taskId) return
+
+  const { data: taskData, error: taskError } = await supabase
+    .from('tasks')
+    .select('id, current_participants')
+    .eq('id', taskId)
+    .single()
+
+  if (taskError) throw taskError
+
+  const currentParticipants = Number(taskData.current_participants || 0)
+  const { error: updateTaskError } = await supabase
+    .from('tasks')
+    .update({
+      current_participants: Math.max(0, currentParticipants - 1),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', taskData.id)
+
+  if (updateTaskError) throw updateTaskError
+}
+
+async function autoCancelApprovedSubmission(submission, reason) {
+  const nowIso = new Date().toISOString()
+  const { data, error } = await supabase
+    .from('submissions')
+    .update({
+      status: 'application_rejected',
+      rejection_reason: reason,
+      validated_at: nowIso,
+      updated_at: nowIso,
+    })
+    .eq('id', submission.id)
+    .eq('status', 'application_approved')
+    .select('*')
+    .single()
+
+  if (error) {
+    // Quando outra ação alterou o status em paralelo, mantém o registro atual.
+    if (String(error.code || '') === 'PGRST116') return submission
+    throw error
+  }
+
+  await decrementTaskParticipants(submission.task_id)
+  return {
+    ...submission,
+    ...data,
+  }
+}
+
+async function applySubmissionTaskRules(submission) {
+  if (submission?.status !== 'application_approved') return submission
+
+  const proofDeadline = resolveProofDeadline(submission.task)
+  if (!proofDeadline) return submission
+
+  const referenceStart =
+    toDateOrNull(submission.validated_at)
+    || toDateOrNull(submission.updated_at)
+    || toDateOrNull(submission.created_at)
+
+  if (!referenceStart) return submission
+
+  const now = new Date()
+  const totalWindowMs = proofDeadline.getTime() - referenceStart.getTime()
+
+  if (totalWindowMs > 0) {
+    const firstAttemptLimit = new Date(referenceStart.getTime() + (totalWindowMs * FIRST_ATTEMPT_WINDOW_RATIO))
+    if (now > firstAttemptLimit) {
+      return autoCancelApprovedSubmission(
+        submission,
+        'Vaga cancelada por inatividade: a primeira tentativa de envio da prova não ocorreu em 30% do prazo disponível.'
+      )
+    }
+  }
+
+  if (now > proofDeadline) {
+    return autoCancelApprovedSubmission(
+      submission,
+      'Prazo de envio da prova expirou. Vaga cancelada e devolvida ao pool.'
+    )
+  }
+
+  return submission
+}
+
+async function applyRulesToSubmissions(submissions) {
+  return Promise.all((submissions || []).map((item) => applySubmissionTaskRules(item)))
+}
+
 /**
  * Serviço de Submissões
  */
@@ -14,7 +129,10 @@ export const submissionsService = {
         id,
         title,
         category,
-        points
+        points,
+        expires_at,
+        posting_deadline,
+        delivery_deadline
       )
     `
 
@@ -25,7 +143,7 @@ export const submissionsService = {
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    return data || []
+    return applyRulesToSubmissions(data || [])
   },
 
   /**
@@ -42,7 +160,10 @@ export const submissionsService = {
           category,
           points,
           max_participants,
-          current_participants
+          current_participants,
+          expires_at,
+          posting_deadline,
+          delivery_deadline
         ),
         profile:profiles (
           id,
@@ -58,7 +179,7 @@ export const submissionsService = {
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    return data || []
+    return applyRulesToSubmissions(data || [])
   },
 
   /**
@@ -84,6 +205,26 @@ export const submissionsService = {
       throw new Error('Você já possui uma inscrição ativa para esta tarefa.')
     }
 
+    if (existingSubmission && ['application_rejected', 'rejected'].includes(existingSubmission.status)) {
+      const { data, error } = await supabase
+        .from('submissions')
+        .update({
+          status: 'application_pending',
+          description: submissionData.description || null,
+          proof_url: null,
+          points_awarded: 0,
+          rejection_reason: null,
+          validated_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingSubmission.id)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    }
+
     const { data, error } = await supabase
       .from('submissions')
       .insert([{
@@ -107,16 +248,44 @@ export const submissionsService = {
    * Aprovar submissão (Admin)
    */
   async submitProof(submissionId, proofData) {
+    const { data: currentSubmission, error: currentSubmissionError } = await supabase
+      .from('submissions')
+      .select(`
+        id,
+        status,
+        task_id,
+        task:tasks (
+          expires_at,
+          posting_deadline,
+          delivery_deadline
+        )
+      `)
+      .eq('id', submissionId)
+      .single()
+
+    if (currentSubmissionError) throw currentSubmissionError
+
+    if (!['application_approved', 'rejected'].includes(currentSubmission.status)) {
+      throw new Error('Esta submissão não está apta para envio de prova no momento.')
+    }
+
+    const proofDeadline = resolveProofDeadline(currentSubmission.task)
+    if (proofDeadline && new Date() > proofDeadline) {
+      throw new Error('Prazo de envio da prova expirou para esta tarefa.')
+    }
+
     const { data, error } = await supabase
       .from('submissions')
       .update({
         status: 'proof_pending',
         description: proofData.description || null,
         proof_url: proofData.proof_url || null,
+        rejection_reason: null,
+        validated_at: null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', submissionId)
-      .eq('status', 'application_approved')
+      .in('status', ['application_approved', 'rejected'])
       .select()
       .single()
 
@@ -133,7 +302,11 @@ export const submissionsService = {
 
     if (currentSubmissionError) throw currentSubmissionError
 
-    if (currentSubmission.status === 'application_pending' || currentSubmission.status === 'pending') {
+    if (
+      currentSubmission.status === 'application_pending'
+      || currentSubmission.status === 'pending'
+      || currentSubmission.status === 'application_rejected'
+    ) {
       const { data, error } = await supabase
         .from('submissions')
         .update({
@@ -217,6 +390,41 @@ export const submissionsService = {
       .single()
 
     if (error) throw error
+
+    if (currentSubmission.status === 'application_approved') {
+      await decrementTaskParticipants(currentSubmission.task_id)
+    }
+
+    return data
+  },
+
+  async resetSubmissionReview(submissionId) {
+    const { data: currentSubmission, error: currentSubmissionError } = await supabase
+      .from('submissions')
+      .select('id, status, task_id')
+      .eq('id', submissionId)
+      .single()
+
+    if (currentSubmissionError) throw currentSubmissionError
+
+    const { data, error } = await supabase
+      .from('submissions')
+      .update({
+        status: 'application_pending',
+        rejection_reason: null,
+        validated_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', submissionId)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    if (currentSubmission.status === 'application_approved') {
+      await decrementTaskParticipants(currentSubmission.task_id)
+    }
+
     return data
   },
 }

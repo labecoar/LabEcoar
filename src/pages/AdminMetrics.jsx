@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminMetricsByStatus, useApproveMetricsSubmission, useRejectMetricsSubmission } from "@/hooks/useMetrics";
+import { useRegisterManualPayment } from "@/hooks/usePayments";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,9 +23,13 @@ const STATUS_LABELS = {
   rejected: 'Rejeitada',
 }
 
+const LATE_POSTING_PLAN_B_TEXT = 'Você perdeu o prazo original de postagem e está passível de perda da vaga. Ainda assim, a equipe pode avaliar o conteúdo em caráter excepcional. Aguarde contato caso seja aberto novo prazo para aproveitamento desse conteúdo.';
+
 export default function AdminMetrics() {
   const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [selectedPaymentSubmission, setSelectedPaymentSubmission] = useState(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [paymentNotes, setPaymentNotes] = useState('');
   const { profile } = useAuth();
 
   const { data: pendingMetrics = [], isLoading: loadingPending } = useAdminMetricsByStatus('pending');
@@ -33,6 +38,7 @@ export default function AdminMetrics() {
 
   const approveMetricsMutation = useApproveMetricsSubmission();
   const rejectMetricsMutation = useRejectMetricsSubmission();
+  const registerManualPaymentMutation = useRegisterManualPayment();
 
   if (profile?.role !== 'admin') {
     return (
@@ -74,14 +80,44 @@ export default function AdminMetrics() {
       })
       setSelectedSubmission(null)
       setRejectionReason('')
-      alert('Métricas rejeitadas. O ecoante pode reenviar uma nova tentativa.')
+      alert('Métricas rejeitadas. O ecoante pode reenviar em até 2 dias após a rejeição.')
     } catch (error) {
       console.error('Erro ao rejeitar métricas:', error)
       alert('Erro ao rejeitar métricas.')
     }
   }
 
+  const handleRegisterManualPayment = async () => {
+    if (!selectedPaymentSubmission) return
+
+    try {
+      await registerManualPaymentMutation.mutateAsync({
+        metricsSubmissionId: selectedPaymentSubmission.id,
+        userId: selectedPaymentSubmission.user_id,
+        quarter: selectedPaymentSubmission.quarter,
+        notes: paymentNotes,
+      })
+
+      setSelectedPaymentSubmission(null)
+      setPaymentNotes('')
+      alert('Pagamento marcado como pago com sucesso.')
+    } catch (error) {
+      console.error('Erro ao registrar pagamento manual:', error)
+      alert(error?.message || 'Erro ao registrar pagamento manual.')
+    }
+  }
+
   const renderMetricsCard = (submission, showActions = false) => (
+    (() => {
+      const postingDeadline = submission?.task?.posting_deadline
+        ? new Date(submission.task.posting_deadline)
+        : null
+      const postedAt = submission?.posted_at ? new Date(submission.posted_at) : null
+      const hasPostingDeadline = postingDeadline && !Number.isNaN(postingDeadline.getTime())
+      const hasPostedAt = postedAt && !Number.isNaN(postedAt.getTime())
+      const isLatePosting = hasPostingDeadline && hasPostedAt ? postedAt > postingDeadline : false
+
+      return (
     <Card key={submission.id} className="shadow-md hover:shadow-lg transition-all duration-300 border-gray-200 bg-white">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
@@ -135,6 +171,23 @@ export default function AdminMetrics() {
             <p className="text-sm text-gray-600">{submission.description}</p>
           </div>
         )}
+
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-gray-700">Validação de prazo de postagem:</p>
+          <div className="text-sm text-gray-600">
+            {hasPostedAt ? `Postado em ${format(postedAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}` : 'Data/hora de postagem não informada'}
+          </div>
+          {hasPostingDeadline && (
+            <div className="text-sm text-gray-600">
+              Prazo de postagem: {format(postingDeadline, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+            </div>
+          )}
+          {isLatePosting && (
+            <Badge className="bg-orange-100 text-orange-800 border-orange-200 mt-1">
+              Postagem fora do prazo (avaliar plano B)
+            </Badge>
+          )}
+        </div>
 
         <div className="space-y-2">
           <p className="text-sm font-medium text-gray-700">Arquivo e links:</p>
@@ -193,7 +246,7 @@ export default function AdminMetrics() {
             <Button
               onClick={() => {
                 setSelectedSubmission(submission)
-                setRejectionReason('')
+                setRejectionReason(isLatePosting ? LATE_POSTING_PLAN_B_TEXT : '')
               }}
               variant="destructive"
               className="flex-1"
@@ -203,8 +256,25 @@ export default function AdminMetrics() {
             </Button>
           </div>
         )}
+
+        {!showActions && submission.status === 'approved' && (
+          <div className="pt-4 border-t">
+            <Button
+              onClick={() => {
+                setSelectedPaymentSubmission(submission)
+                setPaymentNotes('')
+              }}
+              className="w-full bg-emerald-700 hover:bg-emerald-800"
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Marcar como pago
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
+      )
+    })()
   );
 
   if (isLoading) {
@@ -341,6 +411,20 @@ export default function AdminMetrics() {
                 <p className="text-sm text-gray-600">
                   Explique o motivo da rejeição de forma clara e construtiva para o Ecoante:
                 </p>
+                <p className="text-xs text-gray-500">
+                  Regra do fluxo: após rejeição, o ecoante tem até 2 dias para reenviar as métricas.
+                </p>
+
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="text-xs"
+                    onClick={() => setRejectionReason(LATE_POSTING_PLAN_B_TEXT)}
+                  >
+                    Usar modelo Plano B (atraso)
+                  </Button>
+                </div>
 
                 <div>
                   <Label htmlFor="reason" className="text-base font-semibold">
@@ -370,6 +454,66 @@ export default function AdminMetrics() {
                     className="flex-1"
                   >
                     {rejectMetricsMutation.isPending ? 'Rejeitando...' : 'Confirmar Rejeição'}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {selectedPaymentSubmission && (
+          <Dialog
+            open={!!selectedPaymentSubmission}
+            onOpenChange={() => {
+              setSelectedPaymentSubmission(null)
+              setPaymentNotes('')
+            }}
+          >
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Confirmar Pagamento Manual</DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                  <p className="text-sm text-gray-700"><strong>Campanha:</strong> {selectedPaymentSubmission.task_title || selectedPaymentSubmission.task?.title}</p>
+                  <p className="text-sm text-gray-700 mt-1"><strong>Ecoante:</strong> {selectedPaymentSubmission.user_name || selectedPaymentSubmission.profile?.display_name || selectedPaymentSubmission.profile?.full_name}</p>
+                </div>
+
+                <p className="text-xs text-gray-600">
+                  O pagamento é feito fora da plataforma. Este registro apenas atualiza o status para pago.
+                </div>
+
+                <div>
+                  <Label htmlFor="payment-notes">Observações (opcional)</Label>
+                  <Textarea
+                    id="payment-notes"
+                    value={paymentNotes}
+                    onChange={(e) => setPaymentNotes(e.target.value)}
+                    placeholder="Ex: Transferência realizada via TED às 14h32."
+                    className="mt-2"
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedPaymentSubmission(null)
+                      setPaymentNotes('')
+                    }}
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleRegisterManualPayment}
+                    disabled={registerManualPaymentMutation.isPending}
+                    className="flex-1 bg-emerald-700 hover:bg-emerald-800"
+                  >
+                    {(registerManualPaymentMutation.isPending)
+                      ? 'Salvando...'
+                      : 'Marcar como pago'}
                   </Button>
                 </div>
               </div>
