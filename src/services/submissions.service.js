@@ -143,7 +143,7 @@ export const submissionsService = {
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    return applyRulesToSubmissions(data || [])
+    return data || []
   },
 
   /**
@@ -368,7 +368,7 @@ export const submissionsService = {
   async rejectSubmission(submissionId, rejectionReason) {
     const { data: currentSubmission, error: currentSubmissionError } = await supabase
       .from('submissions')
-      .select('id, status')
+      .select('id, status, task_id')
       .eq('id', submissionId)
       .single()
 

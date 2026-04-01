@@ -8,6 +8,15 @@ const METRICS_STATUS = {
 
 const METRICS_RESUBMISSION_WINDOW_DAYS = 2
 
+const isMissingPostedAtColumnError = (error) => {
+  const raw = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`.toLowerCase()
+  return raw.includes('posted_at') && (
+    raw.includes('schema cache')
+    || raw.includes('could not find')
+    || raw.includes('column')
+  )
+}
+
 export const metricsService = {
   async getUserMetricsSubmissions(userId) {
     const { data, error } = await supabase
@@ -161,19 +170,12 @@ export const metricsService = {
     return data
   },
 
-  async submitMetricsSubmission({ user, task, metricsFileUrl, metricsLink, description, postedAt }) {
+  async submitMetricsSubmission({ user, task, metricsFileUrl, metricsLink, description }) {
     const trimmedLink = String(metricsLink || '').trim() || null
     const trimmedDescription = String(description || '').trim() || null
-    const trimmedPostedAt = String(postedAt || '').trim()
-
-    if (!trimmedPostedAt) {
-      throw new Error('Informe a data e hora em que a postagem foi publicada.')
-    }
-
-    const postedAtDate = new Date(trimmedPostedAt)
-    if (Number.isNaN(postedAtDate.getTime())) {
-      throw new Error('A data/hora de postagem informada é inválida.')
-    }
+    
+    // Capture timestamp automatically at submission time (prevents date fraud)
+    const postedAtDate = new Date()
 
     const postingDeadlineDate = task?.posting_deadline ? new Date(task.posting_deadline) : null
     const hasValidPostingDeadline = postingDeadlineDate && !Number.isNaN(postingDeadlineDate.getTime())
@@ -193,30 +195,40 @@ export const metricsService = {
     if (existingError) throw existingError
 
     if (!existing) {
+      const insertPayload = {
+        task_id: task.id,
+        user_id: user.id,
+        task_title: task.title,
+        user_email: user.email,
+        user_name: user.user_metadata?.full_name || user.user_metadata?.display_name || user.email,
+        metrics_file_url: metricsFileUrl,
+        metrics_link: trimmedLink,
+        description: finalDescription,
+        posted_at: postedAtDate.toISOString(),
+        status: METRICS_STATUS.PENDING,
+        submitted_at: new Date().toISOString(),
+        quarter: `Q${Math.ceil((new Date().getMonth() + 1) / 3)}-${new Date().getFullYear()}`,
+        attempt_number: 1,
+      }
+
       const { data, error } = await supabase
         .from('metrics_submissions')
-        .insert([
-          {
-            task_id: task.id,
-            user_id: user.id,
-            task_title: task.title,
-            user_email: user.email,
-            user_name: user.user_metadata?.full_name || user.user_metadata?.display_name || user.email,
-            metrics_file_url: metricsFileUrl,
-            metrics_link: trimmedLink,
-            description: finalDescription,
-            posted_at: postedAtDate.toISOString(),
-            status: METRICS_STATUS.PENDING,
-            submitted_at: new Date().toISOString(),
-            quarter: `Q${Math.ceil((new Date().getMonth() + 1) / 3)}-${new Date().getFullYear()}`,
-            attempt_number: 1,
-          },
-        ])
+        .insert([insertPayload])
         .select()
         .single()
 
-      if (error) throw error
-      return data
+      if (!error) return data
+      if (!isMissingPostedAtColumnError(error)) throw error
+
+      const { posted_at: _, ...legacyInsertPayload } = insertPayload
+      const { data: legacyData, error: legacyError } = await supabase
+        .from('metrics_submissions')
+        .insert([legacyInsertPayload])
+        .select()
+        .single()
+
+      if (legacyError) throw legacyError
+      return legacyData
     }
 
     if (existing.status !== METRICS_STATUS.REJECTED) {
@@ -233,24 +245,37 @@ export const metricsService = {
       }
     }
 
+    const updatePayload = {
+      metrics_file_url: metricsFileUrl,
+      metrics_link: trimmedLink,
+      description: finalDescription,
+      posted_at: postedAtDate.toISOString(),
+      status: METRICS_STATUS.PENDING,
+      rejection_reason: null,
+      submitted_at: new Date().toISOString(),
+      reviewed_at: null,
+      attempt_number: Number(existing.attempt_number || 1) + 1,
+    }
+
     const { data, error } = await supabase
       .from('metrics_submissions')
-      .update({
-        metrics_file_url: metricsFileUrl,
-        metrics_link: trimmedLink,
-        description: finalDescription,
-        posted_at: postedAtDate.toISOString(),
-        status: METRICS_STATUS.PENDING,
-        rejection_reason: null,
-        submitted_at: new Date().toISOString(),
-        reviewed_at: null,
-        attempt_number: Number(existing.attempt_number || 1) + 1,
-      })
+      .update(updatePayload)
       .eq('id', existing.id)
       .select()
       .single()
 
-    if (error) throw error
-    return data
+    if (!error) return data
+    if (!isMissingPostedAtColumnError(error)) throw error
+
+    const { posted_at: _, ...legacyUpdatePayload } = updatePayload
+    const { data: legacyData, error: legacyError } = await supabase
+      .from('metrics_submissions')
+      .update(legacyUpdatePayload)
+      .eq('id', existing.id)
+      .select()
+      .single()
+
+    if (legacyError) throw legacyError
+    return legacyData
   },
 }

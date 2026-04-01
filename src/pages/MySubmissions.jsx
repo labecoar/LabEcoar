@@ -20,7 +20,7 @@ const normalizeSubmissionStatus = (status) => {
 export default function MySubmissions() {
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const { user } = useAuth();
-  const { data: submissions = [], isLoading } = useMySubmissions(user?.id);
+  const { data: submissions = [], isLoading, error } = useMySubmissions(user?.id);
 
   const pendingSubmissions = submissions.filter((s) => {
     const status = normalizeSubmissionStatus(s.status);
@@ -179,6 +179,21 @@ export default function MySubmissions() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Carregando submissões...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-emerald-50 via-white to-green-50">
+        <div className="max-w-6xl mx-auto">
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="py-8">
+              <h3 className="text-lg font-semibold text-red-700 mb-2">Erro ao carregar submissões</h3>
+              <p className="text-sm text-red-600">{error?.message || 'Não foi possível carregar seu histórico agora.'}</p>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );

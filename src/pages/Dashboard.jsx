@@ -40,17 +40,6 @@ export default function Dashboard() {
 
   const approvedSubmissions = submissions.filter((s) => s.status === 'approved');
   const pendingSubmissions = submissions.filter((s) => s.status === 'pending');
-  const metricsPendingToSend = React.useMemo(() => {
-    const campaignApproved = approvedSubmissions.filter((sub) => {
-      const task = allTasks.find((item) => item.id === sub.task_id)
-      return task?.category === 'campanha'
-    })
-
-    return campaignApproved.filter((sub) => {
-      const existingMetrics = metricsSubmissions.find((m) => String(m.task_id) === String(sub.task_id))
-      return !existingMetrics
-    }).length
-  }, [approvedSubmissions, allTasks, metricsSubmissions])
 
   // Conta quantas campanhas pagas foram feitas (máximo 3)
   const campaignsCompleted = React.useMemo(() => {
@@ -243,7 +232,6 @@ export default function Dashboard() {
                     </div>
                     <h3 className="font-bold" style={{ color: '#3c0b14' }}>Minhas Tarefas</h3>
                     <p className="text-sm mt-1" style={{ color: '#929292' }}>{pendingSubmissions.length} pendentes</p>
-                    <p className="text-xs mt-1" style={{ color: '#0077ad' }}>{metricsPendingToSend} métricas pendentes</p>
                   </div>
                   <ChevronRight className="w-6 h-6" style={{ color: '#0077ad' }} />
                 </div>

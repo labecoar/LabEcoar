@@ -482,7 +482,7 @@ export default function AdminMetrics() {
 
                 <p className="text-xs text-gray-600">
                   O pagamento é feito fora da plataforma. Este registro apenas atualiza o status para pago.
-                </div>
+                </p>
 
                 <div>
                   <Label htmlFor="payment-notes">Observações (opcional)</Label>

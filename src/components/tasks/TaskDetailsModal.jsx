@@ -27,6 +27,15 @@ const CATEGORY_NAMES = {
   compartilhar_ecoante: "Compartilhar Ecoante",
 };
 
+// Validar tamanho máximo de arquivo (5MB)
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const validateFileSize = (file, fieldName = 'arquivo') => {
+  if (file.size > MAX_FILE_SIZE) {
+    const sizeMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
+    throw new Error(`${fieldName} muito grande. Máximo permitido: ${sizeMB}MB. Seu arquivo: ${(file.size / (1024 * 1024)).toFixed(2)}MB`);
+  }
+};
+
 const formatTimeLeft = (expiresAt) => {
   if (!expiresAt) return null;
   const now = new Date();
@@ -80,7 +89,6 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const [metricsDescription, setMetricsDescription] = useState('');
   const [metricsLink, setMetricsLink] = useState('');
   const [metricsFile, setMetricsFile] = useState(null);
-  const [metricsPostedAt, setMetricsPostedAt] = useState('');
   const { user } = useAuth();
   const createSubmission = useCreateSubmission();
   const submitProof = useSubmitProof();
@@ -190,6 +198,13 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
       return;
     }
 
+    try {
+      validateFileSize(proofFile, 'Arquivo de prova');
+    } catch (error) {
+      alert(error.message);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -225,6 +240,13 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
       return;
     }
 
+    try {
+      validateFileSize(metricsFile, 'Arquivo de métricas');
+    } catch (error) {
+      alert(error.message);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -236,14 +258,12 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
         metricsFileUrl: metricsUrl,
         metricsLink,
         description: metricsDescription,
-        postedAt: metricsPostedAt,
       });
 
       alert('Métricas enviadas com sucesso! Aguarde a análise do administrador.');
       setMetricsDescription('');
       setMetricsLink('');
       setMetricsFile(null);
-      setMetricsPostedAt('');
       onClose();
     } catch (error) {
       console.error('Erro ao enviar métricas:', error);
@@ -321,6 +341,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
             )}
           </div>
 
+          {submissionStatus !== 'approved' && (
           <div className="pt-3 border-t">
             <div className="rounded-xl border border-fuchsia-300 p-3">
               <div className="flex items-center gap-2.5 mb-3">
@@ -361,6 +382,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
               </form>
             </div>
           </div>
+          )}
 
           {canSubmitProof && (
             <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-3 space-y-3">
@@ -389,6 +411,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                     onChange={(e) => setProofFile(e.target.files?.[0] || null)}
                     className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200"
                   />
+                  <p className="text-xs text-gray-500 mt-1">Máximo: 5MB</p>
                 </div>
 
                 <Button
@@ -477,16 +500,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                     </div>
                   )}
 
-                  <div>
-                    <Label htmlFor="metrics-posted-at">Data e hora real da postagem *</Label>
-                    <Input
-                      id="metrics-posted-at"
-                      type="datetime-local"
-                      value={metricsPostedAt}
-                      onChange={(e) => setMetricsPostedAt(e.target.value)}
-                      required
-                    />
-                  </div>
+
 
                   <div className="rounded-lg border border-sky-200 bg-sky-50 p-3">
                     <p className="text-xs font-semibold text-sky-800 mb-2">Checklist obrigatório no print/arquivo de métricas</p>
@@ -527,6 +541,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                       onChange={(e) => setMetricsFile(e.target.files?.[0] || null)}
                       className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-sky-100 file:text-sky-700 hover:file:bg-sky-200"
                     />
+                    <p className="text-xs text-gray-500 mt-1">Máximo: 5MB</p>
                   </div>
 
                   <Button
@@ -577,7 +592,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
             <div className="flex items-center justify-end text-xs text-gray-500 gap-1">
               <Calendar className="w-3.5 h-3.5" />
               <span>
-                Expira em <strong>{timeLeft}</strong> ({new Date(task.expires_at).toLocaleString('pt-BR')})
+                {timeLeft === 'Expirada' ? 'Expirada em' : 'Expira em'} <strong>{new Date(task.expires_at).toLocaleString('pt-BR')}</strong>
               </span>
             </div>
           )}
