@@ -292,7 +292,14 @@ export default function Layout({ children, currentPageName }) {
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <SidebarTrigger className="p-2 rounded-lg transition-colors duration-200 md:hidden hover:bg-[#096e4c10]" />
-                <h1 className="text-xl font-bold md:hidden" style={{ color: '#3c0b14' }}>Lab Ecoar</h1>
+                <div className="md:hidden flex items-center gap-2">
+                  <img
+                    src={logoCuica}
+                    alt="Lab Ecoar"
+                    className="w-7 h-7 rounded-lg object-cover"
+                  />
+                  <h1 className="text-xl font-bold" style={{ color: '#3c0b14' }}>Lab Ecoar</h1>
+                </div>
               </div>
               <NotificationBell />
             </div>

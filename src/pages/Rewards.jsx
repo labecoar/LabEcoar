@@ -90,7 +90,7 @@ export default function Rewards() {
               <p className="text-gray-600 mt-2">Troque seus pontos por beneficios incriveis</p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-500">Seus pontos</p>
+              <p className="text-sm text-gray-500">Seus pontos (trimestre atual)</p>
               <div className="flex items-center gap-2">
                 <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
                 <span className="text-3xl font-bold text-gray-900">{currentPoints}</span>

@@ -20,7 +20,7 @@ export function useClaimReward(userId) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (rewardId) => rewardsService.claimReward(rewardId),
+    mutationFn: (rewardId) => rewardsService.claimReward(rewardId, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rewards'] })
       queryClient.invalidateQueries({ queryKey: ['reward-claims', userId] })

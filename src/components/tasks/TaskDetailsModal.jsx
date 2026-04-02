@@ -434,7 +434,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
             <div className="rounded-xl border border-sky-200 bg-sky-50/50 p-3 space-y-3">
               <p className="font-semibold text-sky-700 inline-flex items-center gap-2">
                 <BarChart3 className="w-4 h-4" />
-                Etapa 3: Postar e enviar métricas
+                Etapa 2: Postar e enviar métricas
               </p>
               <p className="text-xs text-gray-600">
                 Você está autorizado a postar. Lembre-se de enviar um arquivo com comprovação da data da postagem.

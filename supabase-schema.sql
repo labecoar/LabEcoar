@@ -812,6 +812,8 @@ DECLARE
   v_user_id UUID := auth.uid();
   v_reward rewards%ROWTYPE;
   v_points INTEGER;
+  v_points_earned_current INTEGER := 0;
+  v_points_spent_current INTEGER := 0;
   v_claim reward_claims%ROWTYPE;
   v_profile profiles%ROWTYPE;
 BEGIN
@@ -834,18 +836,30 @@ BEGIN
     RAISE EXCEPTION 'Recompensa esgotada';
   END IF;
 
+  SELECT COALESCE(SUM(points_awarded), 0)::INTEGER INTO v_points_earned_current
+  FROM submissions
+  WHERE user_id = v_user_id
+    AND status = 'approved'
+    AND validated_at IS NOT NULL
+    AND EXTRACT(YEAR FROM validated_at) = EXTRACT(YEAR FROM NOW())
+    AND EXTRACT(QUARTER FROM validated_at) = EXTRACT(QUARTER FROM NOW());
+
+  SELECT COALESCE(SUM(points_spent), 0)::INTEGER INTO v_points_spent_current
+  FROM reward_claims
+  WHERE user_id = v_user_id
+    AND claimed_at IS NOT NULL
+    AND EXTRACT(YEAR FROM claimed_at) = EXTRACT(YEAR FROM NOW())
+    AND EXTRACT(QUARTER FROM claimed_at) = EXTRACT(QUARTER FROM NOW());
+
+  v_points := v_points_earned_current - v_points_spent_current;
+
+  IF COALESCE(v_points, 0) < v_reward.points_required THEN
+    RAISE EXCEPTION 'Pontos insuficientes no trimestre atual';
+  END IF;
+
   INSERT INTO user_scores (user_id, total_points, tasks_completed)
   VALUES (v_user_id, 0, 0)
   ON CONFLICT (user_id) DO NOTHING;
-
-  SELECT total_points INTO v_points
-  FROM user_scores
-  WHERE user_id = v_user_id
-  FOR UPDATE;
-
-  IF COALESCE(v_points, 0) < v_reward.points_required THEN
-    RAISE EXCEPTION 'Pontos insuficientes';
-  END IF;
 
   SELECT * INTO v_profile
   FROM profiles

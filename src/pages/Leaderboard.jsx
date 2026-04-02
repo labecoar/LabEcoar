@@ -4,10 +4,30 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLeaderboard } from "@/hooks/useScores";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, Medal, Award, Star } from "lucide-react";
+import { getCurrentQuarterKey } from "@/services/scores.service";
+
+const getRecentQuarterKeys = (count = 8) => {
+  const result = [];
+  const now = new Date();
+  let year = now.getFullYear();
+  let quarter = Math.floor(now.getMonth() / 3) + 1;
+
+  for (let i = 0; i < count; i += 1) {
+    result.push(`Q${quarter}-${year}`);
+    quarter -= 1;
+    if (quarter < 1) {
+      quarter = 4;
+      year -= 1;
+    }
+  }
+
+  return result;
+};
 
 export default function Leaderboard() {
   const { user } = useAuth();
-  const { data: leaderboard = [], isLoading } = useLeaderboard(100);
+  const [selectedQuarter, setSelectedQuarter] = React.useState(getCurrentQuarterKey());
+  const { data: leaderboard = [], isLoading } = useLeaderboard(100, selectedQuarter);
 
   const topThree = leaderboard.slice(0, 3);
   const rest = leaderboard.slice(3, 20);
@@ -45,7 +65,20 @@ export default function Leaderboard() {
             Ranking de Ecoantes
             <Trophy className="w-7 h-7" />
           </h1>
-          <p className="text-gray-600">Veja quem está liderando o movimento climático</p>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <p className="text-gray-600">Veja quem está liderando o movimento climático</p>
+            <select
+              value={selectedQuarter}
+              onChange={(e) => setSelectedQuarter(e.target.value)}
+              className="rounded-lg border border-emerald-200 bg-white px-3 py-1 text-sm text-emerald-700"
+            >
+              {getRecentQuarterKeys(8).map((quarterKey) => (
+                <option key={quarterKey} value={quarterKey}>
+                  {quarterKey}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Top 3 */}

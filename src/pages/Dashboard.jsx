@@ -4,12 +4,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTasks } from "@/hooks/useTasks";
 import { useMySubmissions } from "@/hooks/useSubmissions";
 import { useMyMetricsSubmissions } from "@/hooks/useMetrics";
-import { useUserScore } from "@/hooks/useScores";
+import { useUserScore, useUserScoreHistory } from "@/hooks/useScores";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, Target, CheckCircle, Star, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import RecentSubmissions from "../components/dashboard/RecentSubmissions";
+import { getCurrentQuarterKey } from "@/services/scores.service";
 
 const CATEGORY_THRESHOLDS = [
   { key: 'voz_e_violao', name: 'Voz e Violão', min: 0, max: 200, emoji: '🎸', color: '#f6c835', bgColor: 'bg-[#f6c835]' },
@@ -25,18 +26,14 @@ const CATEGORY_VALUES = {
   carnaval: 4500
 };
 
-const getCurrentQuarterLabel = () => {
-  const now = new Date();
-  const quarter = Math.floor(now.getMonth() / 3) + 1;
-  return `Q${quarter}-${now.getFullYear()}`;
-};
-
 export default function Dashboard() {
   const { user, profile } = useAuth();
+  const [selectedQuarter, setSelectedQuarter] = React.useState(getCurrentQuarterKey());
   const { data: allTasks = [] } = useTasks();
   const { data: submissions = [] } = useMySubmissions(user?.id);
   const { data: metricsSubmissions = [] } = useMyMetricsSubmissions(user?.id);
-  const { data: userScore } = useUserScore(user?.id);
+  const { data: userScore } = useUserScore(user?.id, selectedQuarter);
+  const { data: userScoreHistory = [] } = useUserScoreHistory(user?.id, 10);
 
   const approvedSubmissions = submissions.filter((s) => s.status === 'approved');
   const pendingSubmissions = submissions.filter((s) => s.status === 'pending');
@@ -61,6 +58,16 @@ export default function Dashboard() {
   );
 
   const displayName = profile?.full_name?.split(' ')[0] || 'Ecoante';
+  const quarterOptions = React.useMemo(() => {
+    const keys = Array.from(new Set([getCurrentQuarterKey(), ...userScoreHistory.map((item) => item.quarter_key)].filter(Boolean)));
+    return keys.sort((a, b) => {
+      const [aQ, aYear] = String(a).split('-');
+      const [bQ, bYear] = String(b).split('-');
+      const aSort = Number(aYear) * 10 + Number(String(aQ).replace('Q', ''));
+      const bSort = Number(bYear) * 10 + Number(String(bQ).replace('Q', ''));
+      return bSort - aSort;
+    });
+  }, [userScoreHistory]);
 
   return (
     <div className="min-h-screen p-4 md:p-8" style={{ background: 'linear-gradient(to br, #f5fff8, #ffffff, #fff5f8)' }}>
@@ -83,11 +90,22 @@ export default function Dashboard() {
 
         {/* Categoria Atual e Ganho */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-sm" style={{ color: '#929292' }}>Neste trimestre você está no nível</span>
+          <div className="flex flex-wrap items-center gap-3 mb-2">
+            <span className="text-sm" style={{ color: '#929292' }}>No trimestre selecionado você está no nível</span>
             <div className="px-4 py-1 rounded-full text-sm font-bold shadow-md text-white" style={{ background: '#096e4c' }}>
               {CATEGORY_THRESHOLDS[currentCategoryIndex]?.emoji} {CATEGORY_THRESHOLDS[currentCategoryIndex]?.name}
             </div>
+            <select
+              value={selectedQuarter}
+              onChange={(e) => setSelectedQuarter(e.target.value)}
+              className="ml-auto rounded-lg border border-emerald-200 bg-white px-3 py-1 text-sm text-emerald-700"
+            >
+              {quarterOptions.map((quarterKey) => (
+                <option key={quarterKey} value={quarterKey}>
+                  {quarterKey}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Pontos Grandes */}
@@ -103,7 +121,7 @@ export default function Dashboard() {
                 <span className="text-sm" style={{ color: '#096e4c' }}>R$ {categoryValue.toLocaleString('pt-BR')}</span>
               </div>
               <div className="px-3 py-1 rounded-full" style={{ background: '#00c33120' }}>
-                <span className="text-sm font-medium" style={{ color: '#00c331' }}>{getCurrentQuarterLabel()}</span>
+                <span className="text-sm font-medium" style={{ color: '#00c331' }}>{selectedQuarter}</span>
               </div>
             </div>
           </div>

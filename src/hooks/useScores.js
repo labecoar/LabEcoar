@@ -4,10 +4,21 @@ import { scoresService } from '@/services/scores.service'
 /**
  * Hook para buscar pontuação do usuário
  */
-export function useUserScore(userId) {
+export function useUserScore(userId, quarterKey) {
   return useQuery({
-    queryKey: ['scores', userId],
-    queryFn: () => scoresService.getUserScore(userId),
+    queryKey: ['scores', userId, quarterKey],
+    queryFn: () => scoresService.getUserScore(userId, quarterKey),
+    enabled: !!userId,
+  })
+}
+
+/**
+ * Hook para histórico de pontuação por trimestre
+ */
+export function useUserScoreHistory(userId, limit = 8) {
+  return useQuery({
+    queryKey: ['scores-history', userId, limit],
+    queryFn: () => scoresService.getUserScoreHistory(userId, limit),
     enabled: !!userId,
   })
 }
@@ -15,10 +26,10 @@ export function useUserScore(userId) {
 /**
  * Hook para buscar ranking
  */
-export function useLeaderboard(limit = 100) {
+export function useLeaderboard(limit = 100, quarterKey) {
   return useQuery({
-    queryKey: ['leaderboard', limit],
-    queryFn: () => scoresService.getLeaderboard(limit),
+    queryKey: ['leaderboard', limit, quarterKey],
+    queryFn: () => scoresService.getLeaderboard(limit, quarterKey),
   })
 }
 
