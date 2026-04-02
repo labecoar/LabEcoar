@@ -105,7 +105,9 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const offeredValue = Number(task.offered_value || task.points || 0);
   const isFull = Boolean(task.max_participants) && Number(task.current_participants || 0) >= Number(task.max_participants);
   const submissionStatus = currentSubmission?.status;
-  const proofDeadline = task?.expires_at ? new Date(task.expires_at) : null;
+  const proofDeadline = task?.category === 'campanha'
+    ? (task?.posting_deadline ? new Date(task.posting_deadline) : null)
+    : (task?.expires_at ? new Date(task.expires_at) : null);
   const hasProofDeadline = proofDeadline && !Number.isNaN(proofDeadline.getTime());
   const isProofDeadlineExpired = hasProofDeadline ? new Date() > proofDeadline : false;
   const canApply = !currentSubmission && !isTaskApproved && !isFull;

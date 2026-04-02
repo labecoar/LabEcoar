@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Target, Users, Calendar, Clock, CheckCircle2,
-  Star, Megaphone, Zap, BookOpen, Share2 
+  Star, CircleDollarSign, Megaphone, Zap, BookOpen, Share2 
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -152,6 +152,7 @@ export default function Tasks() {
   const TaskCard = ({ task }) => {
     const Icon = CATEGORY_ICONS[task.category] || Target;
     const colorClass = CATEGORY_COLORS[task.category] || "bg-gray-100 text-gray-700 border-gray-200";
+    const isPaidTask = task.category === 'campanha' || Number(task.offered_value || 0) > 0;
     const submission = getTaskSubmission(task.id);
     const submissionStatus = normalizeSubmissionStatus(submission?.status);
     const claimed = isTaskClaimed(task.id);
@@ -181,8 +182,16 @@ export default function Tasks() {
               <CardTitle className="text-lg leading-tight">{task.title}</CardTitle>
             </div>
             <div className="flex items-center gap-1 px-3 py-1 bg-amber-50 rounded-full border border-amber-200">
-              <Star className="w-4 h-4 text-amber-600 fill-amber-600" />
-              <span className="font-bold text-amber-700">{task.points}</span>
+              {isPaidTask ? (
+                <CircleDollarSign className="w-4 h-4 text-amber-600" />
+              ) : (
+                <Star className="w-4 h-4 text-amber-600 fill-amber-600" />
+              )}
+              <span className="font-bold text-amber-700">
+                {isPaidTask
+                  ? `R$ ${Number(task.offered_value || 0).toLocaleString('pt-BR')}`
+                  : Number(task.points || 0).toLocaleString('pt-BR')}
+              </span>
             </div>
           </div>
         </CardHeader>

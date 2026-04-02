@@ -7,6 +7,11 @@ const toDateOrNull = (value) => {
 }
 
 const resolveProofDeadline = (task) => {
+  if (task?.category === 'campanha') {
+    const campaignPostingDeadline = toDateOrNull(task?.posting_deadline)
+    if (campaignPostingDeadline) return campaignPostingDeadline
+  }
+
   const expiresAt = toDateOrNull(task?.expires_at)
   if (expiresAt) return expiresAt
 
@@ -159,6 +164,7 @@ export const submissionsService = {
           title,
           category,
           points,
+          offered_value,
           max_participants,
           current_participants,
           expires_at,

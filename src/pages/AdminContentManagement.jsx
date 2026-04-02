@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCreateForumTopic, useDeleteForumTopic, useForumTopics, useUpdateForumTopic } from '@/hooks/useForum'
 import { useAdminTasks, useCreateTask, useDeleteTask, useUpdateTask } from '@/hooks/useTasks'
@@ -22,6 +22,7 @@ import {
   Calendar,
   Users,
   Star,
+  CircleDollarSign,
   Megaphone,
   BookOpen,
   Share2,
@@ -34,7 +35,7 @@ import {
 } from 'lucide-react'
 
 const CATEGORY_OPTIONS = [
-  { value: 'campanha', label: 'Campanha (Paga)', points: 100 },
+  { value: 'campanha', label: 'Campanha (Paga)' },
   { value: 'oficina', label: 'Oficina (50 pts)', points: 50 },
   { value: 'folhetim', label: 'Folhetim (75 pts)', points: 75 },
   { value: 'compartilhar_ecoante', label: 'Compartilhar Ecoante (150 pts)', points: 150 },
@@ -65,7 +66,7 @@ const initialFormData = {
   folhetim_type: '',
   content_formats: [],
   content_type_other: '',
-  points: 100,
+  points: 50,
   offered_value: '',
   proof_type: 'link',
   posting_deadline: '',
@@ -97,6 +98,36 @@ const getProofTypeLabel = (task) => {
 const isTaskExpired = (task) => {
   if (!task?.expires_at) return false
   return new Date(task.expires_at).getTime() < Date.now()
+}
+
+const countBusinessDaysUntil = (targetDateRaw, referenceDateRaw = new Date()) => {
+  const targetDate = new Date(targetDateRaw)
+  const referenceDate = new Date(referenceDateRaw)
+
+  if (Number.isNaN(targetDate.getTime()) || Number.isNaN(referenceDate.getTime())) return 0
+
+  const start = new Date(referenceDate)
+  start.setHours(0, 0, 0, 0)
+
+  const end = new Date(targetDate)
+  end.setHours(0, 0, 0, 0)
+
+  if (end <= start) return 0
+
+  const cursor = new Date(start)
+  let businessDays = 0
+
+  while (cursor < end) {
+    const day = cursor.getDay()
+    const isWeekend = day === 0 || day === 6
+    if (!isWeekend) {
+      businessDays += 1
+    }
+
+    cursor.setDate(cursor.getDate() + 1)
+  }
+
+  return businessDays
 }
 
 const getTaskDeadlineState = (task) => {
@@ -207,11 +238,11 @@ export default function AdminContentManagement() {
     })
   }
 
-  const calculateDerivedCampaignDeadlines = (postingDeadlineRaw) => {
-    if (!postingDeadlineRaw) return { postingDeadline: null, proofDeadline: null }
-    const postingDeadline = new Date(postingDeadlineRaw)
-    if (Number.isNaN(postingDeadline.getTime())) {
-      return { postingDeadline: null, proofDeadline: null }
+  const calculateDerivedCampaignDeadlines = (finalDeadlineRaw) => {
+    if (!finalDeadlineRaw) return { finalDeadline: null, postingDeadline: null }
+    const finalDeadline = new Date(finalDeadlineRaw)
+    if (Number.isNaN(finalDeadline.getTime())) {
+      return { finalDeadline: null, postingDeadline: null }
     }
 
     const subtractBusinessDays = (date, days) => {
@@ -230,11 +261,11 @@ export default function AdminContentManagement() {
       return result
     }
 
-    const proofDeadline = subtractBusinessDays(postingDeadline, 2)
+    const postingDeadline = subtractBusinessDays(finalDeadline, 2)
 
     return {
+      finalDeadline: finalDeadline.toISOString(),
       postingDeadline: postingDeadline.toISOString(),
-      proofDeadline: proofDeadline.toISOString(),
     }
   }
 
@@ -245,6 +276,25 @@ export default function AdminContentManagement() {
     const offset = date.getTimezoneOffset() * 60000
     return new Date(date.getTime() - offset).toISOString().slice(0, 16)
   }
+
+  useEffect(() => {
+    if (!isCampaign) return
+
+    const { finalDeadline } = calculateDerivedCampaignDeadlines(formData.posting_deadline)
+    if (!finalDeadline) {
+      setFormData((prev) => (prev.campaign_type === 'comum' ? prev : { ...prev, campaign_type: 'comum' }))
+      return
+    }
+
+    const businessDaysUntilFinal = countBusinessDaysUntil(finalDeadline)
+    const nextCampaignType = businessDaysUntilFinal <= 7 ? 'resposta_rapida' : 'comum'
+
+    setFormData((prev) => (
+      prev.campaign_type === nextCampaignType
+        ? prev
+        : { ...prev, campaign_type: nextCampaignType }
+    ))
+  }, [isCampaign, formData.posting_deadline])
 
   const resetForm = () => {
     setFormData(initialFormData)
@@ -267,7 +317,7 @@ export default function AdminContentManagement() {
       points: Number(task.points || 0),
       offered_value: task.offered_value ? String(task.offered_value) : '',
       proof_type: task.proof_type || 'link',
-      posting_deadline: formatDateTimeLocalValue(task.posting_deadline),
+      posting_deadline: formatDateTimeLocalValue(task.expires_at || task.posting_deadline),
       max_participants: task.max_participants ? String(task.max_participants) : '',
       campaign_type: task.campaign_type || 'comum',
       requires_application: Boolean(task.requires_application),
@@ -303,7 +353,13 @@ export default function AdminContentManagement() {
     const points = Number(formData.points)
     const maxParticipants = formData.max_participants === '' ? null : Number(formData.max_participants)
     const minFollowers = formData.min_followers === '' ? null : Number(formData.min_followers)
-    const { postingDeadline, proofDeadline } = calculateDerivedCampaignDeadlines(formData.posting_deadline)
+    const { finalDeadline, postingDeadline } = calculateDerivedCampaignDeadlines(formData.posting_deadline)
+    const businessDaysUntilFinal = isCampaign && finalDeadline
+      ? countBusinessDaysUntil(finalDeadline)
+      : null
+    const businessDaysUntilPosting = isCampaign && postingDeadline
+      ? countBusinessDaysUntil(postingDeadline)
+      : null
 
     if (!title || !description || !formData.category) {
       setError('Preencha título, descrição e categoria.')
@@ -320,8 +376,13 @@ export default function AdminContentManagement() {
       return
     }
 
-    if (isCampaign && !postingDeadline) {
-      setError('Informe a data e hora limite de postagem da campanha.')
+    if (isCampaign && !finalDeadline) {
+      setError('Informe a data e hora final da tarefa.')
+      return
+    }
+
+    if (isCampaign && (businessDaysUntilPosting === null || businessDaysUntilPosting < 3)) {
+      setError('Para campanhas, a data limite de postagem precisa ter pelo menos 3 dias úteis a partir de hoje.')
       return
     }
 
@@ -344,21 +405,23 @@ export default function AdminContentManagement() {
         content_formats: formData.content_formats,
         content_type_other: formData.content_formats.includes('Outro') ? formData.content_type_other || null : null,
         points: isCampaign
-          ? Math.max(1, Math.round(offeredValue || selectedCategory?.points || 100))
+          ? 0
           : Math.max(1, Math.round(points || selectedCategory?.points || 50)),
         offered_value: isCampaign ? offeredValue : null,
         proof_type: formData.proof_type,
         expiration_value: 1,
         expiration_unit: 'days',
         posting_deadline: postingDeadline,
-        delivery_deadline: proofDeadline ? proofDeadline.slice(0, 10) : null,
+        delivery_deadline: postingDeadline ? postingDeadline.slice(0, 10) : null,
         max_participants: maxParticipants,
-        campaign_type: formData.campaign_type,
+        campaign_type: isCampaign
+          ? (businessDaysUntilFinal <= 7 ? 'resposta_rapida' : 'comum')
+          : formData.campaign_type,
         requires_application: formData.requires_application,
         profile_requirements: formData.profile_requirements || null,
         min_followers: minFollowers,
         target_audience: formData.target_audience || null,
-        expires_at: proofDeadline,
+        expires_at: finalDeadline,
       }
 
       if (editingTask) {
@@ -679,10 +742,10 @@ export default function AdminContentManagement() {
                   <div className="space-y-2">
                     <Label htmlFor="posting_deadline" className="inline-flex items-center gap-2">
                       <Clock3 className="w-4 h-4 text-orange-500" />
-                      Data e Hora Limite de Postagem *
+                      Data e Hora Final da Tarefa *
                     </Label>
                     <p className="text-xs text-gray-500">
-                      O sistema calcula automaticamente: prazo da prova = 2 dias uteis antes da postagem.
+                      O sistema calcula automaticamente: data limite de postagem = 2 dias uteis antes da data final da tarefa.
                     </p>
                     <Input
                       id="posting_deadline"
@@ -710,6 +773,7 @@ export default function AdminContentManagement() {
                     <Label>Tipo de Campanha</Label>
                     <Select
                       value={formData.campaign_type}
+                      disabled={isCampaign}
                       onValueChange={(value) => setFormData((prev) => ({ ...prev, campaign_type: value }))}
                     >
                       <SelectTrigger>
@@ -833,7 +897,9 @@ export default function AdminContentManagement() {
                               {categoryMeta.label}
                             </Badge>
                             <Badge className="bg-amber-50 text-amber-700 border-amber-200 border">
-                              <Star className="w-3 h-3 mr-1 fill-amber-600" />
+                              {task.category === 'campanha'
+                                ? <CircleDollarSign className="w-3 h-3 mr-1" />
+                                : <Star className="w-3 h-3 mr-1 fill-amber-600" />}
                               {task.category === 'campanha'
                                 ? `R$ ${Number(task.offered_value || 0).toLocaleString('pt-BR')}`
                                 : `${Number(task.points || 0).toLocaleString('pt-BR')} pts`}
@@ -935,8 +1001,12 @@ export default function AdminContentManagement() {
                               {categoryMeta.label}
                             </Badge>
                             <Badge className="bg-amber-50 text-amber-700 border-amber-200 border">
-                              <Star className="w-3 h-3 mr-1 fill-amber-600" />
-                              {Number(task.points || 0).toLocaleString('pt-BR')} pts
+                              {task.category === 'campanha'
+                                ? <CircleDollarSign className="w-3 h-3 mr-1" />
+                                : <Star className="w-3 h-3 mr-1 fill-amber-600" />}
+                              {task.category === 'campanha'
+                                ? `R$ ${Number(task.offered_value || 0).toLocaleString('pt-BR')}`
+                                : `${Number(task.points || 0).toLocaleString('pt-BR')} pts`}
                             </Badge>
                             {task.status !== 'active' && !isExpiredCompleted && (
                               <Badge className="bg-gray-100 text-gray-700 border-gray-300 border">

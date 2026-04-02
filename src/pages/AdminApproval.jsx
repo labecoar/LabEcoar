@@ -176,7 +176,8 @@ export default function AdminApproval() {
 
   const handleApprove = async (submission) => {
     try {
-      const pointsToAward = submission.task?.points || 0;
+      const isCampaign = submission.task?.category === 'campanha';
+      const pointsToAward = isCampaign ? 0 : Number(submission.task?.points || 0);
       
       // Aprovar submissão
       const approvedSubmission = await approveSubmission.mutateAsync({
@@ -250,7 +251,11 @@ export default function AdminApproval() {
           </div>
           <div className="flex items-center gap-1 px-3 py-1 bg-amber-50 rounded-full border border-amber-200">
             <Star className="w-4 h-4 text-amber-600 fill-amber-600" />
-            <span className="font-bold text-amber-700">{submission.task?.points || 0}</span>
+            <span className="font-bold text-amber-700">
+              {submission.task?.category === 'campanha'
+                ? `R$ ${Number(submission.task?.offered_value || 0).toLocaleString('pt-BR')}`
+                : `${Number(submission.task?.points || 0).toLocaleString('pt-BR')} pts`}
+            </span>
           </div>
         </div>
       </CardHeader>
@@ -422,7 +427,11 @@ export default function AdminApproval() {
                 <div className="flex items-center gap-4 text-sm text-gray-600">
                   <div className="flex items-center gap-1">
                     <Star className="w-4 h-4 text-amber-600 fill-amber-600" />
-                    <span className="font-semibold">{selectedSubmission.task?.points} pontos</span>
+                    <span className="font-semibold">
+                      {selectedSubmission.task?.category === 'campanha'
+                        ? `R$ ${Number(selectedSubmission.task?.offered_value || 0).toLocaleString('pt-BR')}`
+                        : `${Number(selectedSubmission.task?.points || 0).toLocaleString('pt-BR')} pontos`}
+                    </span>
                   </div>
                   <Badge>{selectedSubmission.task?.category}</Badge>
                   {selectedSubmission.task?.category === 'campanha' && (

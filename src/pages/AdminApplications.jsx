@@ -51,9 +51,12 @@ export default function AdminApplications() {
 
   const handleApprove = async (submission) => {
     try {
+      const isCampaign = submission.task?.category === 'campanha'
+      const pointsAwarded = isCampaign ? 0 : Number(submission.task?.points || 0)
+
       await approveSubmission.mutateAsync({
         submissionId: submission.id,
-        pointsAwarded: submission.task?.points || 0,
+        pointsAwarded,
       });
 
       const proofDeadline = submission.task?.delivery_deadline
@@ -224,7 +227,11 @@ export default function AdminApplications() {
                         Tarefa: {submission.task?.title || 'Tarefa'}
                       </p>
                     </div>
-                    <FileTextBadge points={submission.task?.points || 0} />
+                    <FileTextBadge
+                      category={submission.task?.category}
+                      points={submission.task?.points || 0}
+                      offeredValue={submission.task?.offered_value}
+                    />
                   </div>
 
                   <div className="mb-3">
@@ -344,11 +351,16 @@ export default function AdminApplications() {
   );
 }
 
-function FileTextBadge({ points }) {
+function FileTextBadge({ category, points, offeredValue }) {
+  const isCampaign = category === 'campanha'
   return (
     <div className="inline-flex items-center gap-1 px-3 py-1 bg-amber-50 rounded-full border border-amber-200">
       <Star className="w-4 h-4 text-amber-600 fill-amber-600" />
-      <span className="font-bold text-amber-700">{points}</span>
+      <span className="font-bold text-amber-700">
+        {isCampaign
+          ? `R$ ${Number(offeredValue || 0).toLocaleString('pt-BR')}`
+          : `${Number(points || 0).toLocaleString('pt-BR')} pts`}
+      </span>
     </div>
   );
 }

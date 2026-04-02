@@ -125,7 +125,8 @@ export const metricsService = {
     if (error) throw error
 
     const paymentAmount = Number(submissionForApproval?.task?.offered_value || 0)
-    const paymentPoints = Number(submissionForApproval?.task?.points || 0)
+    const isCampaignTask = submissionForApproval?.task?.category === 'campanha'
+    const paymentPoints = isCampaignTask ? 0 : Number(submissionForApproval?.task?.points || 0)
     const currentQuarter = `Q${Math.ceil((new Date().getMonth() + 1) / 3)}-${new Date().getFullYear()}`
 
     const { error: paymentError } = await supabase
