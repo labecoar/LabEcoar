@@ -252,7 +252,7 @@ export default function Login() {
           <img src={logoCuica} alt="LabEcoar" className="w-16 h-16 mx-auto mb-3 object-contain" />
           {mode === 'login' ? (
             <>
-              <h1 className="text-3xl font-bold text-slate-900">Bem-vindo ao LabEcoar</h1>
+              <h1 className="text-3xl font-bold text-slate-900">Bem-vindo ao Cuíca Lab</h1>
               <p className="text-sm text-slate-500 mt-1">Faça login para continuar</p>
             </>
           ) : (

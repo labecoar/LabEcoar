@@ -91,7 +91,7 @@ export default function CompleteProfile() {
         <div className="rounded-xl bg-white border border-slate-200 shadow-[0_15px_35px_rgba(15,23,42,0.08)] p-6">
           <div className="text-center mb-6">
             <img src={logoCuica} alt="LabEcoar" className="w-16 h-16 mx-auto mb-3 object-contain" />
-            <h2 className="text-3xl font-bold text-[#3c0b14]">Bem-vindo ao Lab Ecoar!</h2>
+            <h2 className="text-3xl font-bold text-[#3c0b14]">Bem-vindo ao Cuíca Lab!</h2>
             <p className="text-sm text-slate-500 mt-1">Complete seu cadastro para começar</p>
           </div>
 

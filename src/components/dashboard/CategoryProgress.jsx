@@ -8,7 +8,7 @@ const CATEGORY_INFO = {
     name: "Voz e Violão", 
     color: "from-yellow-400 to-orange-500",
     icon: "🎸",
-    description: "Primeiros passos no Lab Ecoar"
+    description: "Primeiros passos no Cuíca Lab"
   },
   dueto: { 
     name: "Dueto", 

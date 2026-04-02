@@ -188,12 +188,12 @@ export default function Layout({ children, currentPageName }) {
               <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden">
                 <img
                   src={logoCuica}
-                  alt="Lab Ecoar"
+                  alt="Cuíca Lab"
                   className="w-full h-full object-cover"
                 />
               </div>
               <div>
-                <h2 className="font-bold text-lg" style={{ color: '#3c0b14' }}>Lab Ecoar</h2>
+                <h2 className="font-bold text-lg" style={{ color: '#3c0b14' }}>Cuíca Lab</h2>
                 <p className="text-xs" style={{ color: '#096e4c' }}>Cuíca x Ecoantes</p>
               </div>
             </div>
@@ -295,10 +295,10 @@ export default function Layout({ children, currentPageName }) {
                 <div className="md:hidden flex items-center gap-2">
                   <img
                     src={logoCuica}
-                    alt="Lab Ecoar"
+                    alt="Cuíca Lab"
                     className="w-7 h-7 rounded-lg object-cover"
                   />
-                  <h1 className="text-xl font-bold" style={{ color: '#3c0b14' }}>Lab Ecoar</h1>
+                  <h1 className="text-xl font-bold" style={{ color: '#3c0b14' }}>Cuíca Lab</h1>
                 </div>
               </div>
               <NotificationBell />
