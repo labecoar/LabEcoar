@@ -54,6 +54,38 @@ export const storageService = {
     if (error) throw error
   },
 
+  getFilePathFromPublicUrl(publicUrl) {
+    const rawValue = String(publicUrl || '').trim()
+    if (!rawValue) return null
+
+    const marker = '/storage/v1/object/public/submissions/'
+    const markerIndex = rawValue.indexOf(marker)
+
+    if (markerIndex >= 0) {
+      const start = markerIndex + marker.length
+      const pathWithQuery = rawValue.slice(start)
+      const normalizedPath = decodeURIComponent(pathWithQuery.split('?')[0] || '').trim()
+      return normalizedPath || null
+    }
+
+    const normalizedInput = rawValue.replace(/^\/+/, '')
+    if (normalizedInput.startsWith('submissions/')) {
+      return normalizedInput.slice('submissions/'.length) || null
+    }
+
+    if (!normalizedInput.startsWith('http://') && !normalizedInput.startsWith('https://')) {
+      return normalizedInput || null
+    }
+
+    return null
+  },
+
+  async deleteByPublicUrl(publicUrl) {
+    const filePath = this.getFilePathFromPublicUrl(publicUrl)
+    if (!filePath) return
+    await this.deleteFile(filePath)
+  },
+
   /**
    * Obter URL pública de arquivo
    */

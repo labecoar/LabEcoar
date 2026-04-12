@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { storageService } from '@/services/storage.service'
 
 const METRICS_STATUS = {
   PENDING: 'pending',
@@ -188,7 +189,7 @@ export const metricsService = {
 
     const { data: existing, error: existingError } = await supabase
       .from('metrics_submissions')
-      .select('id, status, attempt_number, reviewed_at')
+      .select('id, status, attempt_number, reviewed_at, metrics_file_url')
       .eq('user_id', user.id)
       .eq('task_id', task.id)
       .maybeSingle()
@@ -265,7 +266,17 @@ export const metricsService = {
       .select()
       .single()
 
-    if (!error) return data
+    if (!error) {
+      const previousMetricsFileUrl = String(existing?.metrics_file_url || '').trim()
+      const nextMetricsFileUrl = String(data?.metrics_file_url || '').trim()
+      if (previousMetricsFileUrl && nextMetricsFileUrl && previousMetricsFileUrl !== nextMetricsFileUrl) {
+        storageService.deleteByPublicUrl(previousMetricsFileUrl).catch((cleanupError) => {
+          console.warn('Nao foi possivel limpar arquivo de metricas antigo:', cleanupError)
+        })
+      }
+
+      return data
+    }
     if (!isMissingPostedAtColumnError(error)) throw error
 
     const { posted_at: _, ...legacyUpdatePayload } = updatePayload

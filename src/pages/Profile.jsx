@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUploadFile } from '@/hooks/useStorage'
 import { useUserScore } from '@/hooks/useScores'
+import { storageService } from '@/services/storage.service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -262,6 +263,8 @@ export default function Profile() {
     if (!avatarCropSourceUrl || !user?.id) return
 
     try {
+      const previousAvatarUrl = String(profile?.avatar_url || formData.avatar_url || '').trim()
+
       const croppedFile = await createAvatarFileFromCrop({
         imageUrl: avatarCropSourceUrl,
         originalFileName: avatarCropFileName,
@@ -281,6 +284,13 @@ export default function Profile() {
         ...previous,
         avatar_url: updatedProfile?.avatar_url || result.url,
       }))
+
+      const nextAvatarUrl = String(updatedProfile?.avatar_url || result.url || '').trim()
+      if (previousAvatarUrl && previousAvatarUrl !== nextAvatarUrl) {
+        storageService.deleteByPublicUrl(previousAvatarUrl).catch((cleanupError) => {
+          console.warn('Nao foi possivel limpar avatar antigo:', cleanupError)
+        })
+      }
 
       await refreshProfile()
       closeAvatarCropDialog()

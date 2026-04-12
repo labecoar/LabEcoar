@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { storageService } from '@/services/storage.service'
 
 const toDateOrNull = (value) => {
   if (!value) return null
@@ -284,6 +285,7 @@ export const submissionsService = {
         id,
         status,
         task_id,
+        proof_url,
         task:tasks (
           expires_at,
           posting_deadline,
@@ -320,6 +322,15 @@ export const submissionsService = {
       .single()
 
     if (error) throw error
+
+    const previousProofUrl = String(currentSubmission?.proof_url || '').trim()
+    const nextProofUrl = String(data?.proof_url || '').trim()
+    if (previousProofUrl && nextProofUrl && previousProofUrl !== nextProofUrl) {
+      storageService.deleteByPublicUrl(previousProofUrl).catch((cleanupError) => {
+        console.warn('Nao foi possivel limpar prova antiga:', cleanupError)
+      })
+    }
+
     return data
   },
 
