@@ -1,6 +1,6 @@
-# LabEcoar - Plataforma de Gamificação
+# LabEcoar 
 
-Plataforma web profissional para gamificação e gestão de tarefas com sistema de pontuação, rankings e validação de provas.
+Plataforma web profissional para gestão de tarefas com sistema de pontuação, rankings e validação de provas.
 
 ## 🚀 Tecnologias
 
@@ -127,17 +127,6 @@ LabEcoar/
 - **Protected Routes** no frontend
 - **Storage com controle de acesso** por usuário
 - **Tokens JWT** gerenciados pelo Supabase Auth
-
-## 📝 Próximos Passos
-
-- [ ] Implementar CRUD completo de tarefas
-- [ ] Sistema de upload e validação de provas
-- [ ] Cálculo automático de pontuação
-- [ ] Rankings dinâmicos (geral e por categoria)
-- [ ] Geração de relatórios trimestrais
-- [ ] Dashboard com gráficos e métricas
-- [ ] Sistema de notificações
-- [ ] Automação de limpeza trimestral
 
 ## 🤝 Contribuindo
 
