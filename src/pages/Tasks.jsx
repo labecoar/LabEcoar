@@ -115,8 +115,8 @@ export default function Tasks() {
   const tasks = allTasks.filter(task => {
     if (task.expires_at && new Date(task.expires_at) < new Date()) return false;
     
-    // Filtro de seguidores para campanhas
-    if (task.category === 'campanha' && task.min_followers) {
+    // Filtro de seguidores para qualquer tarefa que exija mínimo
+    if (task.min_followers) {
       const userFollowers = profile?.followers_count || 0;
       if (userFollowers < task.min_followers) return false;
     }

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUploadFile } from '@/hooks/useStorage'
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { User, Instagram, Save, Trophy, Award, Star, Camera, Pencil, Users } from 'lucide-react'
 
 const CATEGORY_LABELS = {
@@ -36,6 +37,89 @@ const normalizeFormData = (data) => ({
   avatar_url: (data?.avatar_url || '').trim(),
 })
 
+const AVATAR_CROP_FRAME_SIZE = 280
+const AVATAR_CROP_CIRCLE_RATIO = 0.94
+const AVATAR_CROP_MIN_ZOOM = 0
+const AVATAR_CROP_MAX_ZOOM = 2
+
+const clampAvatarZoom = (value) => {
+  const numeric = Number(value || 0)
+  if (Number.isNaN(numeric)) return 0
+  return Math.min(AVATAR_CROP_MAX_ZOOM, Math.max(AVATAR_CROP_MIN_ZOOM, numeric))
+}
+
+const createAvatarFileFromCrop = ({ imageUrl, originalFileName, zoom, offsetX, offsetY }) => {
+  if (!imageUrl) {
+    return Promise.reject(new Error('Imagem invalida para recorte.'))
+  }
+
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+
+    image.onload = () => {
+      try {
+        const sourceWidth = image.naturalWidth || image.width
+        const sourceHeight = image.naturalHeight || image.height
+        const frameSize = AVATAR_CROP_FRAME_SIZE
+        const circleSize = frameSize * AVATAR_CROP_CIRCLE_RATIO
+        const baseScale = Math.max(circleSize / sourceWidth, circleSize / sourceHeight)
+        const zoomLevel = clampAvatarZoom(zoom)
+        const effectiveScale = baseScale * (1 + zoomLevel)
+        const drawWidth = sourceWidth * effectiveScale
+        const drawHeight = sourceHeight * effectiveScale
+
+        const drawX = ((frameSize - drawWidth) / 2) + Number(offsetX || 0)
+        const drawY = ((frameSize - drawHeight) / 2) + Number(offsetY || 0)
+
+        const outputSize = 600
+        const canvas = document.createElement('canvas')
+        canvas.width = outputSize
+        canvas.height = outputSize
+
+        const context = canvas.getContext('2d')
+        if (!context) {
+          reject(new Error('Nao foi possivel preparar o canvas de recorte.'))
+          return
+        }
+
+        context.clearRect(0, 0, outputSize, outputSize)
+
+        const scaleToOutput = outputSize / frameSize
+        context.drawImage(
+          image,
+          drawX * scaleToOutput,
+          drawY * scaleToOutput,
+          drawWidth * scaleToOutput,
+          drawHeight * scaleToOutput,
+        )
+
+        const baseName = String(originalFileName || 'avatar').replace(/\.[^.]+$/, '')
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Nao foi possivel gerar a imagem recortada.'))
+              return
+            }
+
+            const croppedFile = new File([blob], `${baseName}-avatar.jpg`, { type: 'image/jpeg' })
+            resolve(croppedFile)
+          },
+          'image/jpeg',
+          0.92,
+        )
+      } catch (error) {
+        reject(error)
+      }
+    }
+
+    image.onerror = () => {
+      reject(new Error('Nao foi possivel processar a imagem selecionada.'))
+    }
+
+    image.src = imageUrl
+  })
+}
+
 export default function Profile() {
   const queryClient = useQueryClient()
   const { user, profile, updateProfile, refreshProfile } = useAuth()
@@ -44,8 +128,17 @@ export default function Profile() {
 
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState(getProfileFormData(profile))
-
   const initialFormData = useMemo(() => getProfileFormData(profile), [profile])
+  const [avatarCropOpen, setAvatarCropOpen] = useState(false)
+  const [avatarCropSourceUrl, setAvatarCropSourceUrl] = useState('')
+  const [avatarCropFileName, setAvatarCropFileName] = useState('avatar.jpg')
+  const [avatarCropZoom, setAvatarCropZoom] = useState(0)
+  const [avatarCropOffset, setAvatarCropOffset] = useState({ x: 0, y: 0 })
+  const [avatarCropSourceSize, setAvatarCropSourceSize] = useState({ width: 0, height: 0 })
+  const [isDraggingAvatar, setIsDraggingAvatar] = useState(false)
+  const dragStartRef = useRef({ x: 0, y: 0 })
+  const dragOffsetStartRef = useRef({ x: 0, y: 0 })
+
   const hasChanges = useMemo(() => {
     const current = normalizeFormData(formData)
     const initial = normalizeFormData(initialFormData)
@@ -62,6 +155,20 @@ export default function Profile() {
     setFormData(getProfileFormData(profile))
     setIsEditing(false)
   }, [profile])
+
+  useEffect(() => {
+    return () => {
+      if (avatarCropSourceUrl) {
+        URL.revokeObjectURL(avatarCropSourceUrl)
+      }
+    }
+  }, [avatarCropSourceUrl])
+
+  useEffect(() => {
+    if (!avatarCropOpen) return
+    setAvatarCropOffset({ x: 0, y: 0 })
+    setAvatarCropZoom(0)
+  }, [avatarCropOpen])
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data) => {
@@ -83,23 +190,115 @@ export default function Profile() {
 
   const handleAvatarChange = async (event) => {
     const file = event.target.files?.[0]
-    if (!file || !user?.id || !isEditing) return
+    if (!file || !user?.id) return
 
     try {
+      if (!String(file.type || '').startsWith('image/')) {
+        throw new Error('Selecione um arquivo de imagem valido.')
+      }
+
+      if (avatarCropSourceUrl) {
+        URL.revokeObjectURL(avatarCropSourceUrl)
+      }
+
+      const sourceUrl = URL.createObjectURL(file)
+      setAvatarCropSourceUrl(sourceUrl)
+      setAvatarCropFileName(file.name || 'avatar.jpg')
+      setAvatarCropZoom(0)
+      setAvatarCropOffset({ x: 0, y: 0 })
+      setAvatarCropSourceSize({ width: 0, height: 0 })
+      setAvatarCropOpen(true)
+    } catch (error) {
+      console.error('Erro ao fazer upload da imagem:', error)
+      alert(error?.message || 'Erro ao fazer upload da imagem.')
+    } finally {
+      if (event?.target) {
+        event.target.value = ''
+      }
+    }
+  }
+
+  const closeAvatarCropDialog = () => {
+    setAvatarCropOpen(false)
+    setIsDraggingAvatar(false)
+    setAvatarCropOffset({ x: 0, y: 0 })
+    setAvatarCropZoom(0)
+
+    if (avatarCropSourceUrl) {
+      URL.revokeObjectURL(avatarCropSourceUrl)
+      setAvatarCropSourceUrl('')
+    }
+
+    setAvatarCropSourceSize({ width: 0, height: 0 })
+  }
+
+  const handleAvatarDragStart = (event) => {
+    event.preventDefault()
+    const point = event.touches?.[0] || event
+    dragStartRef.current = { x: point.clientX, y: point.clientY }
+    dragOffsetStartRef.current = { ...avatarCropOffset }
+    setIsDraggingAvatar(true)
+  }
+
+  const handleAvatarDragMove = (event) => {
+    if (!isDraggingAvatar) return
+
+    event.preventDefault()
+    const point = event.touches?.[0] || event
+    const deltaX = point.clientX - dragStartRef.current.x
+    const deltaY = point.clientY - dragStartRef.current.y
+
+    setAvatarCropOffset({
+      x: dragOffsetStartRef.current.x + deltaX,
+      y: dragOffsetStartRef.current.y + deltaY,
+    })
+  }
+
+  const handleAvatarDragEnd = () => {
+    setIsDraggingAvatar(false)
+  }
+
+  const handleConfirmAvatarCrop = async () => {
+    if (!avatarCropSourceUrl || !user?.id) return
+
+    try {
+      const croppedFile = await createAvatarFileFromCrop({
+        imageUrl: avatarCropSourceUrl,
+        originalFileName: avatarCropFileName,
+        zoom: avatarCropZoom,
+        offsetX: avatarCropOffset.x,
+        offsetY: avatarCropOffset.y,
+      })
+
       const result = await uploadFileMutation.mutateAsync({
-        file,
+        file: croppedFile,
         userId: user.id,
       })
 
+      const updatedProfile = await updateProfile({ avatar_url: result.url })
+
       setFormData((previous) => ({
         ...previous,
-        avatar_url: result.url,
+        avatar_url: updatedProfile?.avatar_url || result.url,
       }))
+
+      await refreshProfile()
+      closeAvatarCropDialog()
     } catch (error) {
-      console.error('Erro ao fazer upload da imagem:', error)
-      alert('Erro ao fazer upload da imagem.')
+      console.error('Erro ao salvar foto de perfil:', error)
+      alert(error?.message || 'Nao foi possivel salvar a foto de perfil.')
     }
   }
+
+  const avatarPreviewScale = useMemo(() => {
+    const width = Number(avatarCropSourceSize.width || 0)
+    const height = Number(avatarCropSourceSize.height || 0)
+    if (!width || !height) return 1
+
+    const circleSize = AVATAR_CROP_FRAME_SIZE * AVATAR_CROP_CIRCLE_RATIO
+    const baseScale = Math.max(circleSize / width, circleSize / height)
+    return baseScale * (1 + clampAvatarZoom(avatarCropZoom))
+  }, [avatarCropSourceSize.width, avatarCropSourceSize.height, avatarCropZoom])
 
   const handleSubmit = (event) => {
     event.preventDefault()
@@ -129,6 +328,80 @@ export default function Profile() {
 
   return (
     <div className="p-4 md:p-8">
+      <Dialog open={avatarCropOpen} onOpenChange={(open) => { if (!open) closeAvatarCropDialog() }}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Ajustar foto de perfil</DialogTitle>
+            <DialogDescription>
+              Arraste para posicionar e use o zoom para enquadrar no circulo.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="flex justify-center">
+              <div
+                className="relative overflow-hidden rounded-lg border border-emerald-200 bg-black/90 select-none touch-none"
+                style={{ width: `${AVATAR_CROP_FRAME_SIZE}px`, height: `${AVATAR_CROP_FRAME_SIZE}px` }}
+                onMouseDown={handleAvatarDragStart}
+                onMouseMove={handleAvatarDragMove}
+                onMouseUp={handleAvatarDragEnd}
+                onMouseLeave={handleAvatarDragEnd}
+                onTouchStart={handleAvatarDragStart}
+                onTouchMove={handleAvatarDragMove}
+                onTouchEnd={handleAvatarDragEnd}
+              >
+                {avatarCropSourceUrl && (
+                  <img
+                    src={avatarCropSourceUrl}
+                    alt="Prévia do recorte"
+                    className="absolute left-1/2 top-1/2 max-w-none pointer-events-none"
+                    onLoad={(event) => {
+                      setAvatarCropSourceSize({
+                        width: event.currentTarget.naturalWidth || 0,
+                        height: event.currentTarget.naturalHeight || 0,
+                      })
+                    }}
+                    style={{
+                      transform: `translate(calc(-50% + ${avatarCropOffset.x}px), calc(-50% + ${avatarCropOffset.y}px)) scale(${avatarPreviewScale})`,
+                      transformOrigin: 'center center',
+                    }}
+                  />
+                )}
+
+                <div className="absolute inset-0 pointer-events-none bg-black/30" />
+                <div
+                  className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]"
+                  style={{ width: `${AVATAR_CROP_CIRCLE_RATIO * 100}%`, height: `${AVATAR_CROP_CIRCLE_RATIO * 100}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="avatar-zoom">Zoom</Label>
+              <input
+                id="avatar-zoom"
+                type="range"
+                min={String(AVATAR_CROP_MIN_ZOOM)}
+                max={String(AVATAR_CROP_MAX_ZOOM)}
+                step="0.01"
+                value={avatarCropZoom}
+                onChange={(event) => setAvatarCropZoom(clampAvatarZoom(event.target.value))}
+                className="w-full"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="outline" onClick={closeAvatarCropDialog} disabled={uploadFileMutation.isPending}>
+                Cancelar
+              </Button>
+              <Button type="button" onClick={handleConfirmAvatarCrop} disabled={uploadFileMutation.isPending}>
+                {uploadFileMutation.isPending ? 'Salvando foto...' : 'Usar esta foto'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
@@ -145,13 +418,11 @@ export default function Profile() {
                   <img
                     src={formData.avatar_url}
                     alt={profile?.full_name || 'Avatar'}
-                    className="w-24 h-24 rounded-full object-cover shadow-lg border-4 border-white"
+                    className="w-24 h-24 rounded-full object-cover object-center shadow-lg border-4 border-white"
                   />
                 ) : (
                   <div className="w-24 h-24 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center shadow-lg">
-                    <span className="text-white text-4xl font-bold">
-                      {(displayName?.charAt(0) || 'E').toUpperCase()}
-                    </span>
+                    <User className="w-10 h-10 text-white" />
                   </div>
                 )}
 
@@ -254,9 +525,8 @@ export default function Profile() {
                       id="cpf"
                       placeholder="000.000.000-00"
                       value={formData.cpf}
-                      disabled={!isEditing}
-                      className={!isEditing ? 'bg-gray-50' : ''}
-                      onChange={(event) => setFormData((previous) => ({ ...previous, cpf: event.target.value }))}
+                      disabled
+                      className="bg-gray-50"
                     />
                   </div>
 

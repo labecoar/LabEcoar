@@ -192,6 +192,30 @@ export const submissionsService = {
    * Criar nova submissão
    */
   async createSubmission(submissionData) {
+    const { data: taskDataForRequirement, error: taskRequirementError } = await supabase
+      .from('tasks')
+      .select('id, min_followers')
+      .eq('id', submissionData.task_id)
+      .single()
+
+    if (taskRequirementError) throw taskRequirementError
+
+    const minFollowersRequired = Number(taskDataForRequirement?.min_followers || 0)
+    if (minFollowersRequired > 0) {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, followers_count')
+        .eq('id', submissionData.user_id)
+        .single()
+
+      if (profileError) throw profileError
+
+      const userFollowers = Number(profileData?.followers_count || 0)
+      if (userFollowers < minFollowersRequired) {
+        throw new Error(`Esta tarefa exige no minimo ${minFollowersRequired} seguidores para inscricao.`)
+      }
+    }
+
     const { data: existingSubmission, error: existingError } = await supabase
       .from('submissions')
       .select('id, status')

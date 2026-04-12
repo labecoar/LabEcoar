@@ -89,7 +89,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const [metricsDescription, setMetricsDescription] = useState('');
   const [metricsLink, setMetricsLink] = useState('');
   const [metricsFile, setMetricsFile] = useState(null);
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const createSubmission = useCreateSubmission();
   const submitProof = useSubmitProof();
   const submitMetrics = useSubmitMetricsSubmission();
@@ -103,6 +103,9 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const displayCategory = CATEGORY_NAMES[task.category] || task.category;
   const displayProofType = useMemo(() => getProofTypeLabel(task), [task]);
   const offeredValue = Number(task.offered_value || task.points || 0);
+  const userFollowers = Number(profile?.followers_count || 0);
+  const minFollowersRequired = Number(task?.min_followers || 0);
+  const meetsFollowersRequirement = userFollowers >= minFollowersRequired;
   const isFull = Boolean(task.max_participants) && Number(task.current_participants || 0) >= Number(task.max_participants);
   const submissionStatus = currentSubmission?.status;
   const proofDeadline = task?.category === 'campanha'
@@ -110,7 +113,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     : (task?.expires_at ? new Date(task.expires_at) : null);
   const hasProofDeadline = proofDeadline && !Number.isNaN(proofDeadline.getTime());
   const isProofDeadlineExpired = hasProofDeadline ? new Date() > proofDeadline : false;
-  const canApply = !currentSubmission && !isTaskApproved && !isFull;
+  const canApply = !currentSubmission && !isTaskApproved && !isFull && meetsFollowersRequirement;
   const canSubmitProof = (
     (submissionStatus === 'application_approved' || submissionStatus === 'rejected')
     && !isProofDeadlineExpired
@@ -357,6 +360,11 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
               </div>
 
               <form onSubmit={handleApply}>
+                {!meetsFollowersRequirement && minFollowersRequired > 0 && (
+                  <div className="mb-3 text-xs rounded-lg p-3 border bg-red-50 border-red-200 text-red-800">
+                    Esta tarefa exige no minimo {minFollowersRequired} seguidores para inscricao. Voce possui {userFollowers}.
+                  </div>
+                )}
                 <Button
                   type="submit"
                   disabled={isSubmitting || !canApply}
@@ -377,6 +385,8 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                             ? 'Prova rejeitada'
                       : isFull
                         ? 'Vagas encerradas'
+                        : !meetsFollowersRequirement && minFollowersRequired > 0
+                          ? `Minimo de ${minFollowersRequired} seguidores`
                         : isSubmitting
                           ? 'Enviando candidatura...'
                           : 'Candidatar-se para esta Vaga'}

@@ -222,7 +222,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Cards de ação rápida */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <Link to={createPageUrl("Tasks")}>
             <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 border-2 border-transparent bg-white" style={{ ':hover': { borderColor: '#096e4c' } }}>
               <CardContent className="p-6">
@@ -257,22 +257,6 @@ export default function Dashboard() {
             </Card>
           </Link>
 
-          <Link to={createPageUrl("Leaderboard")}>
-            <Card className="cursor-pointer hover:shadow-xl transition-all duration-300 border-2 border-transparent bg-white">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3" style={{ background: 'linear-gradient(135deg, #a6539f 0%, #e833ae 100%)' }}>
-                      <Trophy className="w-6 h-6 text-white" />
-                    </div>
-                    <h3 className="font-bold" style={{ color: '#3c0b14' }}>Ranking</h3>
-                    <p className="text-sm mt-1" style={{ color: '#929292' }}>Veja sua posição</p>
-                  </div>
-                  <ChevronRight className="w-6 h-6" style={{ color: '#a6539f' }} />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
         </div>
 
         {/* Informações do trimestre */}

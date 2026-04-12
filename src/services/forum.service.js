@@ -1,5 +1,20 @@
 import { supabase } from '@/lib/supabase'
 
+const FORUM_MAX_TEXT_LENGTH = 5000
+const BASE64_IMAGE_PATTERN = /data:image\/[a-zA-Z0-9.+-]+;base64,/i
+
+const validateForumTextField = (value, fieldLabel) => {
+  const normalized = String(value || '')
+
+  if (BASE64_IMAGE_PATTERN.test(normalized)) {
+    throw new Error('Nao e permitido colar imagem em base64 no Forum. Envie apenas texto e links de imagem.')
+  }
+
+  if (normalized.length > FORUM_MAX_TEXT_LENGTH) {
+    throw new Error(`${fieldLabel} muito grande. Limite de ${FORUM_MAX_TEXT_LENGTH} caracteres.`)
+  }
+}
+
 export const forumService = {
   async getTopics() {
     const { data, error } = await supabase
@@ -17,6 +32,9 @@ export const forumService = {
   },
 
   async createTopic(topicData) {
+    validateForumTextField(topicData?.title, 'Titulo')
+    validateForumTextField(topicData?.description, 'Descricao')
+
     const { data, error } = await supabase
       .from('forum_topics')
       .insert([{
@@ -87,6 +105,8 @@ export const forumService = {
   },
 
   async createPost(postData) {
+    validateForumTextField(postData?.content, 'Conteudo')
+
     const { data, error } = await supabase
       .from('forum_posts')
       .insert([{
