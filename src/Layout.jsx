@@ -19,6 +19,7 @@ import {
   SidebarFooter,
   SidebarProvider,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 
 const navigationItems = [
@@ -107,6 +108,54 @@ const getCategoryByPoints = (points = 0) => {
   return 'voz_e_violao';
 };
 
+function NavigationMenu({ items, isNavItemActive }) {
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  const handleNavigationClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
+  return (
+    <SidebarMenu>
+      {items.map((item) => (
+        <SidebarMenuItem key={item.title}>
+          <SidebarMenuButton
+            asChild
+            className={`hover:bg-[#096e4c10] transition-all duration-200 rounded-xl mb-1 ${isNavItemActive(item.url) ? 'text-white shadow-md' : 'text-[#3c0b14]'
+              }`}
+            style={isNavItemActive(item.url) ? {
+              background: 'linear-gradient(135deg, #096e4c 0%, #00c331 100%)'
+            } : {}}
+          >
+            <Link
+              to={item.url}
+              className="flex items-center gap-3 px-4 py-3"
+              onClick={handleNavigationClick}
+            >
+              <item.icon className="w-5 h-5" />
+              <span className="font-medium">{item.title}</span>
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      ))}
+    </SidebarMenu>
+  );
+}
+
+function MobileSidebarAutoCloseOnRouteChange({ pathname }) {
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  React.useEffect(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }, [isMobile, pathname, setOpenMobile]);
+
+  return null;
+}
+
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const { user, profile, isAdmin, signOut } = useAuth();
@@ -141,6 +190,7 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <SidebarProvider>
+      <MobileSidebarAutoCloseOnRouteChange pathname={location.pathname} />
       <style>{`
         :root {
           --primary: 165 100% 22%;
@@ -208,25 +258,10 @@ export default function Layout({ children, currentPageName }) {
           <SidebarContent className="p-3">
             <SidebarGroup>
               <SidebarGroupContent>
-                <SidebarMenu>
-                  {visibleNavigationItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        asChild
-                        className={`hover:bg-[#096e4c10] transition-all duration-200 rounded-xl mb-1 ${isNavItemActive(item.url) ? 'text-white shadow-md' : 'text-[#3c0b14]'
-                          }`}
-                        style={isNavItemActive(item.url) ? {
-                          background: 'linear-gradient(135deg, #096e4c 0%, #00c331 100%)'
-                        } : {}}
-                      >
-                        <Link to={item.url} className="flex items-center gap-3 px-4 py-3">
-                          <item.icon className="w-5 h-5" />
-                          <span className="font-medium">{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
+                <NavigationMenu
+                  items={visibleNavigationItems}
+                  isNavItemActive={isNavItemActive}
+                />
               </SidebarGroupContent>
             </SidebarGroup>
 
