@@ -6,19 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, Medal, Award, Star } from "lucide-react";
 import { getCurrentQuarterKey } from "@/services/scores.service";
 
-const getRecentQuarterKeys = (count = 8) => {
-  const result = [];
-  const now = new Date();
-  let year = now.getFullYear();
-  let quarter = Math.floor(now.getMonth() / 3) + 1;
+const LEADERBOARD_BASE_YEAR = 2026;
 
-  for (let i = 0; i < count; i += 1) {
-    result.push(`Q${quarter}-${year}`);
-    quarter -= 1;
-    if (quarter < 1) {
-      quarter = 4;
-      year -= 1;
-    }
+const getLeaderboardQuarterKeys = () => {
+  const now = new Date();
+  const currentQuarter = now.getFullYear() === LEADERBOARD_BASE_YEAR
+    ? Math.floor(now.getMonth() / 3) + 1
+    : 4;
+
+  const result = [];
+  for (let quarter = currentQuarter; quarter >= 1; quarter -= 1) {
+    result.push(`Q${quarter}-${LEADERBOARD_BASE_YEAR}`);
   }
 
   return result;
@@ -26,7 +24,8 @@ const getRecentQuarterKeys = (count = 8) => {
 
 export default function Leaderboard() {
   const { user } = useAuth();
-  const [selectedQuarter, setSelectedQuarter] = React.useState(getCurrentQuarterKey());
+  const quarterOptions = React.useMemo(() => getLeaderboardQuarterKeys(), []);
+  const [selectedQuarter, setSelectedQuarter] = React.useState(quarterOptions[0] || getCurrentQuarterKey());
   const { data: leaderboard = [], isLoading } = useLeaderboard(100, selectedQuarter);
 
   const topThree = leaderboard.slice(0, 3);
@@ -72,7 +71,7 @@ export default function Leaderboard() {
               onChange={(e) => setSelectedQuarter(e.target.value)}
               className="rounded-lg border border-emerald-200 bg-white px-3 py-1 text-sm text-emerald-700"
             >
-              {getRecentQuarterKeys(8).map((quarterKey) => (
+              {quarterOptions.map((quarterKey) => (
                 <option key={quarterKey} value={quarterKey}>
                   {quarterKey}
                 </option>
@@ -89,9 +88,7 @@ export default function Leaderboard() {
               return (
                 <Card
                   key={entry.user_id}
-                  className={`shadow-xl border-none overflow-hidden ${
-                    rank === 1 ? 'md:col-span-3 md:row-span-1' : ''
-                  }`}
+                  className="shadow-xl border-none overflow-hidden"
                 >
                   <div className={`${getRankBg(rank)} p-6 text-white`}>
                     <div className="flex items-center justify-between mb-4">

@@ -127,6 +127,8 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const meetsFollowersRequirement = userFollowers >= minFollowersRequired;
   const isFull = Boolean(task.max_participants) && Number(task.current_participants || 0) >= Number(task.max_participants);
   const submissionStatus = currentSubmission?.status;
+  const submittedAt = currentSubmission?.created_at ? new Date(currentSubmission.created_at) : null;
+  const hasValidSubmittedAt = submittedAt && !Number.isNaN(submittedAt.getTime());
   const proofDeadline = task?.category === 'campanha'
     ? (task?.posting_deadline ? new Date(task.posting_deadline) : null)
     : (task?.expires_at ? new Date(task.expires_at) : null);
@@ -390,6 +392,11 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
           <div>
             <h3 className="font-semibold mb-1 text-[#3c0b14]">Descrição</h3>
             <p className="text-sm text-gray-700 whitespace-pre-wrap">{task.description}</p>
+            {hasValidSubmittedAt && (
+              <p className="text-xs text-gray-500 mt-2">
+                Submissão enviada em: {submittedAt.toLocaleDateString('pt-BR')} às {submittedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            )}
             {task.posting_deadline && (
               <p className="text-xs text-gray-500 mt-2">
                 Data limite de postagem: {new Date(task.posting_deadline).toLocaleDateString('pt-BR')} {new Date(task.posting_deadline).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
@@ -633,7 +640,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                       id="metrics-file"
                       type="file"
                       onChange={(e) => setMetricsFile(e.target.files?.[0] || null)}
-                      className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-sky-100 file:text-sky-700 hover:file:bg-sky-200"
+                      className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200"
                     />
                     <p className="text-xs text-gray-500 mt-1">Máximo: 5MB</p>
                   </div>

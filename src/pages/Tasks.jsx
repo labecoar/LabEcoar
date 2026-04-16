@@ -153,6 +153,15 @@ export default function Tasks() {
     return myMetricsSubmissions.find((item) => String(item.task_id) === String(taskId)) || null;
   };
 
+  const shouldHideTaskFromAvailable = (task) => {
+    const submission = getTaskSubmission(task.id);
+    const submissionStatus = normalizeSubmissionStatus(submission?.status);
+
+    // Depois que o usuário é selecionado, a tarefa sai de "Disponíveis"
+    // e segue o fluxo apenas em "Minhas Submissões".
+    return ['application_approved', 'proof_pending', 'approved'].includes(submissionStatus);
+  };
+
   const shouldKeepCampaignVisibleForMetrics = (task) => {
     if (task?.category !== 'campanha') return false;
 
@@ -186,6 +195,8 @@ export default function Tasks() {
 
   // Filtra tarefas que não expiraram e respeita o mínimo de seguidores
   const tasks = allTasks.filter(task => {
+    if (shouldHideTaskFromAvailable(task)) return false;
+
     if (task.expires_at && new Date(task.expires_at) < new Date() && !shouldKeepCampaignVisibleForMetrics(task)) return false;
     
     // Filtro de seguidores para qualquer tarefa que exija mínimo
@@ -239,8 +250,11 @@ export default function Tasks() {
   const TaskCard = ({ task }) => {
     const Icon = CATEGORY_ICONS[task.category] || Target;
     const colorClass = CATEGORY_COLORS[task.category] || "bg-gray-100 text-gray-700 border-gray-200";
+    const isCampaignTask = task.category === 'campanha';
     const isPaidTask = task.category === 'campanha' || Number(task.offered_value || 0) > 0;
     const submission = getTaskSubmission(task.id);
+    const metricsSubmission = getTaskMetricsSubmission(task.id);
+    const metricsStatus = String(metricsSubmission?.status || '').trim().toLowerCase();
     const submissionStatus = normalizeSubmissionStatus(submission?.status);
     const claimed = isTaskClaimed(task.id);
     const approved = isTaskApproved(task.id);
@@ -290,8 +304,8 @@ export default function Tasks() {
             {task.description}
           </p>
 
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-4 text-gray-500">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between text-sm">
+            <div className="flex items-center gap-4 text-gray-500 flex-wrap">
               {task.expires_at && (
                 <div className={`flex items-center gap-1 px-2 py-1 rounded-md border ${
                   deadline.isCritical
@@ -314,39 +328,63 @@ export default function Tasks() {
             </div>
 
             {approved ? (
-              <Badge className="bg-green-100 text-green-700 border-green-200">
-                <CheckCircle2 className="w-3 h-3 mr-1" />
-                Concluída
-              </Badge>
+              isCampaignTask ? (
+                metricsStatus === 'approved' ? (
+                  <Badge className="bg-green-100 text-green-700 border-green-200 shrink-0">
+                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                    Concluída
+                  </Badge>
+                ) : metricsStatus === 'pending' ? (
+                  <Badge className="bg-blue-100 text-blue-700 border-blue-200 shrink-0">
+                    <Clock className="w-3 h-3 mr-1" />
+                    Métricas em análise
+                  </Badge>
+                ) : metricsStatus === 'rejected' ? (
+                  <Badge className="bg-orange-100 text-orange-700 border-orange-200 shrink-0">
+                    <Clock className="w-3 h-3 mr-1" />
+                    Reenviar métricas
+                  </Badge>
+                ) : (
+                  <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200 shrink-0">
+                    <Clock className="w-3 h-3 mr-1" />
+                    Pendente métricas
+                  </Badge>
+                )
+              ) : (
+                <Badge className="bg-green-100 text-green-700 border-green-200 shrink-0">
+                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                  Concluída
+                </Badge>
+              )
             ) : isExpiredByRule ? (
-              <Badge className="bg-gray-200 text-gray-700 border-gray-300">
+              <Badge className="bg-gray-200 text-gray-700 border-gray-300 shrink-0">
                 Expirada
               </Badge>
             ) : submissionStatus === 'proof_pending' ? (
-              <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
+              <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200 shrink-0">
                 <Clock className="w-3 h-3 mr-1" />
                 Prova em Análise
               </Badge>
             ) : submissionStatus === 'application_approved' ? (
-              <Badge className="bg-purple-100 text-purple-700 border-purple-200">
+              <Badge className="bg-purple-100 text-purple-700 border-purple-200 shrink-0">
                 <Clock className="w-3 h-3 mr-1" />
                 Aprovado p/ Fazer
               </Badge>
             ) : claimed ? (
-              <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+              <Badge className="bg-blue-100 text-blue-700 border-blue-200 shrink-0">
                 <Clock className="w-3 h-3 mr-1" />
                 Inscrição em Análise
               </Badge>
             ) : rejected && !reopenedByDateChange ? (
-              <Badge className="bg-red-100 text-red-700 border-red-200">
+              <Badge className="bg-red-100 text-red-700 border-red-200 shrink-0">
                 Rejeitada
               </Badge>
             ) : submission && !reopenedByDateChange ? (
-              <Badge className="bg-slate-100 text-slate-700 border-slate-200">
+              <Badge className="bg-slate-100 text-slate-700 border-slate-200 shrink-0">
                 Em andamento
               </Badge>
             ) : (
-              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 shrink-0">
                 Disponível
               </Badge>
             )}
