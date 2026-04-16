@@ -19,6 +19,8 @@ export function usePendingSubmissions() {
   return useQuery({
     queryKey: ['submissions', 'pending'],
     queryFn: () => submissionsService.getPendingSubmissions(),
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   })
 }
 

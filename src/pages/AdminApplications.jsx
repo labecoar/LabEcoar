@@ -5,14 +5,26 @@ import { usePendingSubmissions, useApproveSubmission, useRejectSubmission, useRe
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Clock, CheckCircle, XCircle, User, Calendar, Users, Star, Eye, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const CONTACT_HELP_TEXT = 'Se precisar, fale com a equipe no Fórum (categoria Dúvidas) para esclarecimentos.';
 
+const normalizeSubmissionStatus = (status) => {
+  const normalized = String(status || '').trim().toLowerCase()
+
+  if (normalized === 'pendente') return 'application_pending'
+  if (normalized === 'aprovada' || normalized === 'aprovado') return 'application_approved'
+  if (normalized === 'rejeitada' || normalized === 'rejeitado') return 'application_rejected'
+
+  return normalized
+}
+
 export default function AdminApplications() {
   const [activeTab, setActiveTab] = useState('pending');
+  const [selectedTaskPreview, setSelectedTaskPreview] = useState(null);
   const { profile } = useAuth();
 
   const { data: pendingSubmissions = [], isLoading } = usePendingSubmissions();
@@ -21,17 +33,23 @@ export default function AdminApplications() {
   const resetSubmissionReview = useResetSubmissionReview();
 
   const pendingApplications = useMemo(
-    () => pendingSubmissions.filter((submission) => ['application_pending', 'pending'].includes(submission.status)),
+    () => pendingSubmissions.filter((submission) => ['application_pending', 'pending'].includes(normalizeSubmissionStatus(submission.status))),
     [pendingSubmissions]
   );
 
   const selectedApplications = useMemo(
-    () => pendingSubmissions.filter((submission) => submission.status === 'application_approved'),
+    () => pendingSubmissions.filter((submission) => {
+      const status = normalizeSubmissionStatus(submission.status)
+      return ['application_approved', 'proof_pending', 'approved'].includes(status)
+    }),
     [pendingSubmissions]
   );
 
   const rejectedApplications = useMemo(
-    () => pendingSubmissions.filter((submission) => submission.status === 'application_rejected'),
+    () => pendingSubmissions.filter((submission) => {
+      const status = normalizeSubmissionStatus(submission.status)
+      return ['application_rejected', 'rejected'].includes(status)
+    }),
     [pendingSubmissions]
   );
 
@@ -223,9 +241,13 @@ export default function AdminApplications() {
                       <p className="text-2xl font-semibold text-[#3c0b14] leading-tight">
                         {submission.profile?.display_name || submission.profile?.full_name || 'Usuário'}
                       </p>
-                      <p className="text-sm text-gray-500 mt-1 inline-flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTaskPreview(submission.task || null)}
+                        className="text-sm text-gray-500 mt-1 inline-flex items-center gap-1 hover:text-emerald-700 hover:underline"
+                      >
                         Tarefa: {submission.task?.title || 'Tarefa'}
-                      </p>
+                      </button>
                     </div>
                     <FileTextBadge
                       category={submission.task?.category}
@@ -347,6 +369,79 @@ export default function AdminApplications() {
           </div>
         )}
       </div>
+
+      <Dialog open={!!selectedTaskPreview} onOpenChange={(open) => { if (!open) setSelectedTaskPreview(null) }}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{selectedTaskPreview?.title || 'Detalhes da Tarefa'}</DialogTitle>
+          </DialogHeader>
+
+          {selectedTaskPreview && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-3">
+                  <p className="text-xs text-gray-600">Categoria</p>
+                  <p className="font-semibold text-gray-800">{selectedTaskPreview.category || '-'}</p>
+                </div>
+
+                <div className="rounded-lg border border-amber-100 bg-amber-50/60 p-3">
+                  <p className="text-xs text-gray-600">Valor / Pontuação</p>
+                  <p className="font-semibold text-gray-800">
+                    {selectedTaskPreview.category === 'campanha'
+                      ? `R$ ${Number(selectedTaskPreview.offered_value || 0).toLocaleString('pt-BR')}`
+                      : `${Number(selectedTaskPreview.points || 0).toLocaleString('pt-BR')} pts`}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-blue-100 bg-blue-50/60 p-3">
+                  <p className="text-xs text-gray-600">Vagas</p>
+                  <p className="font-semibold text-gray-800">
+                    {Number(selectedTaskPreview.current_participants || 0)}
+                    {selectedTaskPreview.max_participants ? ` / ${Number(selectedTaskPreview.max_participants)}` : ''}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-purple-100 bg-purple-50/60 p-3">
+                  <p className="text-xs text-gray-600">Mínimo de Seguidores</p>
+                  <p className="font-semibold text-gray-800">{Number(selectedTaskPreview.min_followers || 0)}</p>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs text-gray-600 mb-1">Descrição</p>
+                <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                  {selectedTaskPreview.description || 'Sem descrição cadastrada.'}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-gray-600">
+                <div className="rounded-md border border-gray-200 p-2">
+                  <p className="mb-0.5">Prazo de postagem</p>
+                  <p className="font-medium text-gray-800">
+                    {selectedTaskPreview.posting_deadline
+                      ? format(new Date(selectedTaskPreview.posting_deadline), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                      : '-'}
+                  </p>
+                </div>
+
+                <div className="rounded-md border border-gray-200 p-2">
+                  <p className="mb-0.5">Delivery deadline</p>
+                  <p className="font-medium text-gray-800">{selectedTaskPreview.delivery_deadline || '-'}</p>
+                </div>
+
+                <div className="rounded-md border border-gray-200 p-2">
+                  <p className="mb-0.5">Expira em</p>
+                  <p className="font-medium text-gray-800">
+                    {selectedTaskPreview.expires_at
+                      ? format(new Date(selectedTaskPreview.expires_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                      : '-'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

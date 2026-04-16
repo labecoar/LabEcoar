@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTasks } from "@/hooks/useTasks";
 import { useMySubmissions } from "@/hooks/useSubmissions";
+import { useMyMetricsSubmissions } from "@/hooks/useMetrics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -53,6 +54,38 @@ const normalizeSubmissionStatus = (status) => {
 const getSubmissionTaskId = (submission) => {
   return submission?.task_id || submission?.task?.id || submission?.taskId || null;
 }
+
+const toDateOrNull = (value) => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const resolveProofDeadline = (task) => {
+  if (task?.category === 'campanha') {
+    const postingDeadline = toDateOrNull(task?.posting_deadline);
+    if (postingDeadline) return postingDeadline;
+  }
+
+  return toDateOrNull(task?.expires_at)
+    || toDateOrNull(task?.posting_deadline)
+    || toDateOrNull(task?.delivery_deadline)
+    || null;
+};
+
+const isAutoExpiredSubmissionRejection = (submission) => {
+  if (!submission) return false;
+
+  const status = normalizeSubmissionStatus(submission.status);
+  if (!['application_rejected', 'rejected'].includes(status)) return false;
+
+  const reason = String(submission.rejection_reason || '').trim().toLowerCase();
+  if (!reason) return false;
+
+  return reason.includes('prazo de envio da prova expirou')
+    || reason.includes('vaga cancelada por inatividade')
+    || reason.includes('primeira tentativa de envio da prova');
+};
 
 const getDeadlineState = (expiresAtValue) => {
   if (!expiresAtValue) {
@@ -110,10 +143,50 @@ export default function Tasks() {
   const { user, profile } = useAuth();
   const { data: allTasks = [], isLoading } = useTasks();
   const { data: mySubmissions = [] } = useMySubmissions(user?.id);
+  const { data: myMetricsSubmissions = [] } = useMyMetricsSubmissions(user?.id);
+
+  const getTaskSubmission = (taskId) => {
+    return mySubmissions.find((sub) => String(getSubmissionTaskId(sub)) === String(taskId)) || null;
+  };
+
+  const getTaskMetricsSubmission = (taskId) => {
+    return myMetricsSubmissions.find((item) => String(item.task_id) === String(taskId)) || null;
+  };
+
+  const shouldKeepCampaignVisibleForMetrics = (task) => {
+    if (task?.category !== 'campanha') return false;
+
+    const submission = getTaskSubmission(task.id);
+    const submissionStatus = normalizeSubmissionStatus(submission?.status);
+    if (submissionStatus !== 'approved') return false;
+
+    const metricsSubmission = getTaskMetricsSubmission(task.id);
+    const metricsStatus = String(metricsSubmission?.status || '').trim().toLowerCase();
+
+    // Enquanto a etapa de métricas não foi concluída, mantém a campanha visível
+    // mesmo após o fechamento da campanha principal.
+    if (!metricsSubmission) return true;
+    if (metricsStatus === 'pending') return true;
+    if (metricsStatus === 'approved') return false;
+
+    const postingDeadline = toDateOrNull(task?.posting_deadline);
+    if (!postingDeadline) return false;
+
+    const now = new Date();
+    const metricsWindowEnd = new Date(postingDeadline.getTime() + 8 * 24 * 60 * 60 * 1000);
+    if (now <= metricsWindowEnd) return true;
+    if (metricsStatus !== 'rejected') return false;
+
+    const reviewedAt = toDateOrNull(metricsSubmission?.reviewed_at);
+    if (!reviewedAt) return false;
+
+    const resubmissionDeadline = new Date(reviewedAt.getTime() + 2 * 24 * 60 * 60 * 1000);
+    return now <= resubmissionDeadline;
+  };
 
   // Filtra tarefas que não expiraram e respeita o mínimo de seguidores
   const tasks = allTasks.filter(task => {
-    if (task.expires_at && new Date(task.expires_at) < new Date()) return false;
+    if (task.expires_at && new Date(task.expires_at) < new Date() && !shouldKeepCampaignVisibleForMetrics(task)) return false;
     
     // Filtro de seguidores para qualquer tarefa que exija mínimo
     if (task.min_followers) {
@@ -127,10 +200,6 @@ export default function Tasks() {
   const filteredTasks = selectedCategory === "todas" ?
     tasks :
     tasks.filter((task) => task.category === selectedCategory);
-
-  const getTaskSubmission = (taskId) => {
-    return mySubmissions.find((sub) => String(getSubmissionTaskId(sub)) === String(taskId)) || null;
-  };
 
   const isTaskClaimed = (taskId) => {
     const submission = getTaskSubmission(taskId);
@@ -149,6 +218,24 @@ export default function Tasks() {
     return ['application_rejected', 'rejected'].includes(normalizeSubmissionStatus(submission?.status));
   };
 
+  const shouldShowExpiredStatus = (task, submission) => {
+    if (!isAutoExpiredSubmissionRejection(submission)) return false;
+
+    const proofDeadline = resolveProofDeadline(task);
+    if (!proofDeadline) return false;
+
+    return Date.now() > proofDeadline.getTime();
+  };
+
+  const isSubmissionReopenedByDateChange = (task, submission) => {
+    if (!isAutoExpiredSubmissionRejection(submission)) return false;
+
+    const proofDeadline = resolveProofDeadline(task);
+    if (!proofDeadline) return false;
+
+    return Date.now() <= proofDeadline.getTime();
+  };
+
   const TaskCard = ({ task }) => {
     const Icon = CATEGORY_ICONS[task.category] || Target;
     const colorClass = CATEGORY_COLORS[task.category] || "bg-gray-100 text-gray-700 border-gray-200";
@@ -159,6 +246,8 @@ export default function Tasks() {
     const approved = isTaskApproved(task.id);
     const rejected = isTaskRejected(task.id);
     const deadline = getDeadlineState(task.expires_at);
+    const isExpiredByRule = shouldShowExpiredStatus(task, submission);
+    const reopenedByDateChange = isSubmissionReopenedByDateChange(task, submission);
 
     return (
       <Card
@@ -229,6 +318,10 @@ export default function Tasks() {
                 <CheckCircle2 className="w-3 h-3 mr-1" />
                 Concluída
               </Badge>
+            ) : isExpiredByRule ? (
+              <Badge className="bg-gray-200 text-gray-700 border-gray-300">
+                Expirada
+              </Badge>
             ) : submissionStatus === 'proof_pending' ? (
               <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
                 <Clock className="w-3 h-3 mr-1" />
@@ -244,11 +337,11 @@ export default function Tasks() {
                 <Clock className="w-3 h-3 mr-1" />
                 Inscrição em Análise
               </Badge>
-            ) : rejected ? (
+            ) : rejected && !reopenedByDateChange ? (
               <Badge className="bg-red-100 text-red-700 border-red-200">
                 Rejeitada
               </Badge>
-            ) : submission ? (
+            ) : submission && !reopenedByDateChange ? (
               <Badge className="bg-slate-100 text-slate-700 border-slate-200">
                 Em andamento
               </Badge>

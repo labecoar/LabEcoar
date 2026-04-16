@@ -17,6 +17,13 @@ export function useMyPayments(userId) {
   })
 }
 
+export function useAdminPayments(status = 'all') {
+  return useQuery({
+    queryKey: ['payments', 'admin', status],
+    queryFn: () => paymentsService.getAdminPayments(status),
+  })
+}
+
 export function useUpsertPaymentInfo(userId) {
   const queryClient = useQueryClient()
 
@@ -34,6 +41,18 @@ export function useRegisterManualPayment() {
 
   return useMutation({
     mutationFn: (payload) => paymentsService.registerManualPayment(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] })
+      queryClient.invalidateQueries({ queryKey: ['metrics-submissions'] })
+    },
+  })
+}
+
+export function useUpdatePaymentStatus() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload) => paymentsService.updatePaymentStatus(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payments'] })
       queryClient.invalidateQueries({ queryKey: ['metrics-submissions'] })

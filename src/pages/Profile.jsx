@@ -4,6 +4,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUploadFile } from '@/hooks/useStorage'
 import { useUserScore } from '@/hooks/useScores'
+import { useMySubmissions } from '@/hooks/useSubmissions'
+import { useMyPayments } from '@/hooks/usePayments'
 import { storageService } from '@/services/storage.service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -37,6 +39,14 @@ const normalizeFormData = (data) => ({
   followers_count: Number(data?.followers_count || 0),
   avatar_url: (data?.avatar_url || '').trim(),
 })
+
+const normalizeSubmissionStatus = (status) => {
+  const normalized = String(status || '').trim().toLowerCase()
+  if (normalized === 'aprovada' || normalized === 'aprovado') return 'approved'
+  if (normalized === 'rejeitada' || normalized === 'rejeitado') return 'rejected'
+  if (normalized === 'pendente') return 'pending'
+  return normalized
+}
 
 const AVATAR_CROP_FRAME_SIZE = 280
 const AVATAR_CROP_CIRCLE_RATIO = 0.94
@@ -125,6 +135,8 @@ export default function Profile() {
   const queryClient = useQueryClient()
   const { user, profile, updateProfile, refreshProfile } = useAuth()
   const { data: userScore } = useUserScore(user?.id)
+  const { data: mySubmissions = [] } = useMySubmissions(user?.id)
+  const { data: myPayments = [] } = useMyPayments(user?.id)
   const uploadFileMutation = useUploadFile()
 
   const [isEditing, setIsEditing] = useState(false)
@@ -334,7 +346,26 @@ export default function Profile() {
   const displayName = formData.display_name || profile?.full_name || 'Ecoante'
   const isUploadingAvatar = uploadFileMutation.isPending
   const totalPoints = userScore?.total_points || 0
-  const totalEarnings = Number(profile?.total_earnings || 0)
+  const totalEarningsFromProfile = Number(profile?.total_earnings || 0)
+
+  const campaignPotentialEarnings = useMemo(() => {
+    return mySubmissions
+      .filter((submission) => {
+        const status = normalizeSubmissionStatus(submission?.status)
+        return status === 'approved' && submission?.task?.category === 'campanha'
+      })
+      .reduce((sum, submission) => sum + Number(submission?.task?.offered_value || 0), 0)
+  }, [mySubmissions])
+
+  const paymentsPipelineTotal = useMemo(() => {
+    return myPayments
+      .filter((payment) => ['pendente', 'processando', 'pago'].includes(String(payment?.status || '').toLowerCase()))
+      .reduce((sum, payment) => sum + Number(payment?.amount || 0), 0)
+  }, [myPayments])
+
+  const totalEarnings = useMemo(() => {
+    return Math.max(totalEarningsFromProfile, campaignPotentialEarnings, paymentsPipelineTotal)
+  }, [totalEarningsFromProfile, campaignPotentialEarnings, paymentsPipelineTotal])
 
   return (
     <div className="p-4 md:p-8">
@@ -480,9 +511,9 @@ export default function Profile() {
                 <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                   <div className="flex items-center gap-2">
                     <Award className="w-5 h-5 text-green-600" />
-                    <span className="text-sm font-medium">Ganhos</span>
+                    <span className="text-sm font-medium whitespace-nowrap">Ganhos</span>
                   </div>
-                  <span className="font-bold text-green-700">R$ {totalEarnings.toFixed(2)}</span>
+                  <span className="font-bold text-green-700 whitespace-nowrap">R$ {totalEarnings.toFixed(2)}</span>
                 </div>
               </div>
             </CardContent>

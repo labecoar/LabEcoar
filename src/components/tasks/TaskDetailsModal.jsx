@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar, Users, Star, CircleDollarSign, UserRoundCheck, Send, Upload, BarChart3 } from "lucide-react";
+import { Calendar, Users, Star, CircleDollarSign, UserRoundCheck, Send, Upload, BarChart3, CheckCircle2 } from "lucide-react";
 
 const CATEGORY_NAMES = {
   campanha: "Campanha",
@@ -82,6 +82,25 @@ const getProofTypeLabel = (task) => {
   return 'Não informado'
 }
 
+const normalizeSubmissionStatus = (status) => {
+  if (!status) return null;
+  return String(status).trim().toLowerCase();
+};
+
+const isAutoExpiredSubmissionRejection = (submission) => {
+  if (!submission) return false;
+
+  const status = normalizeSubmissionStatus(submission.status);
+  if (!['application_rejected', 'rejected'].includes(status)) return false;
+
+  const reason = String(submission.rejection_reason || '').trim().toLowerCase();
+  if (!reason) return false;
+
+  return reason.includes('prazo de envio da prova expirou')
+    || reason.includes('vaga cancelada por inatividade')
+    || reason.includes('primeira tentativa de envio da prova');
+};
+
 export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskApproved, currentSubmission }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [proofDescription, setProofDescription] = useState('');
@@ -113,7 +132,10 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     : (task?.expires_at ? new Date(task.expires_at) : null);
   const hasProofDeadline = proofDeadline && !Number.isNaN(proofDeadline.getTime());
   const isProofDeadlineExpired = hasProofDeadline ? new Date() > proofDeadline : false;
-  const canApply = !currentSubmission && !isTaskApproved && !isFull && meetsFollowersRequirement;
+  const isSubmissionExpiredByRule = isAutoExpiredSubmissionRejection(currentSubmission) && isProofDeadlineExpired;
+  const isSubmissionReopenedByDateChange = isAutoExpiredSubmissionRejection(currentSubmission) && !isProofDeadlineExpired;
+  const shouldShowSubmissionRejectionReason = Boolean(currentSubmission?.rejection_reason) && !isSubmissionReopenedByDateChange;
+  const canApply = (!currentSubmission || isSubmissionReopenedByDateChange) && !isTaskApproved && !isFull && meetsFollowersRequirement;
   const canSubmitProof = (
     (submissionStatus === 'application_approved' || submissionStatus === 'rejected')
     && !isProofDeadlineExpired
@@ -169,6 +191,35 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     && now >= metricsWindowStart
     && !hasMetricsWindowPassed
   );
+
+  const hasPassedStep1 = ['application_approved', 'proof_pending', 'rejected', 'approved'].includes(submissionStatus) && !canApply;
+  const isStep2Current = ['application_approved', 'rejected', 'proof_pending'].includes(submissionStatus);
+  const hasPassedStep2 = submissionStatus === 'approved';
+  const isMetricsCompleted = metricsStatus === 'approved';
+  const footerStageDeadline = useMemo(() => {
+    if (isCampaignTask && hasPassedStep2 && metricsWindowEnd) {
+      return {
+        label: 'Janela de métricas até',
+        date: metricsWindowEnd,
+      };
+    }
+
+    if (hasProofDeadline) {
+      return {
+        label: 'Prazo da prova até',
+        date: proofDeadline,
+      };
+    }
+
+    if (task.expires_at) {
+      return {
+        label: timeLeft === 'Expirada' ? 'Expirada em' : 'Expira em',
+        date: new Date(task.expires_at),
+      };
+    }
+
+    return null;
+  }, [isCampaignTask, hasPassedStep2, metricsWindowEnd, hasProofDeadline, proofDeadline, task.expires_at, timeLeft]);
 
   const handleApply = async (e) => {
     e.preventDefault();
@@ -346,8 +397,15 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
             )}
           </div>
 
-          {submissionStatus !== 'approved' && (
-          <div className="pt-3 border-t">
+          <div className="pt-3 border-t space-y-3">
+          {hasPassedStep1 ? (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-3">
+              <p className="font-semibold text-emerald-700 inline-flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4" />
+                Etapa 1 concluída: candidatura aprovada
+              </p>
+            </div>
+          ) : submissionStatus !== 'approved' && (
             <div className="rounded-xl border border-fuchsia-300 p-3">
               <div className="flex items-center gap-2.5 mb-3">
                 <div className="w-8 h-8 rounded-full bg-fuchsia-500 text-white flex items-center justify-center font-bold text-sm">
@@ -373,12 +431,16 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                   <Send className="w-4 h-4 mr-2" />
                   {isTaskApproved || submissionStatus === 'approved'
                     ? 'Tarefa já concluída'
+                    : isSubmissionReopenedByDateChange
+                      ? 'Candidatar-se para esta Vaga'
                     : canSubmitProof
                       ? submissionStatus === 'rejected'
                         ? 'Prova rejeitada - reenviar abaixo'
                         : 'Inscrição aprovada - envie a prova abaixo'
                       : isWaiting
                         ? STATUS_TEXT[submissionStatus] || 'Inscrição em análise'
+                        : isSubmissionExpiredByRule
+                          ? 'Prazo expirado'
                         : submissionStatus === 'application_rejected'
                           ? 'Inscrição rejeitada'
                           : submissionStatus === 'rejected'
@@ -393,10 +455,16 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                 </Button>
               </form>
             </div>
-          </div>
           )}
 
-          {canSubmitProof && (
+          {hasPassedStep2 ? (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-3">
+              <p className="font-semibold text-emerald-700 inline-flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4" />
+                Etapa 2 concluída: prova aprovada
+              </p>
+            </div>
+          ) : isStep2Current ? (
             <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-3 space-y-3">
               <p className="font-semibold text-emerald-700">Etapa 2: Enviar prova de conclusão</p>
               {hasProofDeadline && (
@@ -404,6 +472,11 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                   Prazo para envio da prova: até {proofDeadline.toLocaleDateString('pt-BR')} às {proofDeadline.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.
                 </p>
               )}
+              {submissionStatus === 'proof_pending' ? (
+                <div className="text-xs rounded-lg p-3 border bg-blue-50 border-blue-200 text-blue-800">
+                  Prova enviada com sucesso. Aguarde a validação final do administrador.
+                </div>
+              ) : (
               <form onSubmit={handleSendProof} className="space-y-3">
                 <div>
                   <Label htmlFor="proof-description">Descrição da prova (opcional)</Label>
@@ -439,14 +512,23 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                       : 'Enviar prova para aprovação final'}
                 </Button>
               </form>
+              )}
             </div>
-          )}
+          ) : null}
 
-          {isCampaignTask && submissionStatus === 'approved' && (
+          {isCampaignTask && hasPassedStep2 && (
+            isMetricsCompleted ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-3">
+                <p className="font-semibold text-emerald-700 inline-flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4" />
+                  Etapa 3 concluída: métricas aprovadas
+                </p>
+              </div>
+            ) : (
             <div className="rounded-xl border border-sky-200 bg-sky-50/50 p-3 space-y-3">
               <p className="font-semibold text-sky-700 inline-flex items-center gap-2">
                 <BarChart3 className="w-4 h-4" />
-                Etapa 2: Postar e enviar métricas
+                Etapa 3: Postar e enviar métricas
               </p>
               <p className="text-xs text-gray-600">
                 Você está autorizado a postar. Lembre-se de enviar um arquivo com comprovação da data da postagem.
@@ -591,20 +673,22 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                 </div>
               )}
             </div>
+            )
           )}
+          </div>
 
-          {currentSubmission?.rejection_reason && (
+          {shouldShowSubmissionRejectionReason && (
             <div className="rounded-lg bg-red-50 border border-red-200 p-3">
               <p className="text-xs font-semibold text-red-700 mb-1">Motivo da rejeição</p>
               <p className="text-sm text-red-600">{currentSubmission.rejection_reason}</p>
             </div>
           )}
 
-          {task.expires_at && (
+          {footerStageDeadline?.date && (
             <div className="flex items-center justify-end text-xs text-gray-500 gap-1">
               <Calendar className="w-3.5 h-3.5" />
               <span>
-                {timeLeft === 'Expirada' ? 'Expirada em' : 'Expira em'} <strong>{new Date(task.expires_at).toLocaleString('pt-BR')}</strong>
+                {footerStageDeadline.label} <strong>{footerStageDeadline.date.toLocaleString('pt-BR')}</strong>
               </span>
             </div>
           )}

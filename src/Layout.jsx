@@ -66,19 +66,25 @@ const adminNavigationItems = [
     icon: Target,
   },
   {
-    title: "Aprovação",
-    url: createPageUrl("AdminApproval"),
-    icon: Shield,
-  },
-  {
     title: "Seleção",
     url: createPageUrl("AdminApplications"),
     icon: User,
   },
   {
+    title: "Aprovação",
+    url: createPageUrl("AdminApproval"),
+    icon: Shield,
+  },
+
+  {
     title: "Métricas",
     url: createPageUrl("AdminMetrics"),
     icon: BarChart3,
+  },
+  {
+    title: "Pagamentos",
+    url: createPageUrl("AdminPayments"),
+    icon: DollarSign,
   },
   {
     title: "Ranking",

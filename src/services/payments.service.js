@@ -41,6 +41,91 @@ export const paymentsService = {
     return data || []
   },
 
+  async getAdminPayments(status = 'all') {
+    const applyStatusFilter = (queryBuilder) => {
+      if (status && status !== 'all') {
+        return queryBuilder.eq('status', status)
+      }
+      return queryBuilder
+    }
+
+    const fullQuery = applyStatusFilter(
+      supabase
+        .from('payments')
+        .select(`
+          *,
+          profile:profiles (
+            id,
+            display_name,
+            full_name,
+            email,
+            instagram_handle
+          ),
+          metrics_submission:metrics_submissions (
+            id,
+            task_title,
+            submitted_at
+          )
+        `)
+        .order('created_at', { ascending: false })
+    )
+
+    const { data, error } = await fullQuery
+    if (!error) return data || []
+
+    const rawError = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`.toLowerCase()
+    const missingRelation = rawError.includes('relationship') && rawError.includes('metrics_submissions')
+
+    if (!missingRelation) throw error
+
+    // Fallback para bancos sem FK explícita payments.metrics_submission_id -> metrics_submissions.id
+    const fallbackQuery = applyStatusFilter(
+      supabase
+        .from('payments')
+        .select(`
+          *,
+          profile:profiles (
+            id,
+            display_name,
+            full_name,
+            email,
+            instagram_handle
+          )
+        `)
+        .order('created_at', { ascending: false })
+    )
+
+    const { data: fallbackData, error: fallbackError } = await fallbackQuery
+    if (fallbackError) throw fallbackError
+
+    return fallbackData || []
+  },
+
+  async updatePaymentStatus({ paymentId, status, notes }) {
+    if (!paymentId) throw new Error('Pagamento inválido para atualização de status.')
+    if (!status) throw new Error('Status é obrigatório para atualizar pagamento.')
+
+    const payload = {
+      status,
+      notes: String(notes || '').trim() || null,
+      updated_at: new Date().toISOString(),
+    }
+
+    if (status === 'pago') {
+      payload.paid_at = new Date().toISOString()
+    }
+
+    const { data, error } = await supabase
+      .from('payments')
+      .update(payload)
+      .eq('id', paymentId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
   async registerManualPayment({ metricsSubmissionId, userId, quarter, notes }) {
     if (!metricsSubmissionId) {
       throw new Error('Submissão de métricas inválida para registrar pagamento.')

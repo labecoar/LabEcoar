@@ -136,6 +136,7 @@ export const submissionsService = {
         title,
         category,
         points,
+        offered_value,
         expires_at,
         posting_deadline,
         delivery_deadline
@@ -182,7 +183,19 @@ export const submissionsService = {
           followers_count
         )
       `)
-      .in('status', ['application_pending', 'application_approved', 'application_rejected', 'proof_pending', 'pending'])
+      .in('status', [
+        'application_pending',
+        'application_approved',
+        'application_rejected',
+        'proof_pending',
+        'approved',
+        'rejected',
+        'pending',
+        // Compatibilidade com valores legados/localizados
+        'pendente',
+        'aprovada',
+        'rejeitada',
+      ])
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -193,23 +206,33 @@ export const submissionsService = {
    * Criar nova submissão
    */
   async createSubmission(submissionData) {
-    const { data: taskDataForRequirement, error: taskRequirementError } = await supabase
+    const { data: taskRequirementRows, error: taskRequirementError } = await supabase
       .from('tasks')
       .select('id, min_followers')
       .eq('id', submissionData.task_id)
-      .single()
+      .limit(1)
 
     if (taskRequirementError) throw taskRequirementError
 
+    const taskDataForRequirement = taskRequirementRows?.[0] || null
+    if (!taskDataForRequirement) {
+      throw new Error('Tarefa nao encontrada para esta candidatura.')
+    }
+
     const minFollowersRequired = Number(taskDataForRequirement?.min_followers || 0)
     if (minFollowersRequired > 0) {
-      const { data: profileData, error: profileError } = await supabase
+      const { data: profileRows, error: profileError } = await supabase
         .from('profiles')
         .select('id, followers_count')
         .eq('id', submissionData.user_id)
-        .single()
+        .limit(1)
 
       if (profileError) throw profileError
+
+      const profileData = profileRows?.[0] || null
+      if (!profileData) {
+        throw new Error('Perfil do usuario nao encontrado para candidatura.')
+      }
 
       const userFollowers = Number(profileData?.followers_count || 0)
       if (userFollowers < minFollowersRequired) {
@@ -217,27 +240,29 @@ export const submissionsService = {
       }
     }
 
-    const { data: existingSubmission, error: existingError } = await supabase
+    const { data: existingSubmissions, error: existingError } = await supabase
       .from('submissions')
-      .select('id, status')
+      .select('id, status, created_at, updated_at')
       .eq('user_id', submissionData.user_id)
       .eq('task_id', submissionData.task_id)
-      .maybeSingle()
+      .order('updated_at', { ascending: false })
+      .order('created_at', { ascending: false })
 
     if (existingError) {
-      const message = String(existingError.message || '')
-      if (message.toLowerCase().includes('multiple') || message.toLowerCase().includes('more than one')) {
-        throw new Error('Há múltiplas submissões antigas para esta tarefa. Avise o admin para limpar duplicidades no banco.')
-      }
       throw existingError
     }
 
-    if (existingSubmission && !['application_rejected', 'rejected'].includes(existingSubmission.status)) {
+    const submissions = existingSubmissions || []
+    const latestSubmission = submissions[0] || null
+    const hasActiveSubmission = submissions.some((item) => !['application_rejected', 'rejected'].includes(item?.status))
+
+    if (hasActiveSubmission) {
       throw new Error('Você já possui uma inscrição ativa para esta tarefa.')
     }
 
-    if (existingSubmission && ['application_rejected', 'rejected'].includes(existingSubmission.status)) {
-      const { data, error } = await supabase
+    if (latestSubmission && ['application_rejected', 'rejected'].includes(latestSubmission.status)) {
+      const nowIso = new Date().toISOString()
+      const { error } = await supabase
         .from('submissions')
         .update({
           status: 'application_pending',
@@ -246,33 +271,122 @@ export const submissionsService = {
           points_awarded: 0,
           rejection_reason: null,
           validated_at: null,
-          updated_at: new Date().toISOString(),
+          updated_at: nowIso,
         })
-        .eq('id', existingSubmission.id)
-        .select()
-        .single()
+        .eq('id', latestSubmission.id)
 
       if (error) throw error
-      return data
+
+      const { data: reloadedRows, error: reloadError } = await supabase
+        .from('submissions')
+        .select('id, user_id, task_id, status, description, proof_url, points_awarded, rejection_reason, validated_at, updated_at')
+        .eq('id', latestSubmission.id)
+        .limit(1)
+
+      if (reloadError) throw reloadError
+
+      const updatedSubmission = reloadedRows?.[0] || null
+      if (updatedSubmission && updatedSubmission.status === 'application_pending') {
+        return updatedSubmission
+      }
+
+      // Fallback: tenta upsert no par unico user_id/task_id para garantir o status pendente.
+      const { error: upsertError } = await supabase
+        .from('submissions')
+        .upsert([
+          {
+            user_id: submissionData.user_id,
+            task_id: submissionData.task_id,
+            status: 'application_pending',
+            description: submissionData.description || null,
+            proof_url: null,
+            points_awarded: 0,
+            rejection_reason: null,
+            validated_at: null,
+            updated_at: nowIso,
+          },
+        ], { onConflict: 'user_id,task_id' })
+
+      if (upsertError) throw upsertError
+
+      const { data: ensuredRows, error: ensureError } = await supabase
+        .from('submissions')
+        .select('id, user_id, task_id, status, description, proof_url, points_awarded, rejection_reason, validated_at, updated_at')
+        .eq('user_id', submissionData.user_id)
+        .eq('task_id', submissionData.task_id)
+        .order('updated_at', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (ensureError) throw ensureError
+
+      const ensuredSubmission = ensuredRows?.[0] || null
+      if (ensuredSubmission && ensuredSubmission.status === 'application_pending') {
+        return ensuredSubmission
+      }
+
+      throw new Error('Não foi possível atualizar a candidatura para pendente. Peça ao admin para reabrir análise da inscrição.')
     }
 
-    const { data, error } = await supabase
+    const { data: insertedRows, error } = await supabase
       .from('submissions')
       .insert([{
         ...submissionData,
         status: 'application_pending'
       }])
       .select()
-      .single()
 
     if (error) {
       const message = String(error.message || '')
       if (message.toLowerCase().includes('violates check constraint') || message.toLowerCase().includes('submissions_status_check')) {
         throw new Error('Backend desatualizado: status do fluxo não foi migrado no Supabase. Rode o SQL de migration da tabela submissions.')
       }
+      if (message.toLowerCase().includes('duplicate key value') || message.toLowerCase().includes('idx_submissions_user_task_unique')) {
+        const nowIso = new Date().toISOString()
+        const { error: fallbackError } = await supabase
+          .from('submissions')
+          .update({
+            status: 'application_pending',
+            description: submissionData.description || null,
+            proof_url: null,
+            points_awarded: 0,
+            rejection_reason: null,
+            validated_at: null,
+            updated_at: nowIso,
+          })
+          .eq('user_id', submissionData.user_id)
+          .eq('task_id', submissionData.task_id)
+          .in('status', ['application_rejected', 'rejected'])
+
+        if (fallbackError) throw fallbackError
+
+        const { data: fallbackRows, error: fallbackReadError } = await supabase
+          .from('submissions')
+          .select('id, status, description, proof_url, points_awarded, rejection_reason, validated_at, updated_at')
+          .eq('user_id', submissionData.user_id)
+          .eq('task_id', submissionData.task_id)
+          .order('updated_at', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(1)
+
+        if (fallbackReadError) throw fallbackReadError
+
+        const fallbackSubmission = fallbackRows?.[0] || null
+        if (fallbackSubmission && fallbackSubmission.status === 'application_pending') {
+          return fallbackSubmission
+        }
+
+        throw new Error('Não foi possível reabrir sua candidatura automaticamente. Peça ao admin para clicar em "Reabrir Análise".')
+      }
       throw error
     }
-    return data
+
+    const insertedSubmission = insertedRows?.[0] || null
+    if (!insertedSubmission) {
+      throw new Error('Nao foi possivel criar a candidatura.')
+    }
+
+    return insertedSubmission
   },
 
   /**

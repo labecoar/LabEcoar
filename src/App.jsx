@@ -11,7 +11,7 @@ import ResetPassword from '@/pages/ResetPassword';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
-const ADMIN_ONLY_PAGES = new Set(['AdminContentManagement', 'AdminApproval', 'AdminApplications', 'AdminMetrics', 'Leaderboard']);
+const ADMIN_ONLY_PAGES = new Set(['AdminContentManagement', 'AdminApproval', 'AdminApplications', 'AdminMetrics', 'AdminPayments', 'Leaderboard']);
 const isAdminPage = (pageName) => ADMIN_ONLY_PAGES.has(pageName);
 
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?

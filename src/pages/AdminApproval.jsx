@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  CheckCircle, XCircle, ExternalLink,
+  CheckCircle, XCircle, ExternalLink, FileText,
   Clock, User, Calendar, Star, Shield
 } from "lucide-react";
 import { format } from "date-fns";
@@ -30,6 +30,45 @@ const STATUS_LABELS = {
 const BUSINESS_START_HOUR = 8;
 const BUSINESS_END_HOUR = 18;
 const REVIEW_SLA_BUSINESS_HOURS = 5;
+const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.avif'];
+
+const isImageProofUrl = (url) => {
+  const raw = String(url || '').trim().toLowerCase();
+  if (!raw) return false;
+  if (raw.startsWith('data:image/')) return true;
+
+  const withoutQuery = raw.split('?')[0].split('#')[0];
+  return IMAGE_EXTENSIONS.some((ext) => withoutQuery.endsWith(ext));
+};
+
+function ProofPreview({ url, compact = false }) {
+  const [hasLoadError, setHasLoadError] = useState(false);
+  const shouldRenderImage = isImageProofUrl(url) && !hasLoadError;
+
+  if (shouldRenderImage) {
+    return (
+      <img
+        src={url}
+        alt="Comprovante"
+        onError={() => setHasLoadError(true)}
+        className={compact
+          ? 'w-full h-32 object-cover rounded-lg border border-gray-200'
+          : 'w-full rounded-lg border-2 border-gray-200'
+        }
+      />
+    );
+  }
+
+  return (
+    <div className={compact
+      ? 'w-full h-32 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center gap-2 text-gray-600'
+      : 'w-full rounded-lg border-2 border-gray-200 bg-gray-50 px-4 py-5 flex items-center gap-2 text-gray-700'
+    }>
+      <FileText className="w-5 h-5" />
+      <span className="text-sm font-medium">Arquivo</span>
+    </div>
+  );
+}
 
 const isBusinessDay = (date) => {
   const day = date.getDay();
@@ -271,11 +310,7 @@ export default function AdminApproval() {
         {submission.proof_url && (
           <div>
             <p className="text-xs text-gray-500 mb-2">Comprovante:</p>
-            <img
-              src={submission.proof_url}
-              alt="Comprovante"
-              className="w-full h-32 object-cover rounded-lg"
-            />
+            <ProofPreview url={submission.proof_url} compact />
           </div>
         )}
 
@@ -466,11 +501,7 @@ export default function AdminApproval() {
               {selectedSubmission.proof_url && (
                 <div>
                   <Label className="text-base font-semibold mb-2 block">Comprovante:</Label>
-                  <img
-                    src={selectedSubmission.proof_url}
-                    alt="Comprovante"
-                    className="w-full rounded-lg border-2 border-gray-200"
-                  />
+                  <ProofPreview url={selectedSubmission.proof_url} />
                   <a
                     href={selectedSubmission.proof_url}
                     target="_blank"
