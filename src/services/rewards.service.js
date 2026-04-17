@@ -13,6 +13,56 @@ export const rewardsService = {
     return data || []
   },
 
+  async getAdminRewards() {
+    const { data, error } = await supabase
+      .from('rewards')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data || []
+  },
+
+  async createReward(payload, userId) {
+    const dataToInsert = {
+      ...payload,
+      created_by: userId,
+      quantity_claimed: 0,
+      is_active: payload.is_active ?? true,
+    }
+
+    const { data, error } = await supabase
+      .from('rewards')
+      .insert([dataToInsert])
+      .select('*')
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  async updateReward(rewardId, payload) {
+    const { data, error } = await supabase
+      .from('rewards')
+      .update(payload)
+      .eq('id', rewardId)
+      .select('*')
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  async deleteReward(rewardId) {
+    const { error } = await supabase
+      .from('rewards')
+      .delete()
+      .eq('id', rewardId)
+
+    if (error) throw error
+    return true
+  },
+
   async getMyClaims(userId) {
     const { data, error } = await supabase
       .from('reward_claims')

@@ -88,6 +88,11 @@ const adminNavigationItems = [
     icon: DollarSign,
   },
   {
+    title: "Recompensas",
+    url: createPageUrl("AdminRewards"),
+    icon: Gift,
+  },
+  {
     title: "Ranking",
     url: createPageUrl("Leaderboard"),
     icon: Trophy,

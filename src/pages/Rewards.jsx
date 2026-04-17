@@ -67,6 +67,11 @@ export default function Rewards() {
     }
   };
 
+  const openOriginalImage = (imageUrl) => {
+    if (!imageUrl) return;
+    window.open(imageUrl, '_blank', 'noopener,noreferrer');
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -169,7 +174,7 @@ export default function Rewards() {
                 onClick={() => setSelectedReward(reward)}
               >
                 {reward.image_url && (
-                  <div className="h-48 bg-gradient-to-br from-emerald-100 to-teal-100 overflow-hidden">
+                  <div className="h-48 w-full bg-gradient-to-br from-emerald-100 to-teal-100 overflow-hidden block text-left">
                     <img
                       src={reward.image_url}
                       alt={reward.title}
@@ -244,13 +249,18 @@ export default function Rewards() {
 
               <div className="space-y-6">
                 {selectedReward.image_url && (
-                  <div className="w-full h-64 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-xl overflow-hidden">
+                  <button
+                    type="button"
+                    className="w-full h-64 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-xl overflow-hidden block text-left"
+                    onClick={() => openOriginalImage(selectedReward.image_url)}
+                    title="Abrir imagem original"
+                  >
                     <img
                       src={selectedReward.image_url}
                       alt={selectedReward.title}
                       className="w-full h-full object-cover"
                     />
-                  </div>
+                  </button>
                 )}
 
                 <div>
