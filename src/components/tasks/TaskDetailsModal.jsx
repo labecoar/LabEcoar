@@ -101,6 +101,59 @@ const isAutoExpiredSubmissionRejection = (submission) => {
     || reason.includes('primeira tentativa de envio da prova');
 };
 
+const toDateOrNull = (value) => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const addBusinessDays = (baseDate, businessDays) => {
+  if (!baseDate || businessDays <= 0) return baseDate ? new Date(baseDate) : null;
+
+  const result = new Date(baseDate);
+  let addedDays = 0;
+
+  while (addedDays < businessDays) {
+    result.setDate(result.getDate() + 1);
+    const weekDay = result.getDay();
+    const isBusinessDay = weekDay !== 0 && weekDay !== 6;
+    if (isBusinessDay) addedDays += 1;
+  }
+
+  return result;
+};
+
+const isBusinessDay = (date) => {
+  if (!date) return false;
+  const weekDay = date.getDay();
+  return weekDay !== 0 && weekDay !== 6;
+};
+
+const firstBusinessDayOnOrAfter = (baseDate) => {
+  if (!baseDate) return null;
+  const result = new Date(baseDate);
+
+  while (!isBusinessDay(result)) {
+    result.setDate(result.getDate() + 1);
+  }
+
+  return result;
+};
+
+const startOfDay = (date) => {
+  if (!date) return null;
+  const value = new Date(date);
+  value.setHours(0, 0, 0, 0);
+  return value;
+};
+
+const endOfDay = (date) => {
+  if (!date) return null;
+  const value = new Date(date);
+  value.setHours(23, 59, 59, 999);
+  return value;
+};
+
 export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskApproved, currentSubmission }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [proofDescription, setProofDescription] = useState('');
@@ -165,12 +218,16 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     && (!currentMetricsSubmission || (metricsStatus === 'rejected' && !hasResubmissionWindowExpired));
   const postingDeadline = task.posting_deadline ? new Date(task.posting_deadline) : null;
   const hasValidPostingDeadline = postingDeadline && !Number.isNaN(postingDeadline.getTime());
-  const metricsWindowStart = hasValidPostingDeadline
-    ? new Date(postingDeadline.getTime() + 5 * 24 * 60 * 60 * 1000)
+  const metricsBaseDate = postingDeadline || toDateOrNull(currentSubmission?.validated_at);
+  const hasValidMetricsBaseDate = metricsBaseDate && !Number.isNaN(metricsBaseDate.getTime());
+  const metricsWindowStartRaw = hasValidMetricsBaseDate
+    ? firstBusinessDayOnOrAfter(metricsBaseDate)
     : null;
-  const metricsWindowEnd = hasValidPostingDeadline
-    ? new Date(postingDeadline.getTime() + 8 * 24 * 60 * 60 * 1000)
+  const metricsWindowEndRaw = metricsWindowStartRaw
+    ? addBusinessDays(metricsWindowStartRaw, 2)
     : null;
+  const metricsWindowStart = startOfDay(metricsWindowStartRaw);
+  const metricsWindowEnd = endOfDay(metricsWindowEndRaw);
   const isInsideMetricsWindow =
     metricsWindowStart && metricsWindowEnd
       ? now >= metricsWindowStart && now <= metricsWindowEnd
@@ -201,7 +258,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const footerStageDeadline = useMemo(() => {
     if (isCampaignTask && hasPassedStep2 && metricsWindowEnd) {
       return {
-        label: 'Janela de métricas até',
+        label: 'Expira em',
         date: metricsWindowEnd,
       };
     }
@@ -290,7 +347,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     e.preventDefault();
     if (!canSubmitMetrics || !metricsFile) return;
     if (!isInsideMetricsWindow) {
-      alert('As métricas só podem ser enviadas entre o 5º e o 8º dia após a postagem.');
+      alert('As métricas só podem ser enviadas entre o 1º e o 3º dia útil após o fechamento da postagem.');
       return;
     }
     if (!hasCompletePaymentInfo) {
@@ -577,13 +634,13 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
               {!isInsideMetricsWindow && !hasMetricsWindowPassed && (
                 <div className="text-xs rounded-lg p-3 border bg-blue-50 border-blue-200 text-blue-800">
-                  O envio ainda não está disponível. Aguarde até o 5º dia após a postagem.
+                  O envio ainda não está disponível. Aguarde o 1º dia útil após o fechamento da postagem.
                 </div>
               )}
 
               {hasMetricsWindowPassed && (
                 <div className="text-xs rounded-lg p-3 border bg-red-50 border-red-200 text-red-800">
-                  A janela para envio de métricas foi encerrada (após o 8º dia).
+                  A janela para envio de métricas foi encerrada (após o 3º dia útil do fechamento da postagem).
                 </div>
               )}
 

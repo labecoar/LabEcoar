@@ -61,6 +61,46 @@ const toDateOrNull = (value) => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
+const addBusinessDays = (baseDate, businessDays) => {
+  if (!baseDate || businessDays <= 0) return baseDate ? new Date(baseDate) : null;
+
+  const result = new Date(baseDate);
+  let addedDays = 0;
+
+  while (addedDays < businessDays) {
+    result.setDate(result.getDate() + 1);
+    const weekDay = result.getDay();
+    const isBusinessDay = weekDay !== 0 && weekDay !== 6;
+    if (isBusinessDay) addedDays += 1;
+  }
+
+  return result;
+};
+
+const isBusinessDay = (date) => {
+  if (!date) return false;
+  const weekDay = date.getDay();
+  return weekDay !== 0 && weekDay !== 6;
+};
+
+const firstBusinessDayOnOrAfter = (baseDate) => {
+  if (!baseDate) return null;
+  const result = new Date(baseDate);
+
+  while (!isBusinessDay(result)) {
+    result.setDate(result.getDate() + 1);
+  }
+
+  return result;
+};
+
+const endOfDay = (date) => {
+  if (!date) return null;
+  const value = new Date(date);
+  value.setHours(23, 59, 59, 999);
+  return value;
+};
+
 const resolveProofDeadline = (task) => {
   if (task?.category === 'campanha') {
     const postingDeadline = toDateOrNull(task?.posting_deadline);
@@ -179,10 +219,12 @@ export default function Tasks() {
     if (metricsStatus === 'approved') return false;
 
     const postingDeadline = toDateOrNull(task?.posting_deadline);
-    if (!postingDeadline) return false;
+    const metricsBaseDate = postingDeadline || toDateOrNull(submission?.validated_at);
+    if (!metricsBaseDate) return false;
 
     const now = new Date();
-    const metricsWindowEnd = new Date(postingDeadline.getTime() + 8 * 24 * 60 * 60 * 1000);
+    const metricsWindowStart = firstBusinessDayOnOrAfter(metricsBaseDate);
+    const metricsWindowEnd = endOfDay(addBusinessDays(metricsWindowStart, 2));
     if (now <= metricsWindowEnd) return true;
     if (metricsStatus !== 'rejected') return false;
 

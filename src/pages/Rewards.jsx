@@ -60,7 +60,7 @@ export default function Rewards() {
   const handleClaim = async (reward) => {
     try {
       await claimRewardMutation.mutateAsync(reward.id);
-      alert("Recompensa resgatada com sucesso! ✅\nAguarde o contato da equipe com instrucoes.");
+      alert("Recompensa resgatada com sucesso! ✅\nA equipe entrara em contato para mais informacoes.\nSeus pontos ja foram debitados.");
       setSelectedReward(null);
     } catch (error) {
       alert(error?.message || "Erro ao resgatar recompensa");
