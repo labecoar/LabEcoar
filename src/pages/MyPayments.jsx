@@ -30,17 +30,26 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const CATEGORY_VALUES = {
-  voz_e_violao: { value: 1000, name: "Voz e Violao", emoji: "🎸", color: "from-yellow-400 to-orange-500", range: "50-200 pts" },
-  dueto: { value: 2000, name: "Dueto", emoji: "🎤", color: "from-pink-400 to-rose-500", range: "201-500 pts" },
-  fanfarra: { value: 3500, name: "Fanfarra", emoji: "🎺", color: "from-blue-400 to-cyan-500", range: "501-1000 pts" },
-  carnaval: { value: 4500, name: "Carnaval", emoji: "🎉", color: "from-orange-400 to-red-500", range: "999+ pts" },
+  voz_e_violao: { value: 1000, name: "Voz e Violao", emoji: "🎸", color: "from-yellow-400 to-orange-500", range: "1000-1999 pts" },
+  dueto: { value: 2000, name: "Dueto", emoji: "🎤", color: "from-pink-400 to-rose-500", range: "2000-3499 pts" },
+  fanfarra: { value: 3500, name: "Fanfarra", emoji: "🎺", color: "from-blue-400 to-cyan-500", range: "3500-4499 pts" },
+  carnaval: { value: 4500, name: "Carnaval", emoji: "🎉", color: "from-orange-400 to-red-500", range: "4500+ pts" },
 };
 
 const getCategoryByPoints = (points = 0) => {
-  if (points >= 1001) return "carnaval";
-  if (points >= 501) return "fanfarra";
-  if (points >= 201) return "dueto";
-  return "voz_e_violao";
+  if (points >= 4500) return "carnaval";
+  if (points >= 3500) return "fanfarra";
+  if (points >= 2000) return "dueto";
+  if (points >= 1000) return "voz_e_violao";
+  return null;
+};
+
+const NO_CATEGORY_INFO = {
+  value: 0,
+  name: "Sem faixa",
+  emoji: "🎯",
+  color: "from-gray-400 to-gray-500",
+  range: "0-999 pts",
 };
 
 const getCurrentQuarterLabel = () => {
@@ -187,7 +196,7 @@ export default function MyPayments() {
 
   const currentPoints = Number(userScore?.total_points || 0);
   const currentCategory = getCategoryByPoints(currentPoints);
-  const categoryInfo = CATEGORY_VALUES[currentCategory];
+  const categoryInfo = currentCategory ? CATEGORY_VALUES[currentCategory] : NO_CATEGORY_INFO;
   const currentQuarter = getCurrentQuarterLabel();
 
   const totalReceived = payments
@@ -220,7 +229,7 @@ export default function MyPayments() {
                 <p className="text-sm text-gray-600 mb-2">Ganho Previsto no Trimestre {currentQuarter}</p>
                 <div className="flex items-baseline gap-3 flex-wrap">
                   <h2 className="text-5xl font-black text-emerald-700">
-                    R$ {categoryInfo?.value.toLocaleString("pt-BR")}
+                    R$ {currentPoints.toLocaleString("pt-BR")}
                   </h2>
                   <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r ${categoryInfo?.color} text-white font-bold shadow-lg`}>
                     <span className="text-xl">{categoryInfo?.emoji}</span>
@@ -263,9 +272,9 @@ export default function MyPayments() {
                 <div className="flex-1">
                   <p className="text-sm font-medium text-blue-900 mb-1">Como funciona o pagamento?</p>
                   <p className="text-sm text-blue-700">
-                    Ao final do trimestre, voce recebera o valor da categoria em que terminar.
-                    Quanto mais pontos voce acumular, maior sera sua categoria e seu ganho.
-                    Os pontos sao zerados a cada trimestre, mas voce sempre comeca na categoria conquistada.
+                    Cada ponto equivale a R$ 1,00 no fechamento do trimestre.
+                    Quanto mais pontos voce acumular, maior sera seu ganho e sua categoria.
+                    As faixas acima servem como metas de categoria.
                   </p>
                   <p className="text-sm text-blue-700 mt-2">
                     O pagamento e feito fora da plataforma. Aqui voce so mantem os dados bancarios para o time nao precisar pedir novamente.

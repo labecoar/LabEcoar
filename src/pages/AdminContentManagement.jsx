@@ -58,6 +58,7 @@ const PROOF_TYPE_LABELS = {
 }
 
 const CONTENT_TYPE_OPTIONS = ['Reels', 'Vídeo no TikTok', 'Stories', 'Carrossel', 'Outro']
+const QUICK_CAMPAIGN_MAX_BUSINESS_DAYS = 3
 
 const initialFormData = {
   title: '',
@@ -287,7 +288,7 @@ export default function AdminContentManagement() {
     }
 
     const businessDaysUntilFinal = countBusinessDaysUntil(finalDeadline)
-    const nextCampaignType = businessDaysUntilFinal <= 7 ? 'resposta_rapida' : 'comum'
+    const nextCampaignType = businessDaysUntilFinal <= QUICK_CAMPAIGN_MAX_BUSINESS_DAYS ? 'resposta_rapida' : 'comum'
 
     setFormData((prev) => (
       prev.campaign_type === nextCampaignType
@@ -357,9 +358,6 @@ export default function AdminContentManagement() {
     const businessDaysUntilFinal = isCampaign && finalDeadline
       ? countBusinessDaysUntil(finalDeadline)
       : null
-    const businessDaysUntilPosting = isCampaign && postingDeadline
-      ? countBusinessDaysUntil(postingDeadline)
-      : null
 
     if (!title || !description || !formData.category) {
       setError('Preencha título, descrição e categoria.')
@@ -381,8 +379,8 @@ export default function AdminContentManagement() {
       return
     }
 
-    if (isCampaign && (businessDaysUntilPosting === null || businessDaysUntilPosting < 3)) {
-      setError('Para campanhas, a data limite de postagem precisa ter pelo menos 3 dias úteis a partir de hoje.')
+    if (isCampaign && (businessDaysUntilFinal === null || businessDaysUntilFinal < 1)) {
+      setError('Para campanhas, a data final precisa estar no mínimo no próximo dia útil.')
       return
     }
 
@@ -415,7 +413,7 @@ export default function AdminContentManagement() {
         delivery_deadline: postingDeadline ? postingDeadline.slice(0, 10) : null,
         max_participants: maxParticipants,
         campaign_type: isCampaign
-          ? (businessDaysUntilFinal <= 7 ? 'resposta_rapida' : 'comum')
+          ? (businessDaysUntilFinal <= QUICK_CAMPAIGN_MAX_BUSINESS_DAYS ? 'resposta_rapida' : 'comum')
           : formData.campaign_type,
         requires_application: formData.requires_application,
         profile_requirements: formData.profile_requirements || null,
@@ -745,7 +743,7 @@ export default function AdminContentManagement() {
                       Data e Hora Final da Tarefa *
                     </Label>
                     <p className="text-xs text-gray-500">
-                      O sistema calcula automaticamente: data limite de postagem = 2 dias uteis antes da data final da tarefa.
+                      O sistema calcula automaticamente: data limite de postagem = 2 dias uteis antes da data final da tarefa. Se a data final ficar em até 3 dias uteis, a campanha vira Resposta Rápida.
                     </p>
                     <Input
                       id="posting_deadline"
