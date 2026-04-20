@@ -25,6 +25,7 @@ const CATEGORY_NAMES = {
   oficina: "Oficina",
   folhetim: "Folhetim",
   compartilhar_ecoante: "Compartilhar Ecoante",
+  sidequest_teste: "Sidequest Teste",
 };
 
 // Validar tamanho máximo de arquivo (5MB)

@@ -39,6 +39,7 @@ const CATEGORY_OPTIONS = [
   { value: 'oficina', label: 'Oficina (50 pts)', points: 50 },
   { value: 'folhetim', label: 'Folhetim (75 pts)', points: 75 },
   { value: 'compartilhar_ecoante', label: 'Compartilhar Ecoante (150 pts)', points: 150 },
+  { value: 'sidequest_teste', label: 'Sidequest Teste' },
 ]
 
 const CATEGORY_META = {
@@ -46,6 +47,7 @@ const CATEGORY_META = {
   oficina: { label: 'Oficina', icon: BookOpen, color: 'bg-purple-100 text-purple-700 border-purple-200' },
   folhetim: { label: 'Folhetim', icon: Share2, color: 'bg-blue-100 text-blue-700 border-blue-200' },
   compartilhar_ecoante: { label: 'Compartilhar Ecoante', icon: Users, color: 'bg-pink-100 text-pink-700 border-pink-200' },
+  sidequest_teste: { label: 'Sidequest Teste', icon: Target, color: 'bg-amber-100 text-amber-700 border-amber-200' },
 }
 
 const PROOF_TYPE_LABELS = {
@@ -194,6 +196,7 @@ export default function AdminContentManagement() {
   const [error, setError] = useState('')
 
   const isCampaign = formData.category === 'campanha'
+  const isSidequestTest = formData.category === 'sidequest_teste'
   const selectedCategory = useMemo(
     () => CATEGORY_OPTIONS.find((option) => option.value === formData.category),
     [formData.category]
@@ -350,6 +353,11 @@ export default function AdminContentManagement() {
     const description = formData.description.trim()
     const offeredValue = formData.offered_value === '' ? null : Number(formData.offered_value)
     const points = Number(formData.points)
+    const resolvedPoints = isCampaign
+      ? 0
+      : isSidequestTest
+        ? points
+        : Number(selectedCategory?.points || 50)
     const maxParticipants = formData.max_participants === '' ? null : Number(formData.max_participants)
     const minFollowers = formData.min_followers === '' ? null : Number(formData.min_followers)
     const { finalDeadline, postingDeadline } = calculateDerivedCampaignDeadlines(formData.posting_deadline)
@@ -367,8 +375,8 @@ export default function AdminContentManagement() {
       return
     }
 
-    if (!isCampaign && (Number.isNaN(points) || points <= 0)) {
-      setError('Informe uma pontuação válida para essa tarefa.')
+    if (isSidequestTest && (Number.isNaN(points) || points <= 0)) {
+      setError('Informe uma pontuação válida para a Sidequest Teste.')
       return
     }
 
@@ -400,9 +408,7 @@ export default function AdminContentManagement() {
         folhetim_type: formData.category === 'folhetim' ? formData.folhetim_type || null : null,
         content_formats: formData.content_formats,
         content_type_other: formData.content_formats.includes('Outro') ? formData.content_type_other || null : null,
-        points: isCampaign
-          ? 0
-          : Math.max(1, Math.round(points || selectedCategory?.points || 50)),
+        points: isCampaign ? 0 : Math.max(1, Math.round(resolvedPoints)),
         offered_value: isCampaign ? offeredValue : null,
         proof_type: null,
         expiration_value: 1,
@@ -633,6 +639,21 @@ export default function AdminContentManagement() {
                   </div>
                 </div>
 
+                {isSidequestTest && (
+                  <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                    <Label htmlFor="sidequest-points">Pontuação da Sidequest Teste *</Label>
+                    <Input
+                      id="sidequest-points"
+                      type="number"
+                      min="1"
+                      value={formData.points}
+                      onChange={(event) => setFormData((prev) => ({ ...prev, points: event.target.value }))}
+                      placeholder="Ex: 120"
+                    />
+                    <p className="text-xs text-amber-700">Defina manualmente quantos pontos essa sidequest vale.</p>
+                  </div>
+                )}
+
                 {formData.category === 'folhetim' && (
                   <div className="space-y-2">
                     <Label>Tipo de Folhetim</Label>
@@ -701,19 +722,15 @@ export default function AdminContentManagement() {
                       />
                       <p className="text-xs text-gray-500">Valor por influenciador</p>
                     </div>
-                  ) : (
+                  ) : !isSidequestTest ? (
                     <div className="space-y-2">
-                      <Label htmlFor="points">Pontos *</Label>
+                      <Label>Pontos da Categoria</Label>
                       <Input
-                        id="points"
-                        type="number"
-                        min="1"
-                        value={formData.points}
-                        onChange={(event) => setFormData((prev) => ({ ...prev, points: event.target.value }))}
-                        placeholder="Ex: 75"
+                        value={selectedCategory?.points || 50}
+                        disabled
                       />
                     </div>
-                  )}
+                  ) : null}
                 </div>
 
                 {isCampaign && (

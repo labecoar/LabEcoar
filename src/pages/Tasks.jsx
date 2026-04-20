@@ -20,7 +20,8 @@ const CATEGORY_ICONS = {
   resposta_rapida: Zap,
   oficina: BookOpen,
   folhetim: Share2,
-  compartilhar_ecoante: Users
+  compartilhar_ecoante: Users,
+  sidequest_teste: Target,
 };
 
 const CATEGORY_COLORS = {
@@ -28,7 +29,8 @@ const CATEGORY_COLORS = {
   resposta_rapida: "bg-orange-100 text-orange-700 border-orange-200",
   oficina: "bg-purple-100 text-purple-700 border-purple-200",
   folhetim: "bg-blue-100 text-blue-700 border-blue-200",
-  compartilhar_ecoante: "bg-pink-100 text-pink-700 border-pink-200"
+  compartilhar_ecoante: "bg-pink-100 text-pink-700 border-pink-200",
+  sidequest_teste: "bg-amber-100 text-amber-700 border-amber-200",
 };
 
 const CATEGORY_NAMES = {
@@ -36,7 +38,8 @@ const CATEGORY_NAMES = {
   resposta_rapida: "Resposta Rápida",
   oficina: "Oficina",
   folhetim: "Folhetim",
-  compartilhar_ecoante: "Compartilhar Ecoante"
+  compartilhar_ecoante: "Compartilhar Ecoante",
+  sidequest_teste: "Sidequest Teste",
 };
 
 const normalizeSubmissionStatus = (status) => {
@@ -476,6 +479,9 @@ export default function Tasks() {
               </TabsTrigger>
               <TabsTrigger value="compartilhar_ecoante" className="data-[state=active]:bg-pink-600 data-[state=active]:text-white">
                 Compartilhar
+              </TabsTrigger>
+              <TabsTrigger value="sidequest_teste" className="data-[state=active]:bg-amber-600 data-[state=active]:text-white">
+                Sidequest Teste
               </TabsTrigger>
             </TabsList>
           </Tabs>

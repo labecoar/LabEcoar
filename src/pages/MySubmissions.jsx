@@ -24,6 +24,7 @@ const CATEGORY_NAMES = {
   oficina: 'Oficina',
   folhetim: 'Folhetim',
   compartilhar_ecoante: 'Compartilhar Ecoante',
+  sidequest_teste: 'Sidequest Teste',
 };
 
 const CATEGORY_COLORS = {
@@ -32,6 +33,7 @@ const CATEGORY_COLORS = {
   oficina: 'bg-purple-100 text-purple-700 border-purple-200',
   folhetim: 'bg-blue-100 text-blue-700 border-blue-200',
   compartilhar_ecoante: 'bg-pink-100 text-pink-700 border-pink-200',
+  sidequest_teste: 'bg-amber-100 text-amber-700 border-amber-200',
 };
 
 function ProofPreview({ proofUrl }) {
