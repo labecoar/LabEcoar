@@ -79,7 +79,7 @@ const getProofTypeLabel = (task) => {
     return task.content_formats.join(', ')
   }
 
-  return 'Não informado'
+  return 'Link e/ou arquivo'
 }
 
 const normalizeSubmissionStatus = (status) => {
@@ -157,6 +157,7 @@ const endOfDay = (date) => {
 export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskApproved, currentSubmission }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [proofDescription, setProofDescription] = useState('');
+  const [proofLink, setProofLink] = useState('');
   const [proofFile, setProofFile] = useState(null);
   const [metricsDescription, setMetricsDescription] = useState('');
   const [metricsLink, setMetricsLink] = useState('');
@@ -308,28 +309,40 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     e.preventDefault();
     if (!canSubmitProof || !currentSubmission?.id) return;
 
-    if (!proofFile) {
-      alert('Selecione um arquivo de prova para enviar.');
+    const trimmedProofLink = String(proofLink || '').trim();
+    if (!trimmedProofLink && !proofFile) {
+      alert('Envie pelo menos uma prova: link ou arquivo.');
       return;
     }
 
-    try {
-      validateFileSize(proofFile, 'Arquivo de prova');
-    } catch (error) {
-      alert(error.message);
-      return;
+    if (proofFile) {
+      try {
+        validateFileSize(proofFile, 'Arquivo de prova');
+      } catch (error) {
+        alert(error.message);
+        return;
+      }
     }
 
     setIsSubmitting(true);
 
     try {
-      const { url } = await uploadFile.mutateAsync({ file: proofFile, userId: user.id });
+      let uploadedFileUrl = null;
+      if (proofFile) {
+        const uploadResult = await uploadFile.mutateAsync({ file: proofFile, userId: user.id });
+        uploadedFileUrl = uploadResult?.url || null;
+      }
+
+      const finalProofUrl = trimmedProofLink || uploadedFileUrl;
+      const finalDescription = uploadedFileUrl && trimmedProofLink
+        ? `${proofDescription || ''}\n\nArquivo complementar: ${uploadedFileUrl}`.trim()
+        : proofDescription;
 
       await submitProof.mutateAsync({
         submissionId: currentSubmission.id,
         proofData: {
-          description: proofDescription,
-          proof_url: url,
+          description: finalDescription,
+          proof_url: finalProofUrl,
         },
       });
 
@@ -553,7 +566,22 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                   />
                 </div>
                 <div>
-                  <Label htmlFor="proof-file">Arquivo da prova</Label>
+                  <Label htmlFor="proof-link">Link da prova (opcional)</Label>
+                  <Input
+                    id="proof-link"
+                    type="url"
+                    value={proofLink}
+                    onChange={(e) => setProofLink(e.target.value)}
+                    placeholder="https://..."
+                  />
+                  {String(proofLink || '').trim() && (
+                    <p className="text-xs text-amber-700 mt-1">
+                      Se for link do Drive, confirme se o arquivo/pasta está com acesso liberado para visualização.
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="proof-file">Arquivo da prova (opcional)</Label>
                   <input
                     id="proof-file"
                     type="file"
@@ -562,6 +590,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                   />
                   <p className="text-xs text-gray-500 mt-1">Máximo: 5MB</p>
                 </div>
+                <p className="text-xs text-gray-500">Você pode enviar link, arquivo ou ambos.</p>
 
                 <Button
                   type="submit"

@@ -69,7 +69,6 @@ const initialFormData = {
   content_type_other: '',
   points: 50,
   offered_value: '',
-  proof_type: 'link',
   posting_deadline: '',
   max_participants: '',
   campaign_type: 'comum',
@@ -93,7 +92,7 @@ const getProofTypeLabel = (task) => {
     return task.content_formats.join(', ')
   }
 
-  return 'Não informado'
+  return 'Link e/ou arquivo'
 }
 
 const isTaskExpired = (task) => {
@@ -317,7 +316,6 @@ export default function AdminContentManagement() {
       content_type_other: task.content_type_other || '',
       points: Number(task.points || 0),
       offered_value: task.offered_value ? String(task.offered_value) : '',
-      proof_type: task.proof_type || 'link',
       posting_deadline: formatDateTimeLocalValue(task.expires_at || task.posting_deadline),
       max_participants: task.max_participants ? String(task.max_participants) : '',
       campaign_type: task.campaign_type || 'comum',
@@ -406,7 +404,7 @@ export default function AdminContentManagement() {
           ? 0
           : Math.max(1, Math.round(points || selectedCategory?.points || 50)),
         offered_value: isCampaign ? offeredValue : null,
-        proof_type: formData.proof_type,
+        proof_type: null,
         expiration_value: 1,
         expiration_unit: 'days',
         posting_deadline: postingDeadline,
@@ -716,24 +714,6 @@ export default function AdminContentManagement() {
                       />
                     </div>
                   )}
-
-                  <div className="space-y-2">
-                    <Label>Tipo de Prova *</Label>
-                    <Select
-                      value={formData.proof_type}
-                      onValueChange={(value) => setFormData((prev) => ({ ...prev, proof_type: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o tipo de prova" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="link">Link</SelectItem>
-                        <SelectItem value="imagem">Imagem</SelectItem>
-                        <SelectItem value="video">Vídeo</SelectItem>
-                        <SelectItem value="arquivo">Arquivo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
 
                 {isCampaign && (
