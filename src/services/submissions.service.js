@@ -399,12 +399,7 @@ export const submissionsService = {
         id,
         status,
         task_id,
-        proof_url,
-        task:tasks (
-          expires_at,
-          posting_deadline,
-          delivery_deadline
-        )
+        proof_url
       `)
       .eq('id', submissionId)
       .single()
@@ -415,19 +410,31 @@ export const submissionsService = {
       throw new Error('Esta submissão não está apta para envio de prova no momento.')
     }
 
-    const proofDeadline = resolveProofDeadline(currentSubmission.task)
+    const { data: taskData, error: taskError } = await supabase
+      .from('tasks')
+      .select('category, points, expires_at, posting_deadline, delivery_deadline')
+      .eq('id', currentSubmission.task_id)
+      .single()
+
+    if (taskError) throw taskError
+
+    const proofDeadline = resolveProofDeadline(taskData)
     if (proofDeadline && new Date() > proofDeadline) {
       throw new Error('Prazo de envio da prova expirou para esta tarefa.')
     }
 
+    const isSidequestTest = String(taskData?.category || '') === 'sidequest_teste'
+    const sidequestPoints = Math.max(0, Number(taskData?.points || 0))
+
     const { data, error } = await supabase
       .from('submissions')
       .update({
-        status: 'proof_pending',
+        status: isSidequestTest ? 'approved' : 'proof_pending',
         description: proofData.description || null,
         proof_url: proofData.proof_url || null,
+        points_awarded: isSidequestTest ? sidequestPoints : 0,
         rejection_reason: null,
-        validated_at: null,
+        validated_at: isSidequestTest ? new Date().toISOString() : null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', submissionId)

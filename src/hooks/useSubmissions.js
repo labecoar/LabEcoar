@@ -49,6 +49,7 @@ export function useSubmitProof() {
     mutationFn: ({ submissionId, proofData }) => submissionsService.submitProof(submissionId, proofData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['submissions'] })
+      queryClient.invalidateQueries({ queryKey: ['scores'] })
     },
   })
 }

@@ -72,6 +72,7 @@ const initialFormData = {
   points: 50,
   offered_value: '',
   posting_deadline: '',
+  without_deadline: false,
   max_participants: '',
   campaign_type: 'comum',
   requires_application: false,
@@ -320,6 +321,7 @@ export default function AdminContentManagement() {
       points: Number(task.points || 0),
       offered_value: task.offered_value ? String(task.offered_value) : '',
       posting_deadline: formatDateTimeLocalValue(task.expires_at || task.posting_deadline),
+      without_deadline: task.category !== 'campanha' && !task.expires_at,
       max_participants: task.max_participants ? String(task.max_participants) : '',
       campaign_type: task.campaign_type || 'comum',
       requires_application: Boolean(task.requires_application),
@@ -361,6 +363,9 @@ export default function AdminContentManagement() {
     const maxParticipants = formData.max_participants === '' ? null : Number(formData.max_participants)
     const minFollowers = formData.min_followers === '' ? null : Number(formData.min_followers)
     const { finalDeadline, postingDeadline } = calculateDerivedCampaignDeadlines(formData.posting_deadline)
+    const nonCampaignFinalDeadline = formData.without_deadline
+      ? null
+      : (formData.posting_deadline ? new Date(formData.posting_deadline).toISOString() : null)
     const businessDaysUntilFinal = isCampaign && finalDeadline
       ? countBusinessDaysUntil(finalDeadline)
       : null
@@ -382,6 +387,11 @@ export default function AdminContentManagement() {
 
     if (isCampaign && !finalDeadline) {
       setError('Informe a data e hora final da tarefa.')
+      return
+    }
+
+    if (!isCampaign && !formData.without_deadline && !nonCampaignFinalDeadline) {
+      setError('Para tarefas não-campanha, informe a data e hora final ou marque Sem data.')
       return
     }
 
@@ -413,8 +423,8 @@ export default function AdminContentManagement() {
         proof_type: null,
         expiration_value: 1,
         expiration_unit: 'days',
-        posting_deadline: postingDeadline,
-        delivery_deadline: postingDeadline ? postingDeadline.slice(0, 10) : null,
+        posting_deadline: isCampaign ? postingDeadline : null,
+        delivery_deadline: isCampaign && postingDeadline ? postingDeadline.slice(0, 10) : null,
         max_participants: maxParticipants,
         campaign_type: isCampaign
           ? (businessDaysUntilFinal <= QUICK_CAMPAIGN_MAX_BUSINESS_DAYS ? 'resposta_rapida' : 'comum')
@@ -423,7 +433,7 @@ export default function AdminContentManagement() {
         profile_requirements: formData.profile_requirements || null,
         min_followers: minFollowers,
         target_audience: formData.target_audience || null,
-        expires_at: finalDeadline,
+        expires_at: isCampaign ? finalDeadline : nonCampaignFinalDeadline,
       }
 
       if (editingTask) {
@@ -625,7 +635,11 @@ export default function AdminContentManagement() {
                     <Label>Categoria *</Label>
                     <Select
                       value={formData.category}
-                      onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
+                      onValueChange={(value) => setFormData((prev) => ({
+                        ...prev,
+                        category: value,
+                        without_deadline: value === 'campanha' ? false : prev.without_deadline,
+                      }))}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione a categoria" />
@@ -722,13 +736,18 @@ export default function AdminContentManagement() {
                       />
                       <p className="text-xs text-gray-500">Valor por influenciador</p>
                     </div>
-                  ) : !isSidequestTest ? (
+                  ) : isSidequestTest ? (
                     <div className="space-y-2">
-                      <Label>Pontos da Categoria</Label>
+                      <Label htmlFor="points">Pontos *</Label>
                       <Input
-                        value={selectedCategory?.points || 50}
-                        disabled
+                        id="points"
+                        type="number"
+                        min="1"
+                        value={formData.points}
+                        onChange={(event) => setFormData((prev) => ({ ...prev, points: event.target.value }))}
+                        placeholder="Ex: 120"
                       />
+                      <p className="text-xs text-amber-700">Defina manualmente quantos pontos essa sidequest vale.</p>
                     </div>
                   ) : null}
                 </div>
@@ -747,6 +766,31 @@ export default function AdminContentManagement() {
                       type="datetime-local"
                       value={formData.posting_deadline}
                       onChange={(event) => setFormData((prev) => ({ ...prev, posting_deadline: event.target.value }))}
+                    />
+                  </div>
+                )}
+
+                {!isCampaign && (
+                  <div className="space-y-2">
+                    <Label htmlFor="posting_deadline" className="inline-flex items-center gap-2">
+                      <Clock3 className="w-4 h-4 text-orange-500" />
+                      Data e Hora Final da Tarefa
+                    </Label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-gray-300"
+                        checked={formData.without_deadline}
+                        onChange={(event) => setFormData((prev) => ({ ...prev, without_deadline: event.target.checked }))}
+                      />
+                      <span>Sem data (tempo indeterminado)</span>
+                    </label>
+                    <Input
+                      id="posting_deadline"
+                      type="datetime-local"
+                      value={formData.posting_deadline}
+                      onChange={(event) => setFormData((prev) => ({ ...prev, posting_deadline: event.target.value }))}
+                      disabled={formData.without_deadline}
                     />
                   </div>
                 )}
