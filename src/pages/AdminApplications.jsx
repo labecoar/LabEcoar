@@ -79,6 +79,20 @@ export default function AdminApplications() {
         pointsAwarded,
       });
 
+      queryClient.setQueryData(['submissions', 'pending'], (current = []) => {
+        return current.map((item) => (
+          item.id === submission.id
+            ? {
+                ...item,
+                status: approvedSubmission?.status || 'application_approved',
+                validated_at: approvedSubmission?.validated_at || item.validated_at,
+                rejection_reason: null,
+                points_awarded: approvedSubmission?.points_awarded ?? item.points_awarded,
+              }
+            : item
+        ));
+      });
+
       await queryClient.invalidateQueries({ queryKey: ['submissions'] });
       await queryClient.refetchQueries({ queryKey: ['submissions', 'pending'] });
 
@@ -117,6 +131,19 @@ export default function AdminApplications() {
         rejectionReason: `${reason.trim()}\n\n${CONTACT_HELP_TEXT}`,
       });
 
+      queryClient.setQueryData(['submissions', 'pending'], (current = []) => {
+        return current.map((item) => (
+          item.id === submission.id
+            ? {
+                ...item,
+                status: 'application_rejected',
+                rejection_reason: `${reason.trim()}\n\n${CONTACT_HELP_TEXT}`,
+                validated_at: item.validated_at || new Date().toISOString(),
+              }
+            : item
+        ));
+      });
+
       await queryClient.invalidateQueries({ queryKey: ['submissions'] });
       await queryClient.refetchQueries({ queryKey: ['submissions', 'pending'] });
 
@@ -130,6 +157,20 @@ export default function AdminApplications() {
   const handleResetReview = async (submission) => {
     try {
       await resetSubmissionReview.mutateAsync({ submissionId: submission.id });
+
+      queryClient.setQueryData(['submissions', 'pending'], (current = []) => {
+        return current.map((item) => (
+          item.id === submission.id
+            ? {
+                ...item,
+                status: 'application_pending',
+                rejection_reason: null,
+                validated_at: null,
+              }
+            : item
+        ));
+      });
+
       await queryClient.invalidateQueries({ queryKey: ['submissions'] });
       await queryClient.refetchQueries({ queryKey: ['submissions', 'pending'] });
       alert('Inscrição voltou para análise pendente.');
