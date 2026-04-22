@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePendingSubmissions, useApproveSubmission, useRejectSubmission, useResetSubmissionReview } from "@/hooks/useSubmissions";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ export default function AdminApplications() {
   const [activeTab, setActiveTab] = useState('pending');
   const [selectedTaskPreview, setSelectedTaskPreview] = useState(null);
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
 
   const { data: pendingSubmissions = [], isLoading } = usePendingSubmissions();
   const approveSubmission = useApproveSubmission();
@@ -72,10 +74,17 @@ export default function AdminApplications() {
       const isCampaign = submission.task?.category === 'campanha'
       const pointsAwarded = isCampaign ? 0 : Number(submission.task?.points || 0)
 
-      await approveSubmission.mutateAsync({
+      const approvedSubmission = await approveSubmission.mutateAsync({
         submissionId: submission.id,
         pointsAwarded,
       });
+
+      await queryClient.invalidateQueries({ queryKey: ['submissions'] });
+      await queryClient.refetchQueries({ queryKey: ['submissions', 'pending'] });
+
+      if (approvedSubmission?.status === 'application_approved') {
+        setActiveTab('selected');
+      }
 
       const proofDeadline = submission.task?.delivery_deadline
         ? new Date(submission.task.delivery_deadline)
@@ -108,6 +117,9 @@ export default function AdminApplications() {
         rejectionReason: `${reason.trim()}\n\n${CONTACT_HELP_TEXT}`,
       });
 
+      await queryClient.invalidateQueries({ queryKey: ['submissions'] });
+      await queryClient.refetchQueries({ queryKey: ['submissions', 'pending'] });
+
       alert('Inscrição rejeitada.');
     } catch (error) {
       console.error('Erro ao rejeitar inscrição:', error);
@@ -118,6 +130,8 @@ export default function AdminApplications() {
   const handleResetReview = async (submission) => {
     try {
       await resetSubmissionReview.mutateAsync({ submissionId: submission.id });
+      await queryClient.invalidateQueries({ queryKey: ['submissions'] });
+      await queryClient.refetchQueries({ queryKey: ['submissions', 'pending'] });
       alert('Inscrição voltou para análise pendente.');
     } catch (error) {
       console.error('Erro ao reabrir análise:', error);
