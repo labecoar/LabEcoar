@@ -249,27 +249,9 @@ export default function AdminContentManagement() {
       return { finalDeadline: null, postingDeadline: null }
     }
 
-    const subtractBusinessDays = (date, days) => {
-      const result = new Date(date)
-      let remaining = days
-
-      while (remaining > 0) {
-        result.setDate(result.getDate() - 1)
-        const day = result.getDay()
-        const isWeekend = day === 0 || day === 6
-        if (!isWeekend) {
-          remaining -= 1
-        }
-      }
-
-      return result
-    }
-
-    const postingDeadline = subtractBusinessDays(finalDeadline, 2)
-
     return {
       finalDeadline: finalDeadline.toISOString(),
-      postingDeadline: postingDeadline.toISOString(),
+      postingDeadline: finalDeadline.toISOString(),
     }
   }
 
@@ -423,7 +405,7 @@ export default function AdminContentManagement() {
         proof_type: null,
         expiration_value: 1,
         expiration_unit: 'days',
-        posting_deadline: isCampaign ? postingDeadline : null,
+        posting_deadline: isCampaign ? postingDeadline : nonCampaignFinalDeadline,
         delivery_deadline: isCampaign && postingDeadline ? postingDeadline.slice(0, 10) : null,
         max_participants: maxParticipants,
         campaign_type: isCampaign
@@ -751,7 +733,7 @@ export default function AdminContentManagement() {
                       Data e Hora Final da Tarefa *
                     </Label>
                     <p className="text-xs text-gray-500">
-                      O sistema calcula automaticamente: data limite de postagem = 2 dias uteis antes da data final da tarefa. Se a data final ficar em até 3 dias uteis, a campanha vira Resposta Rápida.
+                      O sistema usa a mesma data e hora para postagem e expiração da tarefa. Se a data final ficar em até 3 dias uteis, a campanha vira Resposta Rápida.
                     </p>
                     <Input
                       id="posting_deadline"
