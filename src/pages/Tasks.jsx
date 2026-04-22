@@ -30,7 +30,7 @@ const CATEGORY_COLORS = {
   oficina: "bg-purple-100 text-purple-700 border-purple-200",
   folhetim: "bg-blue-100 text-blue-700 border-blue-200",
   compartilhar_ecoante: "bg-pink-100 text-pink-700 border-pink-200",
-  sidequest_teste: "bg-amber-100 text-amber-700 border-amber-200",
+  sidequest_teste: "bg-cyan-100 text-cyan-700 border-cyan-200",
 };
 
 const CATEGORY_NAMES = {
@@ -39,7 +39,7 @@ const CATEGORY_NAMES = {
   oficina: "Oficina",
   folhetim: "Folhetim",
   compartilhar_ecoante: "Compartilhar Ecoante",
-  sidequest_teste: "Sidequest Teste",
+  sidequest_teste: "Sidequest",
 };
 
 const normalizeSubmissionStatus = (status) => {
@@ -310,7 +310,7 @@ export default function Tasks() {
 
     return (
       <Card
-        className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 border-gray-200 bg-white hover:border-emerald-300"
+        className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 border-gray-200 bg-white hover:border-emerald-300 h-full"
         onClick={() => setSelectedTask(task)}
       >
         <CardHeader className="pb-3">
@@ -344,12 +344,12 @@ export default function Tasks() {
           </div>
         </CardHeader>
 
-        <CardContent className="pt-0">
+        <CardContent className="pt-0 flex flex-col h-full">
           <p className="text-sm text-gray-600 line-clamp-2 mb-4">
             {task.description}
           </p>
 
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between text-sm">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between text-sm mt-auto pt-1">
             <div className="flex items-center gap-4 text-gray-500 flex-wrap">
               {task.expires_at && (
                 <div className={`flex items-center gap-1 px-2 py-1 rounded-md border ${
