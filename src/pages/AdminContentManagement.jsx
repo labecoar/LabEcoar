@@ -736,18 +736,10 @@ export default function AdminContentManagement() {
                       />
                       <p className="text-xs text-gray-500">Valor por influenciador</p>
                     </div>
-                  ) : isSidequestTest ? (
+                  ) : !isSidequestTest ? (
                     <div className="space-y-2">
-                      <Label htmlFor="points">Pontos *</Label>
-                      <Input
-                        id="points"
-                        type="number"
-                        min="1"
-                        value={formData.points}
-                        onChange={(event) => setFormData((prev) => ({ ...prev, points: event.target.value }))}
-                        placeholder="Ex: 120"
-                      />
-                      <p className="text-xs text-amber-700">Defina manualmente quantos pontos essa sidequest vale.</p>
+                      <Label>Pontos da Categoria</Label>
+                      <Input value={selectedCategory?.points || 50} disabled />
                     </div>
                   ) : null}
                 </div>
@@ -808,22 +800,24 @@ export default function AdminContentManagement() {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Tipo de Campanha</Label>
-                    <Select
-                      value={formData.campaign_type}
-                      disabled={isCampaign}
-                      onValueChange={(value) => setFormData((prev) => ({ ...prev, campaign_type: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="comum">Comum</SelectItem>
-                        <SelectItem value="resposta_rapida">Resposta Rápida</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {isCampaign && (
+                    <div className="space-y-2">
+                      <Label>Tipo de Campanha</Label>
+                      <Select
+                        value={formData.campaign_type}
+                        disabled
+                        onValueChange={(value) => setFormData((prev) => ({ ...prev, campaign_type: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="comum">Comum</SelectItem>
+                          <SelectItem value="resposta_rapida">Resposta Rápida</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
 
                 <label className="flex items-center gap-2 text-sm cursor-pointer">

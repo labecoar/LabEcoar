@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   title TEXT NOT NULL,
   description TEXT NOT NULL,
-  category TEXT NOT NULL CHECK (category IN ('campanha', 'resposta_rapida', 'oficina', 'folhetim', 'compartilhar_ecoante')),
+  category TEXT NOT NULL CHECK (category IN ('campanha', 'resposta_rapida', 'oficina', 'folhetim', 'compartilhar_ecoante', 'sidequest_teste')),
   points INTEGER NOT NULL DEFAULT 0,
   offered_value NUMERIC(12,2),
   proof_type TEXT DEFAULT 'link' CHECK (proof_type IN ('link', 'imagem', 'video', 'arquivo')),
@@ -108,6 +108,12 @@ ALTER TABLE tasks ADD COLUMN IF NOT EXISTS campaign_type TEXT DEFAULT 'comum';
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS requires_application BOOLEAN DEFAULT false;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS profile_requirements TEXT;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS target_audience TEXT;
+
+-- Atualizar constraint de categoria para suportar sidequest_teste em bases existentes
+ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_category_check;
+ALTER TABLE tasks
+  ADD CONSTRAINT tasks_category_check
+  CHECK (category IN ('campanha', 'resposta_rapida', 'oficina', 'folhetim', 'compartilhar_ecoante', 'sidequest_teste'));
 
 -- ===================================
 -- TABELA: submissions
