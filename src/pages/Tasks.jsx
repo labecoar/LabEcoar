@@ -310,7 +310,7 @@ export default function Tasks() {
 
     return (
       <Card
-        className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 border-gray-200 bg-white hover:border-emerald-300 h-full"
+        className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 border-gray-200 bg-white hover:border-emerald-300"
         onClick={() => setSelectedTask(task)}
       >
         <CardHeader className="pb-3">
@@ -344,12 +344,12 @@ export default function Tasks() {
           </div>
         </CardHeader>
 
-        <CardContent className="pt-0 flex flex-col h-full">
+        <CardContent className="pt-0">
           <p className="text-sm text-gray-600 line-clamp-2 mb-4">
             {task.description}
           </p>
 
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between text-sm mt-auto pt-1">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between text-sm mb-2">
             <div className="flex items-center gap-4 text-gray-500 flex-wrap">
               {task.expires_at && (
                 <div className={`flex items-center gap-1 px-2 py-1 rounded-md border ${
