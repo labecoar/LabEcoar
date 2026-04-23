@@ -34,13 +34,16 @@ export default function AdminApplications() {
   const rejectSubmission = useRejectSubmission();
   const resetSubmissionReview = useResetSubmissionReview();
 
+  const isSidequestSubmission = (submission) => String(submission?.task?.category || '') === 'sidequest_teste';
+
   const pendingApplications = useMemo(
-    () => pendingSubmissions.filter((submission) => ['application_pending', 'pending'].includes(normalizeSubmissionStatus(submission.status))),
+    () => pendingSubmissions.filter((submission) => !isSidequestSubmission(submission) && ['application_pending', 'pending'].includes(normalizeSubmissionStatus(submission.status))),
     [pendingSubmissions]
   );
 
   const selectedApplications = useMemo(
     () => pendingSubmissions.filter((submission) => {
+      if (isSidequestSubmission(submission)) return false
       const status = normalizeSubmissionStatus(submission.status)
       return ['application_approved', 'proof_pending', 'approved'].includes(status)
     }),
@@ -49,6 +52,7 @@ export default function AdminApplications() {
 
   const rejectedApplications = useMemo(
     () => pendingSubmissions.filter((submission) => {
+      if (isSidequestSubmission(submission)) return false
       const status = normalizeSubmissionStatus(submission.status)
       return ['application_rejected', 'rejected'].includes(status)
     }),

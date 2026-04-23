@@ -286,6 +286,10 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     return null;
   }, [isCampaignTask, hasPassedStep2, metricsWindowEnd, hasProofDeadline, proofDeadline, task.expires_at, timeLeft]);
 
+  const submissionStageLabel = isSidequestTask && submissionStatus === 'application_pending'
+    ? 'Inscrito'
+    : STATUS_TEXT[submissionStatus] || 'Inscrição em análise';
+
   const handleApply = async (e) => {
     e.preventDefault();
     if (!canApply) return;
@@ -524,7 +528,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                       : isWaiting
                         ? (isSidequestTask && submissionStatus === 'application_pending'
                           ? 'Sidequest iniciada - envie a prova abaixo'
-                          : STATUS_TEXT[submissionStatus] || 'Inscrição em análise')
+                          : submissionStageLabel)
                         : isSubmissionExpiredByRule
                           ? 'Prazo expirado'
                         : submissionStatus === 'application_rejected'
