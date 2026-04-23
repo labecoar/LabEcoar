@@ -187,6 +187,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const proofDeadline = task?.category === 'campanha'
     ? (task?.posting_deadline ? new Date(task.posting_deadline) : null)
     : (task?.expires_at ? new Date(task.expires_at) : null);
+  const isSidequestTask = task?.category === 'sidequest_teste';
   const hasProofDeadline = proofDeadline && !Number.isNaN(proofDeadline.getTime());
   const isProofDeadlineExpired = hasProofDeadline ? new Date() > proofDeadline : false;
   const isSubmissionExpiredByRule = isAutoExpiredSubmissionRejection(currentSubmission) && isProofDeadlineExpired;
@@ -194,7 +195,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const shouldShowSubmissionRejectionReason = Boolean(currentSubmission?.rejection_reason) && !isSubmissionReopenedByDateChange;
   const canApply = (!currentSubmission || isSubmissionReopenedByDateChange) && !isTaskApproved && !isFull && meetsFollowersRequirement;
   const canSubmitProof = (
-    (submissionStatus === 'application_approved' || submissionStatus === 'rejected')
+    (submissionStatus === 'application_approved' || submissionStatus === 'rejected' || (isSidequestTask && submissionStatus === 'application_pending'))
     && !isProofDeadlineExpired
   );
   const isWaiting = ['application_pending', 'proof_pending', 'pending'].includes(submissionStatus);
@@ -253,8 +254,11 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     && !hasMetricsWindowPassed
   );
 
-  const hasPassedStep1 = ['application_approved', 'proof_pending', 'rejected', 'approved'].includes(submissionStatus) && !canApply;
-  const isStep2Current = ['application_approved', 'rejected', 'proof_pending'].includes(submissionStatus);
+  const hasPassedStep1 = (isSidequestTask
+    ? Boolean(currentSubmission)
+    : ['application_approved', 'proof_pending', 'rejected', 'approved'].includes(submissionStatus)) && !canApply;
+  const isStep2Current = ['application_approved', 'rejected', 'proof_pending'].includes(submissionStatus)
+    || (isSidequestTask && submissionStatus === 'application_pending');
   const hasPassedStep2 = submissionStatus === 'approved';
   const isMetricsCompleted = metricsStatus === 'approved';
   const footerStageDeadline = useMemo(() => {
@@ -415,7 +419,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
               <Badge className="bg-orange-100 text-orange-700 border-orange-300 border text-xs">
                 {task.campaign_type === 'resposta_rapida' ? 'Resposta Rápida' : 'Comum'}
               </Badge>
-              {task.requires_application && (
+              {task.requires_application && !isSidequestTask && (
                 <Badge className="bg-purple-100 text-purple-700 border-purple-300 border text-xs">
                   Requer Inscrição e Seleção
                 </Badge>
@@ -480,7 +484,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
             <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-3">
               <p className="font-semibold text-emerald-700 inline-flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4" />
-                Etapa 1 concluída: candidatura aprovada
+                {isSidequestTask ? 'Sidequest iniciada: prova enviada ou em andamento' : 'Etapa 1 concluída: candidatura aprovada'}
               </p>
             </div>
           ) : submissionStatus !== 'approved' && (
@@ -512,11 +516,15 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                     : isSubmissionReopenedByDateChange
                       ? 'Candidatar-se para esta Vaga'
                     : canSubmitProof
-                      ? submissionStatus === 'rejected'
+                      ? isSidequestTask && submissionStatus === 'application_pending'
+                        ? 'Enviar prova da Sidequest'
+                        : submissionStatus === 'rejected'
                         ? 'Prova rejeitada - reenviar abaixo'
                         : 'Inscrição aprovada - envie a prova abaixo'
                       : isWaiting
-                        ? STATUS_TEXT[submissionStatus] || 'Inscrição em análise'
+                        ? (isSidequestTask && submissionStatus === 'application_pending'
+                          ? 'Sidequest iniciada - envie a prova abaixo'
+                          : STATUS_TEXT[submissionStatus] || 'Inscrição em análise')
                         : isSubmissionExpiredByRule
                           ? 'Prazo expirado'
                         : submissionStatus === 'application_rejected'

@@ -579,7 +579,21 @@ CREATE POLICY "Users can create submissions"
 DROP POLICY IF EXISTS "Users can submit proof on approved applications" ON submissions;
 CREATE POLICY "Users can submit proof on approved applications"
   ON submissions FOR UPDATE
-  USING (user_id = auth.uid() AND status = 'application_approved')
+  USING (
+    user_id = auth.uid()
+    AND (
+      status = 'application_approved'
+      OR (
+        status = 'application_pending'
+        AND EXISTS (
+          SELECT 1
+          FROM tasks t
+          WHERE t.id = submissions.task_id
+            AND t.category = 'sidequest_teste'
+        )
+      )
+    )
+  )
   WITH CHECK (user_id = auth.uid() AND status = 'proof_pending');
 
 -- Apenas admins podem atualizar submissões (aprovar/rejeitar)

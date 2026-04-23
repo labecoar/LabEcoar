@@ -393,10 +393,6 @@ export const submissionsService = {
 
     if (currentSubmissionError) throw currentSubmissionError
 
-    if (!['application_approved', 'rejected'].includes(currentSubmission.status)) {
-      throw new Error('Esta submissão não está apta para envio de prova no momento.')
-    }
-
     const { data: taskData, error: taskError } = await supabase
       .from('tasks')
       .select('category, points, expires_at, posting_deadline, delivery_deadline')
@@ -405,27 +401,37 @@ export const submissionsService = {
 
     if (taskError) throw taskError
 
+    const isSidequestTest = String(taskData?.category || '') === 'sidequest_teste'
+    const canSubmitProof = isSidequestTest
+      ? ['application_pending', 'application_approved', 'rejected'].includes(currentSubmission.status)
+      : ['application_approved', 'rejected'].includes(currentSubmission.status)
+
+    if (!canSubmitProof) {
+      throw new Error('Esta submissão não está apta para envio de prova no momento.')
+    }
+
     const proofDeadline = resolveProofDeadline(taskData)
     if (proofDeadline && new Date() > proofDeadline) {
       throw new Error('Prazo de envio da prova expirou para esta tarefa.')
     }
 
-    const isSidequestTest = String(taskData?.category || '') === 'sidequest_teste'
     const sidequestPoints = Math.max(0, Number(taskData?.points || 0))
 
     const { data, error } = await supabase
       .from('submissions')
       .update({
-        status: isSidequestTest ? 'approved' : 'proof_pending',
+        status: 'proof_pending',
         description: proofData.description || null,
         proof_url: proofData.proof_url || null,
-        points_awarded: isSidequestTest ? sidequestPoints : 0,
+        points_awarded: 0,
         rejection_reason: null,
-        validated_at: isSidequestTest ? new Date().toISOString() : null,
+        validated_at: null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', submissionId)
-      .in('status', ['application_approved', 'rejected'])
+      .in('status', isSidequestTest
+        ? ['application_pending', 'application_approved', 'rejected']
+        : ['application_approved', 'rejected'])
       .select()
       .single()
 
