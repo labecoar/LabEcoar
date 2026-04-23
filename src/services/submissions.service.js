@@ -28,8 +28,6 @@ const resolveProofDeadline = (task) => {
   return endOfDay
 }
 
-const FIRST_ATTEMPT_WINDOW_RATIO = 0.3
-
 async function decrementTaskParticipants(taskId) {
   if (!taskId) return
 
@@ -95,17 +93,6 @@ async function applySubmissionTaskRules(submission) {
   if (!referenceStart) return submission
 
   const now = new Date()
-  const totalWindowMs = proofDeadline.getTime() - referenceStart.getTime()
-
-  if (totalWindowMs > 0) {
-    const firstAttemptLimit = new Date(referenceStart.getTime() + (totalWindowMs * FIRST_ATTEMPT_WINDOW_RATIO))
-    if (now > firstAttemptLimit) {
-      return autoCancelApprovedSubmission(
-        submission,
-        'Vaga cancelada por inatividade: a primeira tentativa de envio da prova não ocorreu em 30% do prazo disponível.'
-      )
-    }
-  }
 
   if (now > proofDeadline) {
     return autoCancelApprovedSubmission(
