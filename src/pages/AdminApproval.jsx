@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePendingSubmissions, useApproveSubmission, useRejectSubmission } from "@/hooks/useSubmissions";
+import { usePendingSubmissions, useApproveSubmission, useRejectSubmission, useApprovalHistory } from "@/hooks/useSubmissions";
 import { useAddPoints } from "@/hooks/useScores";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,10 +21,22 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
+const normalizeSubmissionStatus = (status) => {
+  const normalized = String(status || '').trim().toLowerCase();
+
+  if (normalized === 'pendente') return 'application_pending';
+  if (normalized === 'aprovada' || normalized === 'aprovado') return 'approved';
+  if (normalized === 'rejeitada' || normalized === 'rejeitado') return 'rejected';
+
+  return normalized;
+};
+
 const STATUS_LABELS = {
   pending: 'Inscrição pendente',
   application_pending: 'Inscrição pendente',
   proof_pending: 'Prova pendente',
+  approved: 'Prova aprovada',
+  rejected: 'Prova rejeitada',
 }
 
 const BUSINESS_START_HOUR = 8;
@@ -136,6 +148,7 @@ const addBusinessHours = (baseDate, hoursToAdd) => {
 };
 
 export default function AdminApproval() {
+  const [activeTab, setActiveTab] = useState('pending');
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [isRejecting, setIsRejecting] = useState(false);
@@ -143,6 +156,7 @@ export default function AdminApproval() {
   const { profile } = useAuth();
   
   const { data: pendingSubmissions = [], isLoading } = usePendingSubmissions();
+  const { data: approvalHistory = [] } = useApprovalHistory(200);
   const approveSubmission = useApproveSubmission();
   const rejectSubmission = useRejectSubmission();
   const addPoints = useAddPoints();
@@ -186,7 +200,7 @@ export default function AdminApproval() {
   };
 
   const proofPendingSubmissions = pendingSubmissions
-    .filter((submission) => submission.status === 'proof_pending')
+    .filter((submission) => normalizeSubmissionStatus(submission.status) === 'proof_pending')
     .sort((a, b) => {
       const aDeadline = getReviewDeadline(a);
       const bDeadline = getReviewDeadline(b);
@@ -195,6 +209,31 @@ export default function AdminApproval() {
       if (!bDeadline) return -1;
       return aDeadline.getTime() - bDeadline.getTime();
     });
+
+  const approvedSubmissions = pendingSubmissions
+    .filter((submission) => normalizeSubmissionStatus(submission.status) === 'approved')
+    .sort((a, b) => new Date(b.validated_at || b.updated_at || b.created_at).getTime() - new Date(a.validated_at || a.updated_at || a.created_at).getTime());
+
+  const rejectedSubmissions = pendingSubmissions
+    .filter((submission) => normalizeSubmissionStatus(submission.status) === 'rejected')
+    .sort((a, b) => new Date(b.validated_at || b.updated_at || b.created_at).getTime() - new Date(a.validated_at || a.updated_at || a.created_at).getTime());
+
+  const latestProofApprovalBySubmission = approvalHistory.reduce((acc, entry) => {
+    if (entry?.action !== 'proof_approved' || !entry?.submission_id) return acc;
+    const previous = acc[entry.submission_id];
+    if (!previous) {
+      acc[entry.submission_id] = entry;
+      return acc;
+    }
+
+    const previousTime = new Date(previous.approved_at || 0).getTime();
+    const currentTime = new Date(entry.approved_at || 0).getTime();
+    if (currentTime > previousTime) {
+      acc[entry.submission_id] = entry;
+    }
+    return acc;
+  }, {});
+
   const overdueProofSubmissions = proofPendingSubmissions.filter((submission) => isReviewOverdue(submission));
   const activeProofSubmissions = proofPendingSubmissions.filter((submission) => !isReviewOverdue(submission));
 
@@ -269,9 +308,9 @@ export default function AdminApproval() {
   const SubmissionCard = ({ submission }) => (
     <Card
       className={`cursor-pointer hover:shadow-lg transition-all border-2 ${
-        isReviewOverdue(submission)
+        normalizeSubmissionStatus(submission.status) === 'proof_pending' && isReviewOverdue(submission)
           ? 'border-red-400 bg-red-50/70 hover:border-red-500'
-          : isReviewCritical(submission)
+          : normalizeSubmissionStatus(submission.status) === 'proof_pending' && isReviewCritical(submission)
             ? 'border-amber-300 bg-amber-50/50 hover:border-amber-400'
             : 'border-gray-200 hover:border-emerald-300'
       }`}
@@ -320,10 +359,20 @@ export default function AdminApproval() {
             <span>{format(new Date(submission.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
           </div>
           <div className="flex flex-col items-end gap-1">
-            {submission.status === 'proof_pending' ? (
+            {normalizeSubmissionStatus(submission.status) === 'proof_pending' ? (
               <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
                 <Clock className="w-3 h-3 mr-1" />
                 Prova Pendente
+              </Badge>
+            ) : normalizeSubmissionStatus(submission.status) === 'approved' ? (
+              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+                <CheckCircle className="w-3 h-3 mr-1" />
+                Prova Aprovada
+              </Badge>
+            ) : normalizeSubmissionStatus(submission.status) === 'rejected' ? (
+              <Badge className="bg-red-100 text-red-700 border-red-200">
+                <XCircle className="w-3 h-3 mr-1" />
+                Prova Rejeitada
               </Badge>
             ) : (
               <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
@@ -331,18 +380,23 @@ export default function AdminApproval() {
                 Inscrição Pendente
               </Badge>
             )}
-            {isReviewOverdue(submission) ? (
+            {normalizeSubmissionStatus(submission.status) === 'proof_pending' && isReviewOverdue(submission) ? (
               <Badge className="bg-red-600 text-white border-red-700 animate-pulse">
                 Prazo estourado
               </Badge>
-            ) : isReviewCritical(submission) ? (
+            ) : normalizeSubmissionStatus(submission.status) === 'proof_pending' && isReviewCritical(submission) ? (
               <Badge className="bg-amber-500 text-white border-amber-600">
                 Urgente: {formatRemainingReviewTime(submission)}
               </Badge>
-            ) : (
+            ) : normalizeSubmissionStatus(submission.status) === 'proof_pending' ? (
               <Badge className="bg-red-100 text-red-700 border-red-200">
                 Revisar em {formatRemainingReviewTime(submission)}
               </Badge>
+            ) : null}
+            {normalizeSubmissionStatus(submission.status) === 'approved' && latestProofApprovalBySubmission[submission.id] && (
+              <span className="text-xs text-gray-500 text-right max-w-[210px]">
+                Aprovado por {latestProofApprovalBySubmission[submission.id].approver_name || latestProofApprovalBySubmission[submission.id].approver_email || 'Admin'}
+              </span>
             )}
           </div>
         </div>
@@ -404,8 +458,31 @@ export default function AdminApproval() {
           </Card>
         </div>
 
-        {/* Lista de Submissões Pendentes */}
-        {proofPendingSubmissions.length === 0 ? (
+        <div className="inline-flex items-center gap-1 rounded-lg bg-gray-100 p-1 mb-2">
+          <button
+            type="button"
+            className={`px-3 py-1.5 rounded-md text-sm font-medium ${activeTab === 'pending' ? 'bg-white text-[#3c0b14] shadow-sm' : 'text-gray-600'}`}
+            onClick={() => setActiveTab('pending')}
+          >
+            Pendentes ({proofPendingSubmissions.length})
+          </button>
+          <button
+            type="button"
+            className={`px-3 py-1.5 rounded-md text-sm font-medium ${activeTab === 'approved' ? 'bg-white text-[#3c0b14] shadow-sm' : 'text-gray-600'}`}
+            onClick={() => setActiveTab('approved')}
+          >
+            Aprovados ({approvedSubmissions.length})
+          </button>
+          <button
+            type="button"
+            className={`px-3 py-1.5 rounded-md text-sm font-medium ${activeTab === 'rejected' ? 'bg-white text-[#3c0b14] shadow-sm' : 'text-gray-600'}`}
+            onClick={() => setActiveTab('rejected')}
+          >
+            Recusados ({rejectedSubmissions.length})
+          </button>
+        </div>
+
+        {activeTab === 'pending' && proofPendingSubmissions.length === 0 ? (
           <Card className="text-center py-12">
             <CardContent>
               <CheckCircle className="w-16 h-16 mx-auto mb-4 text-gray-400" />
@@ -417,7 +494,7 @@ export default function AdminApproval() {
               </p>
             </CardContent>
           </Card>
-        ) : (
+        ) : activeTab === 'pending' ? (
           <div className="space-y-6">
             {overdueProofSubmissions.length > 0 && (
               <div>
@@ -443,6 +520,36 @@ export default function AdminApproval() {
                 </div>
               </div>
             )}
+          </div>
+        ) : activeTab === 'approved' ? (
+          approvedSubmissions.length === 0 ? (
+            <Card className="text-center py-12">
+              <CardContent>
+                <CheckCircle className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">Nenhuma prova aprovada</h3>
+                <p className="text-gray-500">As provas aprovadas aparecerão aqui no histórico.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {approvedSubmissions.map((submission) => (
+                <SubmissionCard key={submission.id} submission={submission} />
+              ))}
+            </div>
+          )
+        ) : rejectedSubmissions.length === 0 ? (
+          <Card className="text-center py-12">
+            <CardContent>
+              <XCircle className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">Nenhuma prova recusada</h3>
+              <p className="text-gray-500">As recusas de prova aparecerão aqui no histórico.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {rejectedSubmissions.map((submission) => (
+              <SubmissionCard key={submission.id} submission={submission} />
+            ))}
           </div>
         )}
       </div>
@@ -515,7 +622,13 @@ export default function AdminApproval() {
               )}
 
               {/* Ações */}
-              {!isRejecting ? (
+              {normalizeSubmissionStatus(selectedSubmission.status) !== 'proof_pending' ? (
+                <div className="pt-4">
+                  <Badge className="bg-gray-100 text-gray-700 border-gray-300">
+                    Histórico: esta submissão não está mais pendente de decisão.
+                  </Badge>
+                </div>
+              ) : !isRejecting ? (
                 <div className="flex gap-3 pt-4">
                   <Button
                     onClick={() => handleApprove(selectedSubmission)}

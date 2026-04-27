@@ -150,6 +150,28 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_submissions_user_task_unique
   ON submissions(user_id, task_id);
 
 -- ===================================
+-- TABELA: submission_approval_history
+-- Histórico de aprovações de submissões
+-- ===================================
+CREATE TABLE IF NOT EXISTS submission_approval_history (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  submission_id UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+  task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  task_title TEXT,
+  applicant_user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  action TEXT NOT NULL CHECK (action IN ('application_approved', 'proof_approved')),
+  approver_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  approver_name TEXT,
+  approver_email TEXT,
+  approved_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_submission_approval_history_task_id
+  ON submission_approval_history(task_id);
+CREATE INDEX IF NOT EXISTS idx_submission_approval_history_approved_at
+  ON submission_approval_history(approved_at DESC);
+
+-- ===================================
 -- TABELA: user_scores
 -- Pontuação acumulada dos usuários
 -- ===================================
@@ -474,6 +496,7 @@ ALTER TABLE user_scores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE metrics_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE forum_topics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE forum_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE submission_approval_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payment_info ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rewards ENABLE ROW LEVEL SECURITY;
@@ -601,6 +624,20 @@ DROP POLICY IF EXISTS "Admins can update submissions" ON submissions;
 CREATE POLICY "Admins can update submissions"
   ON submissions FOR UPDATE
   USING (public.is_admin(auth.uid()));
+
+-- ===================================
+-- POLICIES: submission_approval_history
+-- ===================================
+
+DROP POLICY IF EXISTS "Admins can view approval history" ON submission_approval_history;
+CREATE POLICY "Admins can view approval history"
+  ON submission_approval_history FOR SELECT
+  USING (public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admins can create approval history" ON submission_approval_history;
+CREATE POLICY "Admins can create approval history"
+  ON submission_approval_history FOR INSERT
+  WITH CHECK (public.is_admin(auth.uid()));
 
 -- ===================================
 -- POLICIES: user_scores

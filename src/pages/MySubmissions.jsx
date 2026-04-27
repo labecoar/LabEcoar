@@ -133,9 +133,12 @@ export default function MySubmissions() {
             <CardTitle className="text-lg leading-tight">
               {submission.task?.title || 'Tarefa'}
             </CardTitle>
+            <p className="text-sm text-gray-600 line-clamp-2 mt-2">
+              {submission.task?.description || 'Sem descrição da tarefa.'}
+            </p>
             {submission.description && (
-              <p className="text-sm text-gray-600 line-clamp-2 mt-2">
-                {submission.description}
+              <p className="text-xs text-gray-500 line-clamp-2 mt-2">
+                <span className="font-medium">Sua observação:</span> {submission.description}
               </p>
             )}
           </div>

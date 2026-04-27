@@ -1,6 +1,17 @@
 import { supabase } from '@/lib/supabase'
 import { storageService } from '@/services/storage.service'
 
+const APPROVAL_HISTORY_TABLE = 'submission_approval_history'
+
+const isMissingApprovalHistoryTableError = (error) => {
+  const raw = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`.toLowerCase()
+  return raw.includes('submission_approval_history') && (
+    raw.includes('does not exist')
+    || raw.includes('could not find')
+    || raw.includes('schema cache')
+  )
+}
+
 const toDateOrNull = (value) => {
   if (!value) return null
   const parsed = new Date(value)
@@ -108,6 +119,59 @@ async function applyRulesToSubmissions(submissions) {
   return Promise.all((submissions || []).map((item) => applySubmissionTaskRules(item)))
 }
 
+async function getCurrentReviewerSnapshot() {
+  const { data: authData } = await supabase.auth.getUser()
+  const authUser = authData?.user || null
+  if (!authUser?.id) {
+    return {
+      approverId: null,
+      approverName: null,
+      approverEmail: null,
+    }
+  }
+
+  const { data: profileData } = await supabase
+    .from('profiles')
+    .select('id, display_name, full_name, email')
+    .eq('id', authUser.id)
+    .maybeSingle()
+
+  return {
+    approverId: authUser.id,
+    approverName: profileData?.display_name || profileData?.full_name || authUser.email || 'Admin',
+    approverEmail: profileData?.email || authUser.email || null,
+  }
+}
+
+async function registerApprovalHistoryEntry({ submission, task, action }) {
+  if (!submission?.id || !task?.id || !action) return
+
+  const reviewer = await getCurrentReviewerSnapshot()
+  const insertPayload = {
+    submission_id: submission.id,
+    task_id: task.id,
+    task_title: task.title || null,
+    applicant_user_id: submission.user_id || null,
+    action,
+    approved_at: new Date().toISOString(),
+    approver_id: reviewer.approverId,
+    approver_name: reviewer.approverName,
+    approver_email: reviewer.approverEmail,
+  }
+
+  const { error } = await supabase
+    .from(APPROVAL_HISTORY_TABLE)
+    .insert([insertPayload])
+
+  if (!error) return
+  if (isMissingApprovalHistoryTableError(error)) {
+    console.warn('Tabela de histórico de aprovação ausente. Rode o SQL de migration para submission_approval_history.')
+    return
+  }
+
+  throw error
+}
+
 /**
  * Serviço de Submissões
  */
@@ -121,6 +185,7 @@ export const submissionsService = {
       task:tasks (
         id,
         title,
+        description,
         category,
         points,
         offered_value,
@@ -187,6 +252,23 @@ export const submissionsService = {
 
     if (error) throw error
     return applyRulesToSubmissions(data || [])
+  },
+
+  async getApprovalHistory(limit = 30) {
+    const safeLimit = Number.isFinite(Number(limit)) ? Math.max(1, Math.min(100, Number(limit))) : 30
+
+    const { data, error } = await supabase
+      .from(APPROVAL_HISTORY_TABLE)
+      .select('*')
+      .order('approved_at', { ascending: false })
+      .limit(safeLimit)
+
+    if (!error) return data || []
+    if (isMissingApprovalHistoryTableError(error)) {
+      return []
+    }
+
+    throw error
   },
 
   /**
@@ -451,11 +533,19 @@ export const submissionsService = {
   async approveSubmission(submissionId, pointsAwarded) {
     const { data: currentSubmission, error: currentSubmissionError } = await supabase
       .from('submissions')
-      .select('id, task_id, status')
+      .select('id, task_id, user_id, status')
       .eq('id', submissionId)
       .single()
 
     if (currentSubmissionError) throw currentSubmissionError
+
+    const { data: taskData, error: taskError } = await supabase
+      .from('tasks')
+      .select('id, title, current_participants, max_participants')
+      .eq('id', currentSubmission.task_id)
+      .single()
+
+    if (taskError) throw taskError
 
     if (
       currentSubmission.status === 'application_pending'
@@ -475,14 +565,6 @@ export const submissionsService = {
 
       if (error) throw error
 
-      const { data: taskData, error: taskError } = await supabase
-        .from('tasks')
-        .select('id, current_participants, max_participants')
-        .eq('id', currentSubmission.task_id)
-        .single()
-
-      if (taskError) throw taskError
-
       const currentParticipants = Number(taskData.current_participants || 0)
       const maxParticipants = taskData.max_participants == null ? null : Number(taskData.max_participants)
       if (maxParticipants === null || currentParticipants < maxParticipants) {
@@ -493,6 +575,12 @@ export const submissionsService = {
 
         if (updateTaskError) throw updateTaskError
       }
+
+      await registerApprovalHistoryEntry({
+        submission: currentSubmission,
+        task: taskData,
+        action: 'application_approved',
+      })
 
       return data
     }
@@ -511,6 +599,13 @@ export const submissionsService = {
         .single()
 
       if (error) throw error
+
+      await registerApprovalHistoryEntry({
+        submission: currentSubmission,
+        task: taskData,
+        action: 'proof_approved',
+      })
+
       return data
     }
 

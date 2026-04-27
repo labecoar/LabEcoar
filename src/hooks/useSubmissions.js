@@ -24,6 +24,15 @@ export function usePendingSubmissions() {
   })
 }
 
+export function useApprovalHistory(limit = 30) {
+  return useQuery({
+    queryKey: ['submissions', 'approval-history', limit],
+    queryFn: () => submissionsService.getApprovalHistory(limit),
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true,
+  })
+}
+
 /**
  * Hook para criar submissão
  */
@@ -66,6 +75,7 @@ export function useApproveSubmission() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['submissions'] })
       queryClient.invalidateQueries({ queryKey: ['scores'] })
+      queryClient.invalidateQueries({ queryKey: ['submissions', 'approval-history'] })
     },
   })
 }

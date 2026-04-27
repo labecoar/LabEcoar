@@ -233,6 +233,9 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     : null;
   const metricsWindowStart = startOfDay(metricsWindowStartRaw);
   const metricsWindowEnd = endOfDay(metricsWindowEndRaw);
+  const metricsWindowLabel = metricsWindowStart && metricsWindowEnd
+    ? `${metricsWindowStart.toLocaleDateString('pt-BR')} até ${metricsWindowEnd.toLocaleDateString('pt-BR')}`
+    : null;
   const isInsideMetricsWindow =
     metricsWindowStart && metricsWindowEnd
       ? now >= metricsWindowStart && now <= metricsWindowEnd
@@ -291,6 +294,20 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const submissionStageLabel = isSidequestTask && submissionStatus === 'application_pending'
     ? SIDEQUEST_PENDING_TEXT
     : STATUS_TEXT[submissionStatus] || 'Inscrição em análise';
+
+  const metricsSubmitHint = !metricsFile
+    ? 'Anexe o arquivo de métricas para enviar.'
+    : !hasCompletePaymentInfo
+      ? 'Complete seus dados bancários em Meus Pagamentos para habilitar o envio.'
+      : hasResubmissionWindowExpired
+        ? 'Prazo de reenvio encerrado (2 dias após a rejeição).'
+        : hasMetricsWindowPassed
+          ? 'A janela de envio de métricas foi encerrada.'
+          : !isInsideMetricsWindow
+            ? (metricsWindowLabel
+              ? `As métricas só serão possíveis de enviar na janela: ${metricsWindowLabel}.`
+              : 'As métricas ainda não podem ser enviadas.')
+            : '';
 
   const handleApply = async (e) => {
     e.preventDefault();
@@ -752,18 +769,20 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                     <p className="text-xs text-gray-500 mt-1">Máximo: 5MB</p>
                   </div>
 
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting || uploadFile.isPending || submitMetrics.isPending || !metricsFile || !isInsideMetricsWindow || hasResubmissionWindowExpired || !hasCompletePaymentInfo}
-                    className="w-full bg-sky-600 hover:bg-sky-700"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {isSubmitting || uploadFile.isPending || submitMetrics.isPending
-                      ? 'Enviando métricas...'
-                      : currentMetricsSubmission?.status === 'rejected'
-                        ? 'Reenviar métricas'
-                        : 'Enviar métricas para aprovação'}
-                  </Button>
+                  <div title={metricsSubmitHint || undefined}>
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting || uploadFile.isPending || submitMetrics.isPending || !metricsFile || !isInsideMetricsWindow || hasResubmissionWindowExpired || !hasCompletePaymentInfo}
+                      className="w-full bg-sky-600 hover:bg-sky-700"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {isSubmitting || uploadFile.isPending || submitMetrics.isPending
+                        ? 'Enviando métricas...'
+                        : currentMetricsSubmission?.status === 'rejected'
+                          ? 'Reenviar métricas'
+                          : 'Enviar métricas para aprovação'}
+                    </Button>
+                  </div>
                 </form>
               ) : (
                 <div className="space-y-2">
