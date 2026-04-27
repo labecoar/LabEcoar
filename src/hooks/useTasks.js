@@ -8,6 +8,8 @@ export function useTasks() {
   return useQuery({
     queryKey: ['tasks'],
     queryFn: () => tasksService.getActiveTasks(),
+    refetchOnWindowFocus: true,
+    refetchInterval: 15000,
   })
 }
 

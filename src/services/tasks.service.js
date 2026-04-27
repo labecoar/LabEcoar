@@ -20,15 +20,6 @@ const resolveTaskProofDeadline = (taskLike) => {
     || null
 }
 
-const isAutoExpiredRejectionReason = (reason) => {
-  const normalized = String(reason || '').trim().toLowerCase()
-  if (!normalized) return false
-
-  return normalized.includes('prazo de envio da prova expirou')
-    || normalized.includes('vaga cancelada por inatividade')
-    || normalized.includes('primeira tentativa de envio da prova')
-}
-
 async function reopenAutoExpiredSubmissionsIfDeadlineExtended(previousTask, updatedTask) {
   const previousDeadline = resolveTaskProofDeadline(previousTask)
   const nextDeadline = resolveTaskProofDeadline(updatedTask)
@@ -38,15 +29,13 @@ async function reopenAutoExpiredSubmissionsIfDeadlineExtended(previousTask, upda
 
   const { data: rejectedSubmissions, error: rejectedError } = await supabase
     .from('submissions')
-    .select('id, rejection_reason')
+    .select('id')
     .eq('task_id', updatedTask.id)
     .in('status', ['application_rejected', 'rejected'])
 
   if (rejectedError) throw rejectedError
 
-  const toReopenIds = (rejectedSubmissions || [])
-    .filter((submission) => isAutoExpiredRejectionReason(submission?.rejection_reason))
-    .map((submission) => submission.id)
+  const toReopenIds = (rejectedSubmissions || []).map((submission) => submission.id)
 
   if (toReopenIds.length === 0) return
 

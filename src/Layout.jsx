@@ -67,6 +67,11 @@ const adminNavigationItems = [
     icon: Target,
   },
   {
+    title: "Fórum",
+    url: createPageUrl("Forum"),
+    icon: MessageSquare,
+  },
+  {
     title: "Seleção",
     url: createPageUrl("AdminApplications"),
     icon: User,
