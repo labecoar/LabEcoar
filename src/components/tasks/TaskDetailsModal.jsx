@@ -63,6 +63,8 @@ const STATUS_TEXT = {
   pending: 'Inscrição em análise',
 }
 
+const SIDEQUEST_PENDING_TEXT = 'Inscrito'
+
 const PROOF_TYPE_LABELS = {
   link: 'Link',
   imagem: 'Imagem',
@@ -287,7 +289,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   }, [isCampaignTask, hasPassedStep2, metricsWindowEnd, hasProofDeadline, proofDeadline, task.expires_at, timeLeft]);
 
   const submissionStageLabel = isSidequestTask && submissionStatus === 'application_pending'
-    ? 'Inscrito'
+    ? SIDEQUEST_PENDING_TEXT
     : STATUS_TEXT[submissionStatus] || 'Inscrição em análise';
 
   const handleApply = async (e) => {
@@ -499,7 +501,11 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                 </div>
                 <div>
                   <p className="font-bold text-[#3c0b14]">Etapa 1: Candidatar-se</p>
-                  <p className="text-xs text-gray-500">Envie sua candidatura para análise</p>
+                  <p className="text-xs text-gray-500">
+                    {isSidequestTask
+                      ? 'Ao se candidatar, você já fica inscrito para enviar a prova.'
+                      : 'Envie sua candidatura para análise'}
+                  </p>
                 </div>
               </div>
 
@@ -527,7 +533,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                         : 'Inscrição aprovada - envie a prova abaixo'
                       : isWaiting
                         ? (isSidequestTask && submissionStatus === 'application_pending'
-                          ? 'Sidequest iniciada - envie a prova abaixo'
+                          ? `${SIDEQUEST_PENDING_TEXT} - envie a prova abaixo`
                           : submissionStageLabel)
                         : isSubmissionExpiredByRule
                           ? 'Prazo expirado'
@@ -585,7 +591,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                     type="url"
                     value={proofLink}
                     onChange={(e) => setProofLink(e.target.value)}
-                    placeholder="https://..."
+                    placeholder="Cole o link da prova (ex.: Instagram, Drive, YouTube)"
                   />
                   {String(proofLink || '').trim() && (
                     <p className="text-xs text-amber-700 mt-1">
@@ -603,7 +609,9 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                   />
                   <p className="text-xs text-gray-500 mt-1">Máximo: 5MB</p>
                 </div>
-                <p className="text-xs text-gray-500">Você pode enviar link, arquivo ou ambos.</p>
+                <p className="text-xs text-gray-600 rounded-md bg-emerald-50 border border-emerald-100 px-2.5 py-2">
+                  Envie a prova com link e/ou arquivo. Você pode mandar apenas um deles ou os dois juntos.
+                </p>
 
                 <Button
                   type="submit"

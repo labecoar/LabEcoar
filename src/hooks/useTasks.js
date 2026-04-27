@@ -58,6 +58,7 @@ export function useUpdateTask() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
       queryClient.invalidateQueries({ queryKey: ['tasks', 'admin-all'] })
+      queryClient.invalidateQueries({ queryKey: ['submissions'] })
     },
   })
 }

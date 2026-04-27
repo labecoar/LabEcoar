@@ -1,5 +1,70 @@
 import { supabase } from '@/lib/supabase'
 
+const toDateOrNull = (value) => {
+  if (!value) return null
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+const resolveTaskProofDeadline = (taskLike) => {
+  if (!taskLike) return null
+
+  if (taskLike.category === 'campanha') {
+    const postingDeadline = toDateOrNull(taskLike.posting_deadline)
+    if (postingDeadline) return postingDeadline
+  }
+
+  return toDateOrNull(taskLike.expires_at)
+    || toDateOrNull(taskLike.posting_deadline)
+    || toDateOrNull(taskLike.delivery_deadline)
+    || null
+}
+
+const isAutoExpiredRejectionReason = (reason) => {
+  const normalized = String(reason || '').trim().toLowerCase()
+  if (!normalized) return false
+
+  return normalized.includes('prazo de envio da prova expirou')
+    || normalized.includes('vaga cancelada por inatividade')
+    || normalized.includes('primeira tentativa de envio da prova')
+}
+
+async function reopenAutoExpiredSubmissionsIfDeadlineExtended(previousTask, updatedTask) {
+  const previousDeadline = resolveTaskProofDeadline(previousTask)
+  const nextDeadline = resolveTaskProofDeadline(updatedTask)
+
+  if (!previousDeadline || !nextDeadline) return
+  if (nextDeadline.getTime() <= previousDeadline.getTime()) return
+
+  const { data: rejectedSubmissions, error: rejectedError } = await supabase
+    .from('submissions')
+    .select('id, rejection_reason')
+    .eq('task_id', updatedTask.id)
+    .in('status', ['application_rejected', 'rejected'])
+
+  if (rejectedError) throw rejectedError
+
+  const toReopenIds = (rejectedSubmissions || [])
+    .filter((submission) => isAutoExpiredRejectionReason(submission?.rejection_reason))
+    .map((submission) => submission.id)
+
+  if (toReopenIds.length === 0) return
+
+  const nowIso = new Date().toISOString()
+  const { error: reopenError } = await supabase
+    .from('submissions')
+    .update({
+      status: 'application_pending',
+      rejection_reason: null,
+      validated_at: null,
+      updated_at: nowIso,
+      points_awarded: 0,
+    })
+    .in('id', toReopenIds)
+
+  if (reopenError) throw reopenError
+}
+
 /**
  * Serviço de Tarefas
  */
@@ -82,6 +147,14 @@ export const tasksService = {
    * Atualizar tarefa (Admin)
    */
   async updateTask(taskId, updates) {
+    const { data: previousTask, error: previousTaskError } = await supabase
+      .from('tasks')
+      .select('id, category, expires_at, posting_deadline, delivery_deadline')
+      .eq('id', taskId)
+      .single()
+
+    if (previousTaskError) throw previousTaskError
+
     const { data, error } = await supabase
       .from('tasks')
       .update(updates)
@@ -90,6 +163,8 @@ export const tasksService = {
       .single()
 
     if (error) throw error
+
+    await reopenAutoExpiredSubmissionsIfDeadlineExtended(previousTask, data)
     return data
   },
 

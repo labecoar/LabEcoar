@@ -418,7 +418,9 @@ export default function Tasks() {
             ) : claimed ? (
               <Badge className="bg-blue-100 text-blue-700 border-blue-200 shrink-0">
                 <Clock className="w-3 h-3 mr-1" />
-                Inscrição em Análise
+                {task.category === 'sidequest_teste' && submissionStatus === 'application_pending'
+                  ? 'Inscrito'
+                  : 'Inscrição em Análise'}
               </Badge>
             ) : rejected && !reopenedByDateChange ? (
               <Badge className="bg-red-100 text-red-700 border-red-200 shrink-0">
