@@ -295,6 +295,10 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     ? SIDEQUEST_PENDING_TEXT
     : STATUS_TEXT[submissionStatus] || 'Inscrição em análise';
 
+  const metricsWindowHoverText = metricsWindowLabel
+    ? `Só será possível enviar as métricas na janela: de ${metricsWindowLabel}.`
+    : 'A janela de envio de métricas será disponibilizada conforme o prazo da tarefa.';
+
   const metricsSubmitHint = !metricsFile
     ? 'Anexe o arquivo de métricas para enviar.'
     : !hasCompletePaymentInfo
@@ -308,6 +312,8 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
               ? `As métricas só serão possíveis de enviar na janela: ${metricsWindowLabel}.`
               : 'As métricas ainda não podem ser enviadas.')
             : '';
+
+    const metricsButtonTitle = [metricsWindowHoverText, metricsSubmitHint].filter(Boolean).join(' ');
 
   const handleApply = async (e) => {
     e.preventDefault();
@@ -769,7 +775,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                     <p className="text-xs text-gray-500 mt-1">Máximo: 5MB</p>
                   </div>
 
-                  <div title={metricsSubmitHint || undefined}>
+                  <div title={metricsButtonTitle || undefined}>
                     <Button
                       type="submit"
                       disabled={isSubmitting || uploadFile.isPending || submitMetrics.isPending || !metricsFile || !isInsideMetricsWindow || hasResubmissionWindowExpired || !hasCompletePaymentInfo}
