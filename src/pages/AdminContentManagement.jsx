@@ -1045,6 +1045,28 @@ export default function AdminContentManagement() {
                             Prova: {getProofTypeLabel(task)}
                           </span>
                         </div>
+
+                        <div className="flex gap-2 mt-3">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditTask(task)}
+                            className="text-xs border-blue-300 text-blue-700 hover:bg-blue-50"
+                          >
+                            <Pencil className="w-3 h-3 mr-1" />
+                            Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteTask(task.id)}
+                            className="text-xs border-red-300 text-red-700 hover:bg-red-50"
+                            disabled={deleteTask.isPending}
+                          >
+                            <Trash2 className="w-3 h-3 mr-1" />
+                            Excluir
+                          </Button>
+                        </div>
                       </div>
                     )
                   })}

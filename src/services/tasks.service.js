@@ -65,6 +65,27 @@ async function reopenAutoExpiredSubmissionsIfDeadlineExtended(previousTask, upda
   if (reopenError) throw reopenError
 }
 
+async function reactivateTaskIfDeadlineReopened(updatedTask) {
+  if (!updatedTask || updatedTask.status === 'active') return updatedTask
+
+  const nextDeadline = resolveTaskProofDeadline(updatedTask)
+  const isReopenedWindow = !nextDeadline || nextDeadline.getTime() > Date.now()
+  if (!isReopenedWindow) return updatedTask
+
+  const { data: reactivatedTask, error: reactivateError } = await supabase
+    .from('tasks')
+    .update({
+      status: 'active',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', updatedTask.id)
+    .select()
+    .single()
+
+  if (reactivateError) throw reactivateError
+  return reactivatedTask
+}
+
 /**
  * Serviço de Tarefas
  */
@@ -149,7 +170,7 @@ export const tasksService = {
   async updateTask(taskId, updates) {
     const { data: previousTask, error: previousTaskError } = await supabase
       .from('tasks')
-      .select('id, category, expires_at, posting_deadline, delivery_deadline')
+      .select('id, status, category, expires_at, posting_deadline, delivery_deadline')
       .eq('id', taskId)
       .single()
 
@@ -165,7 +186,7 @@ export const tasksService = {
     if (error) throw error
 
     await reopenAutoExpiredSubmissionsIfDeadlineExtended(previousTask, data)
-    return data
+    return reactivateTaskIfDeadlineReopened(data)
   },
 
   /**
