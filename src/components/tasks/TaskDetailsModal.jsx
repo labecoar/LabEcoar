@@ -253,15 +253,6 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
       ? now >= metricsWindowStart && now <= metricsWindowEnd
       : true;
   const hasMetricsWindowPassed = metricsWindowEnd ? now > metricsWindowEnd : false;
-  const hasCompletePaymentInfo = Boolean(
-    paymentInfo
-    && paymentInfo.bank_name
-    && paymentInfo.agency
-    && paymentInfo.account_number
-    && paymentInfo.account_digit
-    && paymentInfo.full_name
-    && paymentInfo.cpf
-  );
   const shouldShowMetricsReminder = Boolean(
     isCampaignTask
     && submissionStatus === 'approved'
@@ -313,16 +304,28 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
   const metricsSubmitHint = !metricsFile
     ? 'Anexe o arquivo de métricas para enviar.'
-    : !hasCompletePaymentInfo
-      ? 'Complete seus dados bancários em Meus Pagamentos para habilitar o envio.'
-      : hasResubmissionWindowExpired
-        ? 'Prazo de reenvio encerrado (2 dias após a rejeição).'
+    : hasResubmissionWindowExpired
+      ? 'Prazo de reenvio encerrado (2 dias após a rejeição).'
+      : hasMetricsWindowPassed
+        ? 'A janela de envio de métricas foi encerrada.'
+        : !isInsideMetricsWindow
+          ? (metricsWindowLabel
+            ? `As métricas só serão possíveis de enviar na janela: ${metricsWindowLabel}.`
+            : 'As métricas ainda não podem ser enviadas.')
+          : '';
+
+  const metricsInlineHint = !metricsFile
+    ? 'Anexe o arquivo de métricas para liberar o envio.'
+    : submissionStatus !== 'approved'
+      ? 'A tarefa precisa estar aprovada para liberar o envio.'
+      : metricsStatus === 'rejected' && hasResubmissionWindowExpired
+        ? 'Prazo de reenvio encerrado.'
         : hasMetricsWindowPassed
-          ? 'A janela de envio de métricas foi encerrada.'
+          ? 'A janela de envio de métricas já foi encerrada.'
           : !isInsideMetricsWindow
             ? (metricsWindowLabel
-              ? `As métricas só serão possíveis de enviar na janela: ${metricsWindowLabel}.`
-              : 'As métricas ainda não podem ser enviadas.')
+              ? `Envio liberado apenas entre ${metricsWindowLabel}.`
+              : 'A janela de envio de métricas ainda não começou.')
             : '';
 
     const metricsButtonTitle = [metricsWindowHoverText, metricsSubmitHint].filter(Boolean).join(' ');
@@ -407,10 +410,6 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     if (!canSubmitMetrics || !metricsFile) return;
     if (!isInsideMetricsWindow) {
       alert('As métricas só podem ser enviadas entre o 1º e o 3º dia útil após o fechamento da postagem.');
-      return;
-    }
-    if (!hasCompletePaymentInfo) {
-      alert('Complete seus dados bancários em Meus Pagamentos antes de enviar métricas para pagamento.');
       return;
     }
 
@@ -737,14 +736,6 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
               {!currentMetricsSubmission || metricsStatus === 'rejected' ? (
                 <form onSubmit={handleSendMetrics} className="space-y-3">
-                  {!hasCompletePaymentInfo && (
-                    <div className="text-xs rounded-lg p-3 border bg-red-50 border-red-200 text-red-800">
-                      Para receber pagamento, complete primeiro seus dados bancários em Meus Pagamentos.
-                    </div>
-                  )}
-
-
-
                   <div className="rounded-lg border border-sky-200 bg-sky-50 p-3">
                     <p className="text-xs font-semibold text-sky-800 mb-2">Checklist obrigatório no print/arquivo de métricas</p>
                     <ul className="text-xs text-sky-700 list-disc pl-4 space-y-1">
@@ -790,7 +781,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                   <div title={metricsButtonTitle || undefined}>
                     <Button
                       type="submit"
-                      disabled={isSubmitting || uploadFile.isPending || submitMetrics.isPending || !metricsFile || !isInsideMetricsWindow || hasResubmissionWindowExpired || !hasCompletePaymentInfo}
+                      disabled={isSubmitting || uploadFile.isPending || submitMetrics.isPending || !metricsFile || !isInsideMetricsWindow || hasResubmissionWindowExpired}
                       className="w-full bg-sky-600 hover:bg-sky-700"
                     >
                       <Upload className="w-4 h-4 mr-2" />
@@ -801,6 +792,12 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                           : 'Enviar métricas para aprovação'}
                     </Button>
                   </div>
+
+                  {metricsInlineHint && (
+                    <p className="text-[11px] text-gray-500 leading-snug">
+                      {metricsInlineHint}
+                    </p>
+                  )}
                 </form>
               ) : (
                 <div className="space-y-2">

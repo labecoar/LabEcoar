@@ -89,28 +89,6 @@ export const metricsService = {
 
     if (submissionError) throw submissionError
 
-    const { data: paymentInfo, error: paymentInfoError } = await supabase
-      .from('payment_info')
-      .select('user_id, bank_name, agency, account_number, account_digit, full_name, cpf')
-      .eq('user_id', submissionForApproval.user_id)
-      .maybeSingle()
-
-    if (paymentInfoError) throw paymentInfoError
-
-    const hasCompletePaymentInfo = Boolean(
-      paymentInfo
-      && paymentInfo.bank_name
-      && paymentInfo.agency
-      && paymentInfo.account_number
-      && paymentInfo.account_digit
-      && paymentInfo.full_name
-      && paymentInfo.cpf
-    )
-
-    if (!hasCompletePaymentInfo) {
-      throw new Error('Dados bancários incompletos para depósito. Peça ao ecoante para atualizar em Meus Pagamentos.')
-    }
-
     const { data, error } = await supabase
       .from('metrics_submissions')
       .update({
