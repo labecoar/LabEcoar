@@ -1,13 +1,13 @@
 // @ts-nocheck
 import React, { useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePendingSubmissions, useApproveSubmission, useRejectSubmission, useResetSubmissionReview, useApprovalHistory } from "@/hooks/useSubmissions";
+import { usePendingSubmissions, useApproveSubmission, useRejectSubmission, useResetSubmissionReview } from "@/hooks/useSubmissions";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Clock, CheckCircle, XCircle, User, Calendar, Users, Star, Eye, RotateCcw, History } from "lucide-react";
+import { Clock, CheckCircle, XCircle, User, Calendar, Users, Star, Eye, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -23,11 +23,6 @@ const normalizeSubmissionStatus = (status) => {
   return normalized
 }
 
-const APPROVAL_ACTION_LABELS = {
-  application_approved: 'Inscrição aprovada',
-  proof_approved: 'Prova aprovada',
-}
-
 export default function AdminApplications() {
   const [activeTab, setActiveTab] = useState('pending');
   const [selectedTaskPreview, setSelectedTaskPreview] = useState(null);
@@ -35,7 +30,6 @@ export default function AdminApplications() {
   const queryClient = useQueryClient();
 
   const { data: pendingSubmissions = [], isLoading } = usePendingSubmissions();
-  const { data: approvalHistory = [] } = useApprovalHistory(12);
   const approveSubmission = useApproveSubmission();
   const rejectSubmission = useRejectSubmission();
   const resetSubmissionReview = useResetSubmissionReview();
@@ -263,36 +257,6 @@ export default function AdminApplications() {
             </CardContent>
           </Card>
         </div>
-
-        <Card className="border-emerald-100 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base inline-flex items-center gap-2">
-              <History className="w-4 h-4 text-emerald-700" />
-              Histórico de Aprovações
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {approvalHistory.length === 0 ? (
-              <p className="text-sm text-gray-500">Ainda não há aprovações registradas.</p>
-            ) : (
-              <div className="space-y-2">
-                {approvalHistory.map((entry) => (
-                  <div key={entry.id} className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-medium text-gray-800">{entry.task_title || 'Tarefa'}</p>
-                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 border">
-                        {APPROVAL_ACTION_LABELS[entry.action] || entry.action}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-gray-600 mt-1">
-                      Aprovado por {entry.approver_name || entry.approver_email || 'Admin'} em {entry.approved_at ? format(new Date(entry.approved_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '-'}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
         <div className="inline-flex items-center gap-1 rounded-lg bg-gray-100 p-1 mb-6">
           <button
