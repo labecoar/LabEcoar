@@ -96,7 +96,17 @@ const firstBusinessDayOnOrAfter = (baseDate) => {
 
   return result;
 };
+const firstBusinessDayAfter = (baseDate) => {
+  if (!baseDate) return null;
+  const result = new Date(baseDate);
+  result.setDate(result.getDate() + 1);
 
+  while (!isBusinessDay(result)) {
+    result.setDate(result.getDate() + 1);
+  }
+
+  return result;
+};
 const endOfDay = (date) => {
   if (!date) return null;
   const value = new Date(date);
@@ -226,7 +236,7 @@ export default function Tasks() {
     if (!metricsBaseDate) return false;
 
     const now = new Date();
-    const metricsWindowStart = firstBusinessDayOnOrAfter(metricsBaseDate);
+    const metricsWindowStart = firstBusinessDayAfter(metricsBaseDate);
     const metricsWindowEnd = endOfDay(addBusinessDays(metricsWindowStart, 2));
     if (now <= metricsWindowEnd) return true;
     if (metricsStatus !== 'rejected') return false;

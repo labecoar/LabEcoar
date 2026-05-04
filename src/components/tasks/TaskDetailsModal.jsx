@@ -143,6 +143,18 @@ const firstBusinessDayOnOrAfter = (baseDate) => {
   return result;
 };
 
+const firstBusinessDayAfter = (baseDate) => {
+  if (!baseDate) return null;
+  const result = new Date(baseDate);
+  result.setDate(result.getDate() + 1);
+
+  while (!isBusinessDay(result)) {
+    result.setDate(result.getDate() + 1);
+  }
+
+  return result;
+};
+
 const startOfDay = (date) => {
   if (!date) return null;
   const value = new Date(date);
@@ -226,7 +238,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const metricsBaseDate = postingDeadline || toDateOrNull(currentSubmission?.validated_at);
   const hasValidMetricsBaseDate = metricsBaseDate && !Number.isNaN(metricsBaseDate.getTime());
   const metricsWindowStartRaw = hasValidMetricsBaseDate
-    ? firstBusinessDayOnOrAfter(metricsBaseDate)
+    ? firstBusinessDayAfter(metricsBaseDate)
     : null;
   const metricsWindowEndRaw = metricsWindowStartRaw
     ? addBusinessDays(metricsWindowStartRaw, 2)
