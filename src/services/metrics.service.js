@@ -150,7 +150,8 @@ export const metricsService = {
     return data
   },
 
-  async submitMetricsSubmission({ user, task, metricsFileUrl, metricsLink, description }) {
+  async submitMetricsSubmission({ user, task, metricsFileUrl, metricsFileUrls, metricsLink, description }) {
+    // metricsFileUrls: optional array of uploaded file URLs (preferred)
     const trimmedLink = String(metricsLink || '').trim() || null
     const trimmedDescription = String(description || '').trim() || null
     
@@ -167,7 +168,7 @@ export const metricsService = {
 
     const { data: existing, error: existingError } = await supabase
       .from('metrics_submissions')
-      .select('id, status, attempt_number, reviewed_at, metrics_file_url')
+      .select('id, status, attempt_number, reviewed_at, metrics_file_url, metrics_file_urls')
       .eq('user_id', user.id)
       .eq('task_id', task.id)
       .maybeSingle()
@@ -181,7 +182,9 @@ export const metricsService = {
         task_title: task.title,
         user_email: user.email,
         user_name: user.user_metadata?.full_name || user.user_metadata?.display_name || user.email,
-        metrics_file_url: metricsFileUrl,
+        // keep single-file compatibility and also store array when provided
+        metrics_file_url: (metricsFileUrls && metricsFileUrls.length) ? metricsFileUrls[0] : metricsFileUrl,
+        metrics_file_urls: (metricsFileUrls && metricsFileUrls.length) ? metricsFileUrls : null,
         metrics_link: trimmedLink,
         description: finalDescription,
         posted_at: postedAtDate.toISOString(),
@@ -226,7 +229,8 @@ export const metricsService = {
     }
 
     const updatePayload = {
-      metrics_file_url: metricsFileUrl,
+      metrics_file_url: (metricsFileUrls && metricsFileUrls.length) ? metricsFileUrls[0] : metricsFileUrl,
+      metrics_file_urls: (metricsFileUrls && metricsFileUrls.length) ? metricsFileUrls : null,
       metrics_link: trimmedLink,
       description: finalDescription,
       posted_at: postedAtDate.toISOString(),
@@ -244,17 +248,7 @@ export const metricsService = {
       .select()
       .single()
 
-    if (!error) {
-      const previousMetricsFileUrl = String(existing?.metrics_file_url || '').trim()
-      const nextMetricsFileUrl = String(data?.metrics_file_url || '').trim()
-      if (previousMetricsFileUrl && nextMetricsFileUrl && previousMetricsFileUrl !== nextMetricsFileUrl) {
-        storageService.deleteByPublicUrl(previousMetricsFileUrl).catch((cleanupError) => {
-          console.warn('Nao foi possivel limpar arquivo de metricas antigo:', cleanupError)
-        })
-      }
-
-      return data
-    }
+    if (!error) return data
     if (!isMissingPostedAtColumnError(error)) throw error
 
     const { posted_at: _, ...legacyUpdatePayload } = updatePayload

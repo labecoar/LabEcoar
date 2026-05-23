@@ -236,7 +236,7 @@ export default function Tasks() {
     if (!metricsBaseDate) return false;
 
     const now = new Date();
-    const metricsWindowStart = firstBusinessDayAfter(metricsBaseDate);
+    const metricsWindowStart = new Date(metricsBaseDate.getTime() + 24 * 60 * 60 * 1000);
     const metricsWindowEnd = endOfDay(addBusinessDays(metricsWindowStart, 2));
     if (now <= metricsWindowEnd) return true;
     if (metricsStatus !== 'rejected') return false;
@@ -325,7 +325,7 @@ export default function Tasks() {
       >
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-3">
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2">
                 <Badge className={`${colorClass} border`}>
                   <Icon className="w-3 h-3 mr-1" />
@@ -337,7 +337,7 @@ export default function Tasks() {
                   </Badge>
                 )}
               </div>
-              <CardTitle className="text-lg leading-tight">{task.title}</CardTitle>
+              <CardTitle className="text-lg leading-tight break-words">{task.title}</CardTitle>
             </div>
             <div className="flex items-center gap-1 px-3 py-1 bg-amber-50 rounded-full border border-amber-200">
               {isPaidTask ? (
@@ -355,7 +355,7 @@ export default function Tasks() {
         </CardHeader>
 
         <CardContent className="pt-0">
-          <p className="text-sm text-gray-600 line-clamp-2 mb-4">
+          <p className="text-sm text-gray-600 line-clamp-2 mb-4 break-words break-all whitespace-normal">
             {task.description}
           </p>
 
@@ -370,8 +370,7 @@ export default function Tasks() {
                       : 'bg-gray-100 text-gray-600 border-gray-200'
                 }`}>
                   <Calendar className="w-4 h-4" />
-                  <span>{format(new Date(task.expires_at), "dd MMM", { locale: ptBR })}</span>
-                  <span className="font-semibold">({deadline.timeLabel})</span>
+                  <span>{format(new Date(task.expires_at), "dd/MM")}</span>
                 </div>
               )}
               {task.max_participants && (
@@ -493,7 +492,7 @@ export default function Tasks() {
                 Compartilhar
               </TabsTrigger>
               <TabsTrigger value="sidequest_teste" className="data-[state=active]:bg-amber-600 data-[state=active]:text-white">
-                Sidequest Teste
+                Sidequest 
               </TabsTrigger>
             </TabsList>
           </Tabs>

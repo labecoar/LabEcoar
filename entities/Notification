@@ -17,6 +17,9 @@
     "type": {
       "type": "string",
       "enum": [
+        "task_available",
+        "task_due_soon",
+        "task_metrics_due_soon",
         "candidatura_aprovada",
         "candidatura_rejeitada",
         "submissao_aprovada",

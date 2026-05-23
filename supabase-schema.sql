@@ -39,6 +39,8 @@ CREATE TABLE IF NOT EXISTS profiles (
   instagram_handle TEXT,
   avatar_url TEXT,
   role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  deleted_at TIMESTAMPTZ,
   
   -- Dados de gamificação
   followers_count INTEGER DEFAULT 0,
@@ -56,6 +58,8 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS display_name TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS cpf TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS instagram_handle TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 ALTER TABLE profiles ALTER COLUMN current_quarter SET DEFAULT public.current_quarter_label();
 
 -- ===================================
@@ -442,6 +446,7 @@ ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS task_title TEXT;
 ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS user_email TEXT;
 ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS user_name TEXT;
 ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS metrics_file_url TEXT;
+ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS metrics_file_urls TEXT[];
 ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS invoice_file_url TEXT;
 ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS invoice_number TEXT;
 ALTER TABLE metrics_submissions ADD COLUMN IF NOT EXISTS metrics_link TEXT;
@@ -520,6 +525,33 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.is_admin(UUID) TO authenticated;
 
+-- Função para excluir um usuário de verdade do sistema
+CREATE OR REPLACE FUNCTION public.admin_delete_user(target_user_id UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+BEGIN
+  IF NOT public.is_admin(auth.uid()) THEN
+    RAISE EXCEPTION 'Apenas administradores podem excluir usuários.';
+  END IF;
+
+  IF target_user_id IS NULL THEN
+    RAISE EXCEPTION 'Usuário inválido.';
+  END IF;
+
+  IF target_user_id = auth.uid() THEN
+    RAISE EXCEPTION 'Você não pode excluir a própria conta.';
+  END IF;
+
+  DELETE FROM auth.users
+  WHERE id = target_user_id;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_delete_user(UUID) TO authenticated;
+
 -- ===================================
 -- POLICIES: profiles
 -- ===================================
@@ -534,13 +566,21 @@ CREATE POLICY "Users can view own profile"
 DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 CREATE POLICY "Users can update own profile"
   ON profiles FOR UPDATE
-  USING (auth.uid() = id);
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
 
 -- Admins podem ver todos os perfis
 DROP POLICY IF EXISTS "Admins can view all profiles" ON profiles;
 CREATE POLICY "Admins can view all profiles"
   ON profiles FOR SELECT
   USING (public.is_admin(auth.uid()));
+
+-- Admins podem atualizar qualquer perfil
+DROP POLICY IF EXISTS "Admins can update all profiles" ON profiles;
+CREATE POLICY "Admins can update all profiles"
+  ON profiles FOR UPDATE
+  USING (public.is_admin(auth.uid()))
+  WITH CHECK (public.is_admin(auth.uid()));
 
 -- Permitir insert ao criar conta (via trigger do Supabase Auth)
 DROP POLICY IF EXISTS "Enable insert for authenticated users" ON profiles;
@@ -1177,11 +1217,12 @@ GRANT EXECUTE ON FUNCTION public.increment_forum_topic_posts(UUID) TO authentica
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, email, full_name)
+  INSERT INTO public.profiles (id, email, full_name, is_active)
   VALUES (
     NEW.id,
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email)
+    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
+    true
   );
   RETURN NEW;
 END;
@@ -1211,6 +1252,52 @@ CREATE INDEX IF NOT EXISTS idx_submissions_task_id ON submissions(task_id);
 CREATE INDEX IF NOT EXISTS idx_submissions_status ON submissions(status);
 CREATE INDEX IF NOT EXISTS idx_metrics_submissions_user_id ON metrics_submissions(user_id);
 CREATE INDEX IF NOT EXISTS idx_metrics_submissions_task_id ON metrics_submissions(task_id);
+
+-- ===================================
+-- TABLE: user_notifications
+-- ===================================
+
+CREATE TABLE IF NOT EXISTS user_notifications (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES profiles(id) ON DELETE CASCADE,
+  notification_id TEXT NOT NULL,
+  is_read BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_notifications_user_notification_unique
+  ON user_notifications(user_id, notification_id);
+
+ALTER TABLE user_notifications ENABLE ROW LEVEL SECURITY;
+
+-- POLICIES: user_notifications
+
+DROP POLICY IF EXISTS "Users can view own notifications" ON user_notifications;
+CREATE POLICY "Users can view own notifications"
+  ON user_notifications FOR SELECT
+  USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "Users can create own notifications" ON user_notifications;
+CREATE POLICY "Users can create own notifications"
+  ON user_notifications FOR INSERT
+  WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "Users can update own notifications" ON user_notifications;
+CREATE POLICY "Users can update own notifications"
+  ON user_notifications FOR UPDATE
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "Admins can view all notifications" ON user_notifications;
+CREATE POLICY "Admins can view all notifications"
+  ON user_notifications FOR SELECT
+  USING (public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admins can manage notifications" ON user_notifications;
+CREATE POLICY "Admins can manage notifications"
+  ON user_notifications FOR UPDATE
+  USING (public.is_admin(auth.uid()));
+
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
 CREATE INDEX IF NOT EXISTS idx_tasks_category ON tasks(category);
 CREATE INDEX IF NOT EXISTS idx_user_scores_points ON user_scores(total_points DESC);

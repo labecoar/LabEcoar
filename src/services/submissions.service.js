@@ -518,15 +518,6 @@ export const submissionsService = {
       .single()
 
     if (error) throw error
-
-    const previousProofUrl = String(currentSubmission?.proof_url || '').trim()
-    const nextProofUrl = String(data?.proof_url || '').trim()
-    if (previousProofUrl && nextProofUrl && previousProofUrl !== nextProofUrl) {
-      storageService.deleteByPublicUrl(previousProofUrl).catch((cleanupError) => {
-        console.warn('Nao foi possivel limpar prova antiga:', cleanupError)
-      })
-    }
-
     return data
   },
 

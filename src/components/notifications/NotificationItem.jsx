@@ -1,9 +1,12 @@
 import React from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle2, XCircle, AlertCircle, Info } from "lucide-react";
+import { CheckCircle2, XCircle, AlertCircle, Info, Bell, Clock3, CalendarClock } from "lucide-react";
 
 const NOTIFICATION_ICONS = {
+  task_available: Bell,
+  task_due_soon: Clock3,
+  task_metrics_due_soon: CalendarClock,
   candidatura_aprovada: CheckCircle2,
   candidatura_rejeitada: XCircle,
   submissao_aprovada: CheckCircle2,
@@ -13,6 +16,9 @@ const NOTIFICATION_ICONS = {
 };
 
 const NOTIFICATION_COLORS = {
+  task_available: { bg: '#096e4c12', color: '#096e4c', border: '#096e4c30' },
+  task_due_soon: { bg: '#ffb10012', color: '#c77d00', border: '#ffb10030' },
+  task_metrics_due_soon: { bg: '#0077ad12', color: '#0077ad', border: '#0077ad30' },
   candidatura_aprovada: { bg: '#00c33110', color: '#00c331', border: '#00c33130' },
   candidatura_rejeitada: { bg: '#ce161c10', color: '#ce161c', border: '#ce161c30' },
   submissao_aprovada: { bg: '#00c33110', color: '#00c331', border: '#00c33130' },
@@ -27,7 +33,7 @@ export default function NotificationItem({ notification, onMarkAsRead }) {
 
   return (
     <div
-      className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${!notification.is_read ? 'border-l-4' : ''}`}
+      className={`p-4 bg-white hover:bg-gray-50 cursor-pointer transition-colors ${!notification.is_read ? 'border-l-4' : ''}`}
       style={!notification.is_read ? { borderColor: colors.color } : {}}
       onClick={onMarkAsRead}
     >

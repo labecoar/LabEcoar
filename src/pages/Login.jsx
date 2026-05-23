@@ -46,6 +46,8 @@ export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
   const { signIn, signInWithGoogle, signUp, resetPassword } = useAuth()
+  const routeMessage = location.state?.message || ''
+  const routeTone = location.state?.tone || 'info'
 
   useEffect(() => {
     if (forgotCooldown <= 0 && resendCooldown <= 0) return
@@ -67,6 +69,18 @@ export default function Login() {
     setError('')
     setInfo('')
   }, [mode])
+
+  useEffect(() => {
+    if (!routeMessage) return
+
+    if (routeTone === 'warning') {
+      setError(routeMessage)
+    } else {
+      setInfo(routeMessage)
+    }
+
+    window.history.replaceState(null, '', window.location.pathname)
+  }, [routeMessage, routeTone])
 
   // Verificar erros na URL (ex: link de confirmação expirado)
   useEffect(() => {
@@ -210,6 +224,11 @@ export default function Login() {
       console.error('Erro na autenticacao:', err)
 
       const errorMessage = err?.message?.toLowerCase?.() || ''
+
+      if (err?.code === 'account_inactive' || errorMessage.includes('conta foi inativada')) {
+        setError('Sua conta foi inativada pelo administrador. Entre em contato com a equipe para reativação.')
+        return
+      }
 
       if (errorMessage.includes('rate limit') || errorMessage.includes('rate_limit')) {
         setError('Muitas tentativas de email. Aguarde alguns minutos e tente novamente.')

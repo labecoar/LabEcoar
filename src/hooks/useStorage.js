@@ -9,12 +9,3 @@ export function useUploadFile() {
     mutationFn: ({ file, userId }) => storageService.uploadFile(file, userId),
   })
 }
-
-/**
- * Hook para deletar arquivo
- */
-export function useDeleteFile() {
-  return useMutation({
-    mutationFn: (filePath) => storageService.deleteFile(filePath),
-  })
-}

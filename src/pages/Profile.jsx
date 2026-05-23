@@ -297,13 +297,6 @@ export default function Profile() {
         avatar_url: updatedProfile?.avatar_url || result.url,
       }))
 
-      const nextAvatarUrl = String(updatedProfile?.avatar_url || result.url || '').trim()
-      if (previousAvatarUrl && previousAvatarUrl !== nextAvatarUrl) {
-        storageService.deleteByPublicUrl(previousAvatarUrl).catch((cleanupError) => {
-          console.warn('Nao foi possivel limpar avatar antigo:', cleanupError)
-        })
-      }
-
       await refreshProfile()
       closeAvatarCropDialog()
     } catch (error) {

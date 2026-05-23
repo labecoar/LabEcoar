@@ -203,7 +203,20 @@ export default function AdminMetrics() {
                 Ver post público
               </a>
             )}
-            {submission.metrics_file_url && (
+            {submission.metrics_file_urls && submission.metrics_file_urls.length > 0 ? (
+              submission.metrics_file_urls.map((url, i) => (
+                <a
+                  key={i}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
+                >
+                  <Download className="w-4 h-4" />
+                  Baixar métricas/insights ({i + 1})
+                </a>
+              ))
+            ) : submission.metrics_file_url ? (
               <a
                 href={submission.metrics_file_url}
                 target="_blank"
@@ -213,8 +226,7 @@ export default function AdminMetrics() {
                 <Download className="w-4 h-4" />
                 Baixar métricas/insights
               </a>
-            )}
-            {!submission.metrics_link && !submission.metrics_file_url && (
+            ) : (!submission.metrics_link && !submission.metrics_file_url) && (
               <p className="text-sm text-gray-400 italic">Nenhum arquivo enviado</p>
             )}
           </div>

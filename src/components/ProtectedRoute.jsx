@@ -2,7 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 
 export function ProtectedRoute({ children, requireAdmin = false, requireCompleteProfile = true, redirectTo = '/' }) {
-  const { isAuthenticated, isAdmin, isProfileComplete, loading } = useAuth()
+  const { isAuthenticated, isAdmin, isProfileComplete, isAccountActive, loading } = useAuth()
   const location = useLocation()
 
   if (loading) {
@@ -15,6 +15,19 @@ export function ProtectedRoute({ children, requireAdmin = false, requireComplete
 
   if (!isAuthenticated) {
     return <Navigate to="/Login" replace />
+  }
+
+  if (!isAccountActive) {
+    return (
+      <Navigate
+        to="/Login"
+        replace
+        state={{
+          message: 'Sua conta foi inativada pelo administrador. Entre em contato com a equipe para reativação.',
+          tone: 'warning',
+        }}
+      />
+    )
   }
 
   if (!isAdmin && requireCompleteProfile && !isProfileComplete) {

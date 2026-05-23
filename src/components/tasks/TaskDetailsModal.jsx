@@ -25,7 +25,7 @@ const CATEGORY_NAMES = {
   oficina: "Oficina",
   folhetim: "Folhetim",
   compartilhar_ecoante: "Compartilhar Ecoante",
-  sidequest_teste: "Sidequest Teste",
+  sidequest_teste: "Sidequest",
 };
 
 // Validar tamanho máximo de arquivo (5MB)
@@ -171,12 +171,13 @@ const endOfDay = (date) => {
 
 export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskApproved, currentSubmission }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showFullDescription, setShowFullDescription] = useState(false);
   const [proofDescription, setProofDescription] = useState('');
   const [proofLink, setProofLink] = useState('');
   const [proofFile, setProofFile] = useState(null);
   const [metricsDescription, setMetricsDescription] = useState('');
   const [metricsLink, setMetricsLink] = useState('');
-  const [metricsFile, setMetricsFile] = useState(null);
+  const [metricsFiles, setMetricsFiles] = useState([]);
   const { user, profile } = useAuth();
   const createSubmission = useCreateSubmission();
   const submitProof = useSubmitProof();
@@ -238,7 +239,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const metricsBaseDate = postingDeadline || toDateOrNull(currentSubmission?.validated_at);
   const hasValidMetricsBaseDate = metricsBaseDate && !Number.isNaN(metricsBaseDate.getTime());
   const metricsWindowStartRaw = hasValidMetricsBaseDate
-    ? firstBusinessDayAfter(metricsBaseDate)
+    ? new Date(metricsBaseDate.getTime() + 24 * 60 * 60 * 1000)
     : null;
   const metricsWindowEndRaw = metricsWindowStartRaw
     ? addBusinessDays(metricsWindowStartRaw, 2)
@@ -302,7 +303,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     ? `Só será possível enviar as métricas na janela: de ${metricsWindowLabel}.`
     : 'A janela de envio de métricas será disponibilizada conforme o prazo da tarefa.';
 
-  const metricsSubmitHint = !metricsFile
+  const metricsSubmitHint = (!metricsFiles || metricsFiles.length === 0)
     ? 'Anexe o arquivo de métricas para enviar.'
     : hasResubmissionWindowExpired
       ? 'Prazo de reenvio encerrado (2 dias após a rejeição).'
@@ -314,7 +315,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
             : 'As métricas ainda não podem ser enviadas.')
           : '';
 
-  const metricsInlineHint = !metricsFile
+  const metricsInlineHint = (!metricsFiles || metricsFiles.length === 0)
     ? 'Anexe o arquivo de métricas para liberar o envio.'
     : submissionStatus !== 'approved'
       ? 'A tarefa precisa estar aprovada para liberar o envio.'
@@ -407,14 +408,14 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
   const handleSendMetrics = async (e) => {
     e.preventDefault();
-    if (!canSubmitMetrics || !metricsFile) return;
+    if (!canSubmitMetrics || !metricsFiles || metricsFiles.length === 0) return;
     if (!isInsideMetricsWindow) {
       alert('As métricas só podem ser enviadas entre o 1º e o 3º dia útil após o fechamento da postagem.');
       return;
     }
 
     try {
-      validateFileSize(metricsFile, 'Arquivo de métricas');
+      for (const f of metricsFiles) validateFileSize(f, 'Arquivo de métricas');
     } catch (error) {
       alert(error.message);
       return;
@@ -423,12 +424,16 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     setIsSubmitting(true);
 
     try {
-      const { url: metricsUrl } = await uploadFile.mutateAsync({ file: metricsFile, userId: user.id });
+      const uploaded = [];
+      for (const f of metricsFiles) {
+        const { url } = await uploadFile.mutateAsync({ file: f, userId: user.id });
+        uploaded.push(url);
+      }
 
       await submitMetrics.mutateAsync({
         user,
         task,
-        metricsFileUrl: metricsUrl,
+        metricsFileUrls: uploaded,
         metricsLink,
         description: metricsDescription,
       });
@@ -436,7 +441,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
       alert('Métricas enviadas com sucesso! Aguarde a análise do administrador.');
       setMetricsDescription('');
       setMetricsLink('');
-      setMetricsFile(null);
+      setMetricsFiles([]);
       onClose();
     } catch (error) {
       console.error('Erro ao enviar métricas:', error);
@@ -469,7 +474,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className={`grid grid-cols-1 ${task.max_participants ? 'md:grid-cols-2' : ''} gap-3`}>
             <div className="rounded-xl bg-amber-50 border border-amber-100 p-3">
               <p className="text-xs text-gray-500 mb-1">Pagamento</p>
               <div className="flex items-center gap-2">
@@ -478,15 +483,17 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
               </div>
             </div>
 
-            <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
-              <p className="text-xs text-gray-500 mb-1">Vagas</p>
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-blue-600" />
-                <p className="text-xl font-bold text-blue-600">
-                  {task.current_participants || 0}{task.max_participants ? ` / ${task.max_participants}` : ''}
-                </p>
+            {task.max_participants && (
+              <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
+                <p className="text-xs text-gray-500 mb-1">Vagas</p>
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-blue-600" />
+                  <p className="text-xl font-bold text-blue-600">
+                    {task.current_participants || 0} / {task.max_participants}
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <div className="rounded-xl border border-fuchsia-200 p-3 space-y-1.5">
@@ -495,18 +502,55 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
               Perfil Desejado
             </h3>
             <p className="text-xs text-gray-700">Experiência com sustentabilidade</p>
-            <ul className="text-xs text-gray-500 list-disc pl-5 space-y-0.5">
+              <ul className="text-xs text-gray-500 list-disc pl-5 space-y-0.5">
               <li>Mínimo de {task.min_followers || 0} seguidores</li>
-              <li>Tipo de prova: {displayProofType}</li>
+              <li>Formato de conteúdo: {displayProofType}</li>
               {Array.isArray(task.content_formats) && task.content_formats.length > 0 && (
                 <li>Conteúdo: {task.content_formats.join(', ')}</li>
               )}
             </ul>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <h3 className="font-semibold mb-1 text-[#3c0b14]">Descrição</h3>
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">{task.description}</p>
+            {task.description ? (
+              (() => {
+                const shouldShowToggle = String(task.description || '').length > 240 || String(task.description || '').includes('\n\n');
+                if (showFullDescription) {
+                  return (
+                    <>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap break-words break-all">{task.description}</p>
+                      {shouldShowToggle && (
+                        <button
+                          type="button"
+                          onClick={() => setShowFullDescription(false)}
+                          className="text-xs text-emerald-700 hover:underline mt-2 block"
+                        >
+                          Ver menos
+                        </button>
+                      )}
+                    </>
+                  );
+                }
+
+                return (
+                  <>
+                    <p className="text-sm text-gray-700 line-clamp-2 break-words break-all whitespace-pre-wrap">{task.description}</p>
+                    {shouldShowToggle && (
+                      <button
+                        type="button"
+                        onClick={() => setShowFullDescription(true)}
+                        className="text-xs text-emerald-700 hover:underline mt-2 block"
+                      >
+                        Ver mais
+                      </button>
+                    )}
+                  </>
+                );
+              })()
+            ) : (
+              <p className="text-sm text-gray-700">-</p>
+            )}
             {hasValidSubmittedAt && (
               <p className="text-xs text-gray-500 mt-2">
                 Submissão enviada em: {submittedAt.toLocaleDateString('pt-BR')} às {submittedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
@@ -619,7 +663,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                   />
                 </div>
                 <div>
-                  <Label htmlFor="proof-link">Link da prova (opcional)</Label>
+                  <Label htmlFor="proof-link">Link da prova</Label>
                   <Input
                     id="proof-link"
                     type="url"
@@ -634,7 +678,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                   )}
                 </div>
                 <div>
-                  <Label htmlFor="proof-file">Arquivo da prova (opcional)</Label>
+                  <Label htmlFor="proof-file">Arquivo da prova</Label>
                   <input
                     id="proof-file"
                     type="file"
@@ -644,7 +688,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                   <p className="text-xs text-gray-500 mt-1">Máximo: 5MB</p>
                 </div>
                 <p className="text-xs text-gray-600 rounded-md bg-emerald-50 border border-emerald-100 px-2.5 py-2">
-                  Envie a prova com link e/ou arquivo. Você pode mandar apenas um deles ou os dois juntos.
+                  Envie a prova com link e/ou arquivo.
                 </p>
 
                 <Button
@@ -746,7 +790,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                   </div>
 
                   <div>
-                    <Label htmlFor="metrics-link">Link do post (opcional)</Label>
+                    <Label htmlFor="metrics-link">Link do post</Label>
                     <Input
                       id="metrics-link"
                       type="url"

@@ -2,7 +2,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Home, Target, CheckCircle2, Trophy, LogOut, Shield, User, MessageSquare, Gift, DollarSign, BarChart3 } from "lucide-react";
+import { Home, Target, CheckCircle2, Trophy, LogOut, Shield, User, Users, MessageSquare, Gift, DollarSign, BarChart3 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserScore } from "@/hooks/useScores";
 import logoCuica from "@/assets/images/logo_cuica.png";
@@ -65,6 +65,11 @@ const adminNavigationItems = [
     title: "Gerenciar Conteúdo",
     url: createPageUrl("AdminContentManagement"),
     icon: Target,
+  },
+  {
+    title: "Usuários",
+    url: createPageUrl("AdminUsers"),
+    icon: Users,
   },
   {
     title: "Fórum",

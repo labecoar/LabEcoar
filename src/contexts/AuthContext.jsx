@@ -100,6 +100,22 @@ export function AuthProvider({ children }) {
   // Função de login
   const signIn = async (email, password) => {
     const data = await authService.signIn(email, password)
+    const signedUser = data?.user
+
+    if (signedUser) {
+      const profileData = await fetchProfile(signedUser.id)
+
+      if (profileData?.is_active === false) {
+        await authService.signOut()
+        setUser(null)
+        setProfile(null)
+        setIsAuthenticated(false)
+        const blockedError = new Error('Sua conta foi inativada pelo administrador. Entre em contato com a equipe.')
+        blockedError.code = 'account_inactive'
+        throw blockedError
+      }
+    }
+
     return data
   }
 
@@ -139,6 +155,7 @@ export function AuthProvider({ children }) {
 
   // Verificar se é admin
   const isAdmin = profile?.role === 'admin'
+  const isAccountActive = profile?.is_active !== false
   const hasLegacyProfileCompletion = Boolean(
     profile
     && (profile.display_name || profile.full_name)
@@ -158,6 +175,7 @@ export function AuthProvider({ children }) {
     loading,
     isAuthenticated,
     isAdmin,
+    isAccountActive,
     isProfileComplete,
     signIn,
     signInWithGoogle,

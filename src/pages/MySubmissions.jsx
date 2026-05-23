@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Clock, CheckCircle, XCircle, Star, ExternalLink, CircleDollarSign } from "lucide-react";
-import { format } from "date-fns";
+import { addBusinessDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import TaskDetailsModal from "../components/tasks/TaskDetailsModal";
 
@@ -24,7 +24,7 @@ const CATEGORY_NAMES = {
   oficina: 'Oficina',
   folhetim: 'Folhetim',
   compartilhar_ecoante: 'Compartilhar Ecoante',
-  sidequest_teste: 'Sidequest Teste',
+  sidequest_teste: 'Sidequest',
 };
 
 const CATEGORY_COLORS = {
@@ -34,6 +34,31 @@ const CATEGORY_COLORS = {
   folhetim: 'bg-blue-100 text-blue-700 border-blue-200',
   compartilhar_ecoante: 'bg-pink-100 text-pink-700 border-pink-200',
   sidequest_teste: 'bg-amber-100 text-amber-700 border-amber-200',
+};
+
+const toDateOrNull = (value) => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const firstBusinessDayAfter = (baseDate) => {
+  if (!baseDate) return null;
+  const result = new Date(baseDate);
+  result.setDate(result.getDate() + 1);
+
+  while (result.getDay() === 0 || result.getDay() === 6) {
+    result.setDate(result.getDate() + 1);
+  }
+
+  return result;
+};
+
+const endOfDay = (date) => {
+  if (!date) return null;
+  const value = new Date(date);
+  value.setHours(23, 59, 59, 999);
+  return value;
 };
 
 function ProofPreview({ proofUrl }) {
@@ -49,7 +74,7 @@ function ProofPreview({ proofUrl }) {
         onClick={(event) => event.stopPropagation()}
       >
         <ExternalLink className="w-4 h-4" />
-        Abrir comprovante
+        Ver anexo
       </a>
     </div>
   );
@@ -57,6 +82,7 @@ function ProofPreview({ proofUrl }) {
 
 export default function MySubmissions() {
   const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [activeTab, setActiveTab] = useState('pending');
   const { user } = useAuth();
   const { data: submissions = [], isLoading, error } = useMySubmissions(user?.id);
   const { data: myMetricsSubmissions = [] } = useMyMetricsSubmissions(user?.id);
@@ -73,6 +99,33 @@ export default function MySubmissions() {
     return String(metricsSubmission?.status || '').trim().toLowerCase() || null;
   };
 
+  const getCampaignMetricsWindowEnd = (submission) => {
+    const postingDeadline = toDateOrNull(submission?.task?.posting_deadline);
+    const validatedAt = toDateOrNull(submission?.validated_at);
+    const metricsBaseDate = postingDeadline || validatedAt;
+
+    if (!metricsBaseDate) return null;
+
+    const metricsWindowStart = new Date(metricsBaseDate.getTime() + 24 * 60 * 60 * 1000);
+    if (!metricsWindowStart) return null;
+
+    return endOfDay(addBusinessDays(metricsWindowStart, 2));
+  };
+
+  const getCampaignMetricsResubmissionDeadline = (submission) => {
+    const taskId = getSubmissionTaskId(submission);
+    if (!taskId) return null;
+
+    const metricsSubmission = myMetricsSubmissions.find((item) => String(item.task_id) === String(taskId));
+    const metricsStatus = String(metricsSubmission?.status || '').trim().toLowerCase();
+    if (metricsStatus !== 'rejected') return null;
+
+    const reviewedAt = toDateOrNull(metricsSubmission?.reviewed_at);
+    if (!reviewedAt) return null;
+
+    return new Date(reviewedAt.getTime() + 2 * 24 * 60 * 60 * 1000);
+  };
+
   const isCampaignWithPendingMetrics = (submission) => {
     const status = normalizeSubmissionStatus(submission?.status);
     const isCampaign = submission?.task?.category === 'campanha';
@@ -82,24 +135,55 @@ export default function MySubmissions() {
     return metricsStatus !== 'approved';
   };
 
+  const isExpiredSubmission = (submission) => {
+    const status = normalizeSubmissionStatus(submission?.status);
+    const taskCategory = submission?.task?.category;
+
+    if (taskCategory === 'campanha' && status === 'approved') {
+      const metricsStatus = getCampaignMetricsStatus(submission);
+
+      if (metricsStatus === 'approved') return false;
+
+      const metricsWindowEnd = getCampaignMetricsWindowEnd(submission);
+      const resubmissionDeadline = getCampaignMetricsResubmissionDeadline(submission);
+      const deadline = resubmissionDeadline || metricsWindowEnd;
+
+      if (!deadline) return false;
+
+      return deadline.getTime() < Date.now();
+    }
+
+    const expiresAt = toDateOrNull(submission?.task?.expires_at);
+    if (!expiresAt) return false;
+
+    return expiresAt.getTime() < Date.now();
+  };
+
   const pendingSubmissions = submissions.filter((s) => {
+    if (isExpiredSubmission(s)) return false;
     const status = normalizeSubmissionStatus(s.status);
     return ['pending', 'application_pending', 'application_approved', 'proof_pending'].includes(status)
       || isCampaignWithPendingMetrics(s);
   });
   const approvedSubmissions = submissions.filter((s) => {
+    if (isExpiredSubmission(s)) return false;
     const status = normalizeSubmissionStatus(s.status);
     if (status !== 'approved') return false;
     return !isCampaignWithPendingMetrics(s);
   });
   const rejectedSubmissions = submissions.filter((s) => {
+    if (isExpiredSubmission(s)) return false;
     const status = normalizeSubmissionStatus(s.status);
     return ['application_rejected', 'rejected'].includes(status);
   });
+  const expiredSubmissions = submissions.filter((s) => isExpiredSubmission(s));
 
-  const renderSubmissionCard = (submission) => (
+  const renderSubmissionCard = (submission, isExpired = false) => (
     (() => {
       const status = normalizeSubmissionStatus(submission.status);
+      const explicitExpiresAt = toDateOrNull(submission?.task?.expires_at) || toDateOrNull(submission?.task?.delivery_deadline) || toDateOrNull(submission?.task?.posting_deadline);
+      const explicitDeadlinePassed = explicitExpiresAt ? explicitExpiresAt.getTime() < Date.now() : false;
+      const effectiveExpired = isExpired || isExpiredSubmission(submission) || explicitDeadlinePassed;
       const proofDeadline = submission?.task?.delivery_deadline
         ? new Date(submission.task.delivery_deadline)
         : null;
@@ -119,25 +203,25 @@ export default function MySubmissions() {
       return (
     <Card
       key={submission.id}
-      className="shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border-emerald-200 bg-white"
+      className="shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border-emerald-200 bg-white overflow-hidden"
       onClick={() => setSelectedSubmission(submission)}
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
               <Badge className={`${categoryColorClass} border`}>
                 {categoryLabel}
               </Badge>
             </div>
-            <CardTitle className="text-lg leading-tight">
+            <CardTitle className="text-lg leading-tight break-words">
               {submission.task?.title || 'Tarefa'}
             </CardTitle>
-            <p className="text-sm text-gray-600 line-clamp-2 mt-2">
+            <p className="text-sm text-gray-600 line-clamp-2 mt-2 break-words break-all whitespace-normal">
               {submission.task?.description || 'Sem descrição da tarefa.'}
             </p>
             {submission.description && (
-              <p className="text-xs text-gray-500 line-clamp-2 mt-2">
+              <p className="text-xs text-gray-500 line-clamp-2 mt-2 break-words break-all whitespace-normal">
                 <span className="font-medium">Sua observação:</span> {submission.description}
               </p>
             )}
@@ -157,7 +241,7 @@ export default function MySubmissions() {
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0 space-y-3">
+      <CardContent className="pt-0 space-y-3 min-w-0">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between text-sm pt-1">
           <div className="flex items-center gap-2 text-gray-500 flex-wrap">
             {status === 'application_approved' && hasProofDeadline && (
@@ -170,75 +254,79 @@ export default function MySubmissions() {
             {isApprovedCampaign && metricsStatus !== 'approved' && hasPostingDeadline && (
               <div className="flex items-center gap-1 px-2 py-1 rounded-md border bg-emerald-100 text-emerald-700 border-emerald-200">
                 <Clock className="w-4 h-4" />
-                <span>Postagem até {format(postingDeadline, "dd MMM", { locale: ptBR })}</span>
+                <span> {format(postingDeadline, "dd/MM")}</span>
               </div>
             )}
           </div>
 
           <div className="shrink-0">
-            {['pending', 'application_pending'].includes(status) && (
-              <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
-                <Clock className="w-3 h-3 mr-1" />
-                Inscrição em análise
-              </Badge>
-            )}
-            {status === 'application_approved' && (
-              <Badge className="bg-purple-100 text-purple-700 border-purple-200">
-                <Clock className="w-3 h-3 mr-1" />
-                Aprovado p/ fazer
-              </Badge>
-            )}
-            {status === 'proof_pending' && (
-              <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
-                <Clock className="w-3 h-3 mr-1" />
-                Prova em análise
-              </Badge>
-            )}
-            {status === 'approved' && (
-              isApprovedCampaign ? (
-                metricsStatus === 'approved' ? (
-                  <Badge className="bg-green-100 text-green-700 border-green-200">
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    Concluída
-                  </Badge>
-                ) : metricsStatus === 'pending' ? (
-                  <Badge className="bg-blue-100 text-blue-700 border-blue-200">
-                    <Clock className="w-3 h-3 mr-1" />
-                    Métricas em análise
-                  </Badge>
-                ) : metricsStatus === 'rejected' ? (
-                  <Badge className="bg-orange-100 text-orange-700 border-orange-200">
-                    <Clock className="w-3 h-3 mr-1" />
-                    Reenviar métricas
-                  </Badge>
-                ) : (
-                  <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
-                    <Clock className="w-3 h-3 mr-1" />
-                    Pendente métricas
-                  </Badge>
-                )
-              ) : (
-                <Badge className="bg-green-100 text-green-700 border-green-200">
-                  <CheckCircle className="w-3 h-3 mr-1" />
-                  Concluída
-                </Badge>
-              )
-            )}
-            {['application_rejected', 'rejected'].includes(status) && (
+            {effectiveExpired ? (
               <Badge className="bg-red-100 text-red-700 border-red-200">
                 <XCircle className="w-3 h-3 mr-1" />
-                {status === 'application_rejected' ? 'Inscrição rejeitada' : 'Prova rejeitada'}
+                Prazo expirado
               </Badge>
+            ) : (
+              <>
+                {['pending', 'application_pending'].includes(status) && (
+                  <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
+                    <Clock className="w-3 h-3 mr-1" />
+                    Inscrição em análise
+                  </Badge>
+                )}
+                {status === 'application_approved' && (
+                  <Badge className="bg-purple-100 text-purple-700 border-purple-200">
+                    <Clock className="w-3 h-3 mr-1" />
+                    Aprovado p/ fazer
+                  </Badge>
+                )}
+                {status === 'proof_pending' && (
+                  <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
+                    <Clock className="w-3 h-3 mr-1" />
+                    Prova em análise
+                  </Badge>
+                )}
+                {status === 'approved' && (
+                  isApprovedCampaign ? (
+                    metricsStatus === 'approved' ? (
+                      <Badge className="bg-green-100 text-green-700 border-green-200">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Concluída
+                      </Badge>
+                    ) : metricsStatus === 'pending' ? (
+                      <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+                        <Clock className="w-3 h-3 mr-1" />
+                        Métricas em análise
+                      </Badge>
+                    ) : metricsStatus === 'rejected' ? (
+                      <Badge className="bg-orange-100 text-orange-700 border-orange-200">
+                        <Clock className="w-3 h-3 mr-1" />
+                        Reenviar métricas
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
+                        <Clock className="w-3 h-3 mr-1" />
+                        Pendente métricas
+                      </Badge>
+                    )
+                  ) : (
+                    <Badge className="bg-green-100 text-green-700 border-green-200">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Concluída
+                    </Badge>
+                  )
+                )}
+                {['application_rejected', 'rejected'].includes(status) && (
+                  <Badge className="bg-red-100 text-red-700 border-red-200">
+                    <XCircle className="w-3 h-3 mr-1" />
+                    {status === 'application_rejected' ? 'Inscrição rejeitada' : 'Prova rejeitada'}
+                  </Badge>
+                )}
+              </>
             )}
           </div>
         </div>
 
-        {submission.rejection_reason && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-xs font-medium text-red-700 mb-1">Motivo da rejeição</p>
-            <p className="text-sm text-red-600 line-clamp-3">{submission.rejection_reason}</p>
-          </div>
-        )}
+        {/* Rejection reason hidden on card by design; shown in details modal only */}
 
         <ProofPreview proofUrl={submission.proof_url} />
       </CardContent>
@@ -281,16 +369,19 @@ export default function MySubmissions() {
           <p className="text-gray-600">Acompanhe o status das suas tarefas enviadas</p>
         </div>
 
-        <Tabs defaultValue="pending" className="w-full">
-          <TabsList className="w-full grid grid-cols-3 mb-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="w-full grid grid-cols-2 md:grid-cols-4 mb-8">
             <TabsTrigger value="pending" className="data-[state=active]:bg-yellow-600 data-[state=active]:text-white">
-              Pendentes ({pendingSubmissions.length})
+              Em andamento ({pendingSubmissions.length})
             </TabsTrigger>
             <TabsTrigger value="approved" className="data-[state=active]:bg-green-600 data-[state=active]:text-white">
               Aprovadas ({approvedSubmissions.length})
             </TabsTrigger>
             <TabsTrigger value="rejected" className="data-[state=active]:bg-red-600 data-[state=active]:text-white">
               Rejeitadas ({rejectedSubmissions.length})
+            </TabsTrigger>
+            <TabsTrigger value="expired" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">
+              Expiradas ({expiredSubmissions.length})
             </TabsTrigger>
           </TabsList>
 
@@ -300,7 +391,7 @@ export default function MySubmissions() {
                 <CardContent>
                   <Clock className="w-16 h-16 mx-auto mb-4 text-gray-400" />
                   <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                    Nenhuma submissão pendente
+                    Nenhuma submissão em andamento
                   </h3>
                   <p className="text-gray-500">
                     Suas inscrições e provas em andamento aparecerão aqui.
@@ -309,7 +400,7 @@ export default function MySubmissions() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {pendingSubmissions.map(renderSubmissionCard)}
+                {pendingSubmissions.map((submission) => renderSubmissionCard(submission))}
               </div>
             )}
           </TabsContent>
@@ -329,7 +420,7 @@ export default function MySubmissions() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {approvedSubmissions.map(renderSubmissionCard)}
+                {approvedSubmissions.map((submission) => renderSubmissionCard(submission))}
               </div>
             )}
           </TabsContent>
@@ -349,7 +440,27 @@ export default function MySubmissions() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {rejectedSubmissions.map(renderSubmissionCard)}
+                {rejectedSubmissions.map((submission) => renderSubmissionCard(submission))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="expired" className="mt-0">
+            {expiredSubmissions.length === 0 ? (
+              <Card className="text-center py-12">
+                <CardContent>
+                  <Clock className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                    Nenhuma submissão expirada
+                  </h3>
+                  <p className="text-gray-500">
+                    As tarefas que já passaram do prazo aparecerão aqui.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {expiredSubmissions.map((submission) => renderSubmissionCard(submission, true))}
               </div>
             )}
           </TabsContent>

@@ -39,7 +39,7 @@ const CATEGORY_OPTIONS = [
   { value: 'oficina', label: 'Oficina (50 pts)', points: 50 },
   { value: 'folhetim', label: 'Folhetim (75 pts)', points: 75 },
   { value: 'compartilhar_ecoante', label: 'Compartilhar Ecoante (150 pts)', points: 150 },
-  { value: 'sidequest_teste', label: 'Sidequest Teste' },
+  { value: 'sidequest_teste', label: 'Sidequest' },
 ]
 
 const CATEGORY_META = {
@@ -47,7 +47,7 @@ const CATEGORY_META = {
   oficina: { label: 'Oficina', icon: BookOpen, color: 'bg-purple-100 text-purple-700 border-purple-200' },
   folhetim: { label: 'Folhetim', icon: Share2, color: 'bg-blue-100 text-blue-700 border-blue-200' },
   compartilhar_ecoante: { label: 'Compartilhar Ecoante', icon: Users, color: 'bg-pink-100 text-pink-700 border-pink-200' },
-  sidequest_teste: { label: 'Sidequest Teste', icon: Target, color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  sidequest_teste: { label: 'Sidequest', icon: Target, color: 'bg-amber-100 text-amber-700 border-amber-200' },
 }
 
 const PROOF_TYPE_LABELS = {
@@ -363,7 +363,7 @@ export default function AdminContentManagement() {
     }
 
     if (isSidequestTest && (Number.isNaN(points) || points <= 0)) {
-      setError('Informe uma pontuação válida para a Sidequest Teste.')
+      setError('Informe uma pontuação válida para a Sidequest.')
       return
     }
 
@@ -637,7 +637,7 @@ export default function AdminContentManagement() {
 
                 {isSidequestTest && (
                   <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                    <Label htmlFor="sidequest-points">Pontuação da Sidequest Teste *</Label>
+                    <Label htmlFor="sidequest-points">Pontuação da Sidequest *</Label>
                     <Input
                       id="sidequest-points"
                       type="number"
@@ -900,11 +900,11 @@ export default function AdminContentManagement() {
                     const deadline = getTaskDeadlineState(task)
 
                     return (
-                      <div key={task.id} className="border rounded-lg p-4 border-gray-200 bg-white">
+                      <div key={task.id} className="border rounded-lg p-4 border-gray-200 bg-white overflow-hidden">
                         <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
-                          <div>
+                          <div className="min-w-0 flex-1">
                             <h3 className="font-semibold text-gray-900">{task.title}</h3>
-                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">{task.description}</p>
+                            <p className="text-sm text-gray-600 mt-1 line-clamp-2 break-words break-all whitespace-normal">{task.description}</p>
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge className={`${categoryMeta.color} border`}>
@@ -942,10 +942,6 @@ export default function AdminContentManagement() {
                               Prazo: {deadline.timeLabel}
                             </span>
                           )}
-                          <span className="inline-flex items-center gap-1">
-                            <Target className="w-3.5 h-3.5" />
-                            Prova: {getProofTypeLabel(task)}
-                          </span>
                         </div>
 
                         <div className="flex gap-2 mt-3">
@@ -1042,7 +1038,7 @@ export default function AdminContentManagement() {
                           </span>
                           <span className="inline-flex items-center gap-1">
                             <Target className="w-3.5 h-3.5" />
-                            Prova: {getProofTypeLabel(task)}
+                            Conteúdo: {getProofTypeLabel(task)}
                           </span>
                         </div>
 
