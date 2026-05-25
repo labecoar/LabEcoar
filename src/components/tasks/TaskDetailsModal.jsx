@@ -729,12 +729,6 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                 </ul>
               </div>
 
-              {metricsWindowStart && metricsWindowEnd && (
-                <div className="text-xs rounded-lg p-3 border bg-amber-50 border-amber-200 text-amber-800">
-                  Janela de envio de métricas: de {metricsWindowStart.toLocaleDateString('pt-BR')} até {metricsWindowEnd.toLocaleDateString('pt-BR')}.
-                </div>
-              )}
-
               {metricsStatus === 'rejected' && metricsResubmissionDeadline && (
                 <div className={`text-xs rounded-lg p-3 border ${hasResubmissionWindowExpired ? 'bg-red-50 border-red-200 text-red-800' : 'bg-orange-50 border-orange-200 text-orange-800'}`}>
                   Reenvio após rejeição: até {metricsResubmissionDeadline.toLocaleDateString('pt-BR')} às {metricsResubmissionDeadline.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.
@@ -809,6 +803,12 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                     />
                     <p className="text-xs text-gray-500 mt-1">Máximo: 5MB por arquivo</p>
                   </div>
+
+                  {metricsWindowStart && metricsWindowEnd && (
+                    <div className="text-xs rounded-lg p-3 border bg-amber-50 border-amber-200 text-amber-800">
+                      Janela de envio de métricas: de {metricsWindowStart.toLocaleDateString('pt-BR')} até {metricsWindowEnd.toLocaleDateString('pt-BR')}.
+                    </div>
+                  )}
 
                   <div title={metricsButtonTitle || undefined}>
                     <Button
