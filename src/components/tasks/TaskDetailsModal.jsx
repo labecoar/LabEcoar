@@ -803,16 +803,17 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                     <input
                       id="metrics-file"
                       type="file"
-                      onChange={(e) => setMetricsFile(e.target.files?.[0] || null)}
+                      multiple
+                      onChange={(e) => setMetricsFiles(Array.from(e.target.files || []))}
                       className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Máximo: 5MB</p>
+                    <p className="text-xs text-gray-500 mt-1">Máximo: 5MB por arquivo</p>
                   </div>
 
                   <div title={metricsButtonTitle || undefined}>
                     <Button
                       type="submit"
-                      disabled={isSubmitting || uploadFile.isPending || submitMetrics.isPending || !metricsFile || !isInsideMetricsWindow || hasResubmissionWindowExpired}
+                      disabled={isSubmitting || uploadFile.isPending || submitMetrics.isPending || !metricsFiles || metricsFiles.length === 0 || !isInsideMetricsWindow || hasResubmissionWindowExpired}
                       className="w-full bg-sky-600 hover:bg-sky-700"
                     >
                       <Upload className="w-4 h-4 mr-2" />
