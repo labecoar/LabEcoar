@@ -40,7 +40,7 @@ export default function AdminApplications() {
   const isSidequestSubmission = (submission) => String(submission?.task?.category || '') === 'sidequest_teste';
 
   const pendingApplications = useMemo(
-    () => pendingSubmissions.filter((submission) => !isSidequestSubmission(submission) && ['application_pending', 'pending'].includes(normalizeSubmissionStatus(submission.status))),
+    () => pendingSubmissions.filter((submission) => !isSidequestSubmission(submission) && ['application_pending', 'pending'].includes(normalizeSubmissionStatus(submission.status))).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
     [pendingSubmissions]
   );
 
@@ -80,6 +80,14 @@ export default function AdminApplications() {
     try {
       const isCampaign = submission.task?.category === 'campanha'
       const pointsAwarded = isCampaign ? 0 : Number(submission.task?.points || 0)
+      
+      // Validar limite de participantes
+      const maxParticipants = Number(submission.task?.max_participants || 0)
+      const currentParticipants = Number(submission.task?.current_participants || 0)
+      if (maxParticipants > 0 && currentParticipants >= maxParticipants) {
+        notifyError(`❌ Limite de participantes atingido! Máximo: ${maxParticipants}, Atual: ${currentParticipants}`)
+        return
+      }
 
       const approvedSubmission = await approveSubmission.mutateAsync({
         submissionId: submission.id,
@@ -101,6 +109,7 @@ export default function AdminApplications() {
       });
 
       await queryClient.invalidateQueries({ queryKey: ['submissions'] });
+      await queryClient.invalidateQueries({ queryKey: ['tasks'] });
       await queryClient.refetchQueries({ queryKey: ['submissions', 'pending'] });
 
       if (approvedSubmission?.status === 'application_approved') {
@@ -152,6 +161,7 @@ export default function AdminApplications() {
       });
 
       await queryClient.invalidateQueries({ queryKey: ['submissions'] });
+      await queryClient.invalidateQueries({ queryKey: ['tasks'] });
       await queryClient.refetchQueries({ queryKey: ['submissions', 'pending'] });
 
       notifySuccess('Inscrição rejeitada.');
@@ -308,21 +318,23 @@ export default function AdminApplications() {
                 onClick={() => openTaskPreview(submission)}
               >
                 <CardContent className="pt-4 pb-4">
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <div>
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="flex-1 min-w-0">
                       <p className="text-2xl font-semibold text-[#3c0b14] leading-tight">
                         {submission.profile?.display_name || submission.profile?.full_name || 'Usuário'}
                       </p>
-                      <p className="text-sm text-gray-500 mt-1 inline-flex items-center gap-1">
-                        Tarefa: {submission.task?.title || 'Tarefa'}
-                      </p>
                     </div>
-                    <FileTextBadge
-                      category={submission.task?.category}
-                      points={submission.task?.points || 0}
-                      offeredValue={submission.task?.offered_value}
-                    />
+                    <div className="flex-shrink-0">
+                      <FileTextBadge
+                        category={submission.task?.category}
+                        points={submission.task?.points || 0}
+                        offeredValue={submission.task?.offered_value}
+                      />
+                    </div>
                   </div>
+                  <p className="text-sm text-gray-500 mb-3">
+                    Tarefa: {submission.task?.title || 'Tarefa'}
+                  </p>
 
                   <div className="mb-3">
                     {activeTab === 'pending' && (
@@ -350,7 +362,7 @@ export default function AdminApplications() {
                   <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
                     <span className="inline-flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5" />
-                      Inscrito em {format(new Date(submission.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      Inscrito em {format(new Date(submission.created_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
                     </span>
                     <span className="inline-flex items-center gap-1">
                       <User className="w-3.5 h-3.5" />
@@ -523,7 +535,7 @@ export default function AdminApplications() {
                   <p className="mb-0.5">Prazo de postagem</p>
                   <p className="font-medium text-gray-800">
                     {selectedTaskPreview.task?.posting_deadline
-                      ? format(new Date(selectedTaskPreview.task.posting_deadline), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                      ? format(new Date(selectedTaskPreview.task.posting_deadline), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })
                       : '-'}
                   </p>
                 </div>
@@ -532,7 +544,7 @@ export default function AdminApplications() {
                   <p className="mb-0.5">Expira em</p>
                   <p className="font-medium text-gray-800">
                     {selectedTaskPreview.task?.expires_at
-                      ? format(new Date(selectedTaskPreview.task.expires_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                      ? format(new Date(selectedTaskPreview.task.expires_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })
                       : '-'}
                   </p>
                 </div>

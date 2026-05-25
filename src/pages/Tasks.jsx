@@ -178,9 +178,9 @@ export default function Tasks() {
     const submission = getTaskSubmission(task.id);
     const submissionStatus = normalizeSubmissionStatus(submission?.status);
 
-    // Depois que o usuário é selecionado, a tarefa sai de "Disponíveis"
-    // e segue o fluxo apenas em "Minhas Submissões".
-    return ['application_approved', 'proof_pending', 'approved'].includes(submissionStatus);
+    // Após o usuário se candidatar a uma tarefa (em qualquer status que não seja final),
+    // ela sai de "Disponíveis" e segue o fluxo apenas em "Minhas Submissões".
+    return ['application_pending', 'pending', 'application_approved', 'application_rejected', 'proof_pending', 'approved', 'rejected'].includes(submissionStatus);
   };
 
   const shouldKeepCampaignVisibleForMetrics = (task) => {
@@ -390,7 +390,7 @@ export default function Tasks() {
               <Badge className="bg-blue-100 text-blue-700 border-blue-200 shrink-0">
                 <Clock className="w-3 h-3 mr-1" />
                 {task.category === 'sidequest_teste' && submissionStatus === 'application_pending'
-                  ? 'Inscrito'
+                  ? 'Aguardando prova'
                   : 'Inscrição em Análise'}
               </Badge>
             ) : rejected && !reopenedByDateChange ? (

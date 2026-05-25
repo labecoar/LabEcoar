@@ -538,6 +538,13 @@ export const submissionsService = {
 
     if (taskError) throw taskError
 
+    // Validar limite de participantes ANTES de aprovar
+    const currentParticipants = Number(taskData.current_participants || 0)
+    const maxParticipants = taskData.max_participants == null ? null : Number(taskData.max_participants)
+    if (maxParticipants !== null && currentParticipants >= maxParticipants) {
+      throw new Error(`Limite de participantes atingido! Máximo: ${maxParticipants}, Atual: ${currentParticipants}`)
+    }
+
     if (
       currentSubmission.status === 'application_pending'
       || currentSubmission.status === 'pending'
@@ -556,8 +563,6 @@ export const submissionsService = {
 
       if (error) throw error
 
-      const currentParticipants = Number(taskData.current_participants || 0)
-      const maxParticipants = taskData.max_participants == null ? null : Number(taskData.max_participants)
       if (maxParticipants === null || currentParticipants < maxParticipants) {
         const { error: updateTaskError } = await supabase
           .from('tasks')
@@ -632,7 +637,8 @@ export const submissionsService = {
 
     if (error) throw error
 
-    if (currentSubmission.status === 'application_approved') {
+    // Decrementar participantes se estava em análise ou aprovado
+    if (['application_approved', 'application_pending', 'pending'].includes(currentSubmission.status)) {
       await decrementTaskParticipants(currentSubmission.task_id)
     }
 

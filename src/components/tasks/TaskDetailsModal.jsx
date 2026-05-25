@@ -322,6 +322,12 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     e.preventDefault();
     if (!canApply) return;
 
+    // Validação adicional de limite de vagas
+    if (isFull) {
+      notifyError('❌ Esta tarefa já atingiu o limite de participantes. Não há mais vagas disponíveis.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -540,12 +546,12 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
             )}
             {hasValidSubmittedAt && (
               <p className="text-xs text-gray-500 mt-2">
-                Submissão enviada em: {submittedAt.toLocaleDateString('pt-BR')} às {submittedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                Submissão enviada em: {submittedAt.toLocaleDateString('pt-BR')} às {submittedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </p>
             )}
             {task.posting_deadline && (
               <p className="text-xs text-gray-500 mt-2">
-                Data limite de postagem: {new Date(task.posting_deadline).toLocaleDateString('pt-BR')} {new Date(task.posting_deadline).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                Data limite de postagem: {new Date(task.posting_deadline).toLocaleDateString('pt-BR')} {new Date(task.posting_deadline).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </p>
             )}
           </div>
@@ -578,6 +584,11 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                 {!meetsFollowersRequirement && minFollowersRequired > 0 && (
                   <div className="mb-3 text-xs rounded-lg p-3 border bg-red-50 border-red-200 text-red-800">
                     Esta tarefa exige no minimo {minFollowersRequired} seguidores para inscricao. Voce possui {userFollowers}.
+                  </div>
+                )}
+                {isFull && (
+                  <div className="mb-3 text-xs rounded-lg p-3 border bg-red-50 border-red-200 text-red-800">
+                    ❌ Esta tarefa já atingiu o limite de {task.max_participants} participantes. Não há mais vagas disponíveis.
                   </div>
                 )}
                 <Button
@@ -630,7 +641,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
               <p className="font-semibold text-emerald-700">Etapa 2: Enviar prova de conclusão</p>
               {hasProofDeadline && (
                 <p className="text-xs text-emerald-800">
-                  Prazo para envio da prova: até {proofDeadline.toLocaleDateString('pt-BR')} às {proofDeadline.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.
+                  Prazo para envio da prova: até {proofDeadline.toLocaleDateString('pt-BR')} às {proofDeadline.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}.
                 </p>
               )}
               {submissionStatus === 'proof_pending' ? (
@@ -719,7 +730,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                   <li>
                     Publique no dia e horário combinados
                     {hasProofDeadline
-                      ? ` (até ${proofDeadline.toLocaleDateString('pt-BR')} às ${proofDeadline.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })})`
+                      ? ` (até ${proofDeadline.toLocaleDateString('pt-BR')} às ${proofDeadline.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })})`
                       : ''}
                     .
                   </li>
@@ -731,7 +742,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
               {metricsStatus === 'rejected' && metricsResubmissionDeadline && (
                 <div className={`text-xs rounded-lg p-3 border ${hasResubmissionWindowExpired ? 'bg-red-50 border-red-200 text-red-800' : 'bg-orange-50 border-orange-200 text-orange-800'}`}>
-                  Reenvio após rejeição: até {metricsResubmissionDeadline.toLocaleDateString('pt-BR')} às {metricsResubmissionDeadline.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.
+                  Reenvio após rejeição: até {metricsResubmissionDeadline.toLocaleDateString('pt-BR')} às {metricsResubmissionDeadline.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}.
                 </div>
               )}
 

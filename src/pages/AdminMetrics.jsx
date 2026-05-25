@@ -33,7 +33,8 @@ export default function AdminMetrics() {
   const [paymentNotes, setPaymentNotes] = useState('');
   const { profile } = useAuth();
 
-  const { data: pendingMetrics = [], isLoading: loadingPending } = useAdminMetricsByStatus('pending');
+  const { data: pendingMetricsRaw = [], isLoading: loadingPending } = useAdminMetricsByStatus('pending');
+  const pendingMetrics = pendingMetricsRaw.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
   const { data: approvedMetrics = [], isLoading: loadingApproved } = useAdminMetricsByStatus('approved');
   const { data: rejectedMetrics = [], isLoading: loadingRejected } = useAdminMetricsByStatus('rejected');
 
@@ -309,7 +310,7 @@ export default function AdminMetrics() {
               <span className="truncate">
                 {format(
                   new Date(submission.submitted_at || submission.created_at),
-                  "dd/MM/yyyy 'às' HH:mm",
+                  "dd/MM/yyyy 'às' HH:mm:ss",
                   { locale: ptBR }
                 )}
               </span>
@@ -318,7 +319,7 @@ export default function AdminMetrics() {
             {hasPostedAt && (
               <span className="text-right">
                 Postado em{' '}
-                {format(postedAt, "dd/MM HH:mm", {
+                {format(postedAt, "dd/MM HH:mm:ss", {
                   locale: ptBR
                 })}
               </span>

@@ -210,7 +210,7 @@ export default function AdminApproval() {
   }, {});
 
   const overdueProofSubmissions = proofPendingSubmissions.filter((submission) => isReviewOverdue(submission));
-  const activeProofSubmissions = proofPendingSubmissions.filter((submission) => !isReviewOverdue(submission));
+  const activeProofSubmissions = proofPendingSubmissions.filter((submission) => !isReviewOverdue(submission)).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
   // Verifica se é admin
   if (profile?.role !== 'admin') {
@@ -361,7 +361,7 @@ export default function AdminApproval() {
           <span className="inline-flex min-w-0 items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate">
-              {format(new Date(submission.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+              {format(new Date(submission.created_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
             </span>
           </span>
 
@@ -579,7 +579,7 @@ export default function AdminApproval() {
                 <div className="rounded-lg border border-blue-100 bg-[#f4f8ff] p-3">
                   <p className="text-xs text-gray-600">Enviado em</p>
                   <p className="mt-1 text-base font-semibold text-gray-900">
-                    {format(new Date(selectedSubmission.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    {format(new Date(selectedSubmission.created_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
                   </p>
                 </div>
 

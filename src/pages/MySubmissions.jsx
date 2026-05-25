@@ -187,14 +187,6 @@ export default function MySubmissions() {
             <CardTitle className="text-lg leading-tight break-words">
               {submission.task?.title || 'Tarefa'}
             </CardTitle>
-            <p className="text-sm text-gray-600 line-clamp-2 mt-2 break-words break-all whitespace-normal">
-              {submission.task?.description || 'Sem descrição da tarefa.'}
-            </p>
-            {submission.description && (
-              <p className="text-xs text-gray-500 line-clamp-2 mt-2 break-words break-all whitespace-normal">
-                <span className="font-medium">Sua observação:</span> {submission.description}
-              </p>
-            )}
           </div>
           <div className="flex items-center gap-1 px-3 py-1 bg-amber-50 rounded-full border border-amber-200 shrink-0">
             {hasMoneyReward ? (
@@ -211,20 +203,30 @@ export default function MySubmissions() {
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0 space-y-3 min-w-0">
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between text-sm pt-1">
+      <CardContent className="pt-0">
+        <p className="text-sm text-gray-600 line-clamp-2 mb-4 break-words break-all whitespace-normal">
+          {submission.task?.description || 'Sem descrição da tarefa.'}
+        </p>
+
+        {submission.description && (
+          <p className="text-xs text-gray-500 mb-4 break-words whitespace-normal">
+            <span className="font-medium">Sua observação:</span> {submission.description}
+          </p>
+        )}
+
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between text-sm mb-2">
           <div className="flex items-center gap-2 text-gray-500 flex-wrap">
             {status === 'application_approved' && hasProofDeadline && (
               <div className="flex items-center gap-1 px-2 py-1 rounded-md border bg-purple-100 text-purple-700 border-purple-200">
                 <Clock className="w-4 h-4" />
-                <span>Prova até {format(proofDeadline, "dd MMM", { locale: ptBR })}</span>
+                <span>{format(proofDeadline, "dd/MM")}</span>
               </div>
             )}
 
             {isApprovedCampaign && metricsStatus !== 'approved' && hasPostingDeadline && (
               <div className="flex items-center gap-1 px-2 py-1 rounded-md border bg-emerald-100 text-emerald-700 border-emerald-200">
                 <Clock className="w-4 h-4" />
-                <span> {format(postingDeadline, "dd/MM")}</span>
+                <span>{format(postingDeadline, "dd/MM")}</span>
               </div>
             )}
           </div>
@@ -237,10 +239,16 @@ export default function MySubmissions() {
               </Badge>
             ) : (
               <>
-                {['pending', 'application_pending'].includes(status) && (
+                {['pending', 'application_pending'].includes(status) && submission?.task?.category !== 'sidequest_teste' && (
                   <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
                     <Clock className="w-3 h-3 mr-1" />
                     Inscrição em análise
+                  </Badge>
+                )}
+                {['pending', 'application_pending'].includes(status) && submission?.task?.category === 'sidequest_teste' && (
+                  <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+                    <Clock className="w-3 h-3 mr-1" />
+                    Aguardando prova
                   </Badge>
                 )}
                 {status === 'application_approved' && (
@@ -295,8 +303,6 @@ export default function MySubmissions() {
             )}
           </div>
         </div>
-
-        {/* Rejection reason hidden on card by design; shown in details modal only */}
 
         <ProofPreview proofUrl={submission.proof_url} />
       </CardContent>
