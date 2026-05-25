@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Gift, Plus, Save, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react'
+import { notifyError, notifySuccess, notifyWarning } from '@/lib/toast'
 
 const CATEGORY_OPTIONS = [
   { value: 'alimentacao', label: 'Alimentacao' },
@@ -70,22 +71,22 @@ export default function AdminRewards() {
     const quantityAvailable = formData.quantity_available === '' ? null : Number(formData.quantity_available)
 
     if (!formData.title.trim()) {
-      alert('Informe o nome da recompensa.')
+      notifyWarning('Informe o nome da recompensa.')
       return
     }
 
     if (!Number.isFinite(pointsRequired) || pointsRequired <= 0) {
-      alert('Informe uma pontuacao valida (maior que 0).')
+      notifyWarning('Informe uma pontuacao valida (maior que 0).')
       return
     }
 
     if (quantityAvailable !== null && (!Number.isFinite(quantityAvailable) || quantityAvailable < 0)) {
-      alert('A quantidade deve ser zero ou maior.')
+      notifyWarning('A quantidade deve ser zero ou maior.')
       return
     }
 
     if (!imageFile) {
-      alert('Anexe uma imagem do item.')
+      notifyWarning('Anexe uma imagem do item.')
       return
     }
 
@@ -107,10 +108,10 @@ export default function AdminRewards() {
       setFormData(DEFAULT_FORM)
       setImageFile(null)
       setFileInputKey((previous) => previous + 1)
-      alert('Recompensa cadastrada com sucesso.')
+      notifySuccess('Recompensa cadastrada com sucesso.')
     } catch (submitError) {
       console.error('Erro ao cadastrar recompensa:', submitError)
-      alert(submitError?.message || 'Nao foi possivel cadastrar a recompensa.')
+      notifyError(submitError?.message || 'Nao foi possivel cadastrar a recompensa.')
     }
   }
 
@@ -122,12 +123,12 @@ export default function AdminRewards() {
     const quantityAvailable = rowEdit.quantity_available === '' ? null : Number(rowEdit.quantity_available)
 
     if (!Number.isFinite(pointsRequired) || pointsRequired <= 0) {
-      alert('Pontuacao invalida para este item.')
+      notifyWarning('Pontuacao invalida para este item.')
       return
     }
 
     if (quantityAvailable !== null && (!Number.isFinite(quantityAvailable) || quantityAvailable < 0)) {
-      alert('Quantidade invalida para este item.')
+      notifyWarning('Quantidade invalida para este item.')
       return
     }
 
@@ -140,10 +141,10 @@ export default function AdminRewards() {
         },
       })
 
-      alert('Item atualizado com sucesso.')
+      notifySuccess('Item atualizado com sucesso.')
     } catch (updateError) {
       console.error('Erro ao atualizar recompensa:', updateError)
-      alert(updateError?.message || 'Nao foi possivel salvar este item.')
+      notifyError(updateError?.message || 'Nao foi possivel salvar este item.')
     }
   }
 
@@ -157,7 +158,7 @@ export default function AdminRewards() {
       })
     } catch (updateError) {
       console.error('Erro ao alterar status da recompensa:', updateError)
-      alert(updateError?.message || 'Nao foi possivel alterar o status do item.')
+      notifyError(updateError?.message || 'Nao foi possivel alterar o status do item.')
     }
   }
 
@@ -167,10 +168,10 @@ export default function AdminRewards() {
 
     try {
       await deleteReward.mutateAsync(reward.id)
-      alert('Item excluido com sucesso.')
+      notifySuccess('Item excluido com sucesso.')
     } catch (deleteError) {
       console.error('Erro ao excluir recompensa:', deleteError)
-      alert(deleteError?.message || 'Nao foi possivel excluir este item.')
+      notifyError(deleteError?.message || 'Nao foi possivel excluir este item.')
     }
   }
 

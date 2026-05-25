@@ -14,6 +14,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import TaskDetailsModal from "../components/tasks/TaskDetailsModal";
+import { getProofApprovalMetricsWindow, getMetricsResubmissionDeadline } from '@/lib/metrics-window';
 
 const CATEGORY_ICONS = {
   campanha: Megaphone,
@@ -64,22 +65,6 @@ const toDateOrNull = (value) => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
-const addBusinessDays = (baseDate, businessDays) => {
-  if (!baseDate || businessDays <= 0) return baseDate ? new Date(baseDate) : null;
-
-  const result = new Date(baseDate);
-  let addedDays = 0;
-
-  while (addedDays < businessDays) {
-    result.setDate(result.getDate() + 1);
-    const weekDay = result.getDay();
-    const isBusinessDay = weekDay !== 0 && weekDay !== 6;
-    if (isBusinessDay) addedDays += 1;
-  }
-
-  return result;
-};
-
 const isBusinessDay = (date) => {
   if (!date) return false;
   const weekDay = date.getDay();
@@ -95,23 +80,6 @@ const firstBusinessDayOnOrAfter = (baseDate) => {
   }
 
   return result;
-};
-const firstBusinessDayAfter = (baseDate) => {
-  if (!baseDate) return null;
-  const result = new Date(baseDate);
-  result.setDate(result.getDate() + 1);
-
-  while (!isBusinessDay(result)) {
-    result.setDate(result.getDate() + 1);
-  }
-
-  return result;
-};
-const endOfDay = (date) => {
-  if (!date) return null;
-  const value = new Date(date);
-  value.setHours(23, 59, 59, 999);
-  return value;
 };
 
 const resolveProofDeadline = (task) => {
@@ -231,20 +199,14 @@ export default function Tasks() {
     if (metricsStatus === 'pending') return true;
     if (metricsStatus === 'approved') return false;
 
-    const postingDeadline = toDateOrNull(task?.posting_deadline);
-    const metricsBaseDate = postingDeadline || toDateOrNull(submission?.validated_at);
-    if (!metricsBaseDate) return false;
-
     const now = new Date();
-    const metricsWindowStart = new Date(metricsBaseDate.getTime() + 24 * 60 * 60 * 1000);
-    const metricsWindowEnd = endOfDay(addBusinessDays(metricsWindowStart, 2));
+    const metricsWindowEnd = getProofApprovalMetricsWindow(submission?.validated_at || submission?.updated_at).end;
+    if (!metricsWindowEnd) return false;
     if (now <= metricsWindowEnd) return true;
     if (metricsStatus !== 'rejected') return false;
 
-    const reviewedAt = toDateOrNull(metricsSubmission?.reviewed_at);
-    if (!reviewedAt) return false;
-
-    const resubmissionDeadline = new Date(reviewedAt.getTime() + 2 * 24 * 60 * 60 * 1000);
+    const resubmissionDeadline = getMetricsResubmissionDeadline(metricsSubmission?.reviewed_at);
+    if (!resubmissionDeadline) return false;
     return now <= resubmissionDeadline;
   };
 

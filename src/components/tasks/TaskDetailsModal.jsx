@@ -5,6 +5,7 @@ import { useCreateSubmission, useSubmitProof } from "@/hooks/useSubmissions";
 import { useMyMetricsSubmissions, useSubmitMetricsSubmission } from "@/hooks/useMetrics";
 import { usePaymentInfo } from "@/hooks/usePayments";
 import { useUploadFile } from "@/hooks/useStorage";
+import { getProofApprovalMetricsWindow, getMetricsResubmissionDeadline } from '@/lib/metrics-window';
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar, Users, Star, CircleDollarSign, UserRoundCheck, Send, Upload, BarChart3, CheckCircle2 } from "lucide-react";
+import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
 
 const CATEGORY_NAMES = {
   campanha: "Campanha",
@@ -221,31 +223,16 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   );
   const metricsStatus = currentMetricsSubmission?.status;
   const now = new Date();
-  const metricsReviewedAt = currentMetricsSubmission?.reviewed_at
-    ? new Date(currentMetricsSubmission.reviewed_at)
-    : null;
-  const hasMetricsReviewedAt = metricsReviewedAt && !Number.isNaN(metricsReviewedAt.getTime());
-  const metricsResubmissionDeadline = hasMetricsReviewedAt
-    ? new Date(metricsReviewedAt.getTime() + 2 * 24 * 60 * 60 * 1000)
-    : null;
+  const metricsResubmissionDeadline = getMetricsResubmissionDeadline(currentMetricsSubmission?.reviewed_at);
   const hasResubmissionWindowExpired = metricsStatus === 'rejected'
     && metricsResubmissionDeadline
     && now > metricsResubmissionDeadline;
   const canSubmitMetrics = isCampaignTask
     && submissionStatus === 'approved'
     && (!currentMetricsSubmission || (metricsStatus === 'rejected' && !hasResubmissionWindowExpired));
-  const postingDeadline = task.posting_deadline ? new Date(task.posting_deadline) : null;
-  const hasValidPostingDeadline = postingDeadline && !Number.isNaN(postingDeadline.getTime());
-  const metricsBaseDate = postingDeadline || toDateOrNull(currentSubmission?.validated_at);
-  const hasValidMetricsBaseDate = metricsBaseDate && !Number.isNaN(metricsBaseDate.getTime());
-  const metricsWindowStartRaw = hasValidMetricsBaseDate
-    ? new Date(metricsBaseDate.getTime() + 24 * 60 * 60 * 1000)
-    : null;
-  const metricsWindowEndRaw = metricsWindowStartRaw
-    ? addBusinessDays(metricsWindowStartRaw, 2)
-    : null;
-  const metricsWindowStart = startOfDay(metricsWindowStartRaw);
-  const metricsWindowEnd = endOfDay(metricsWindowEndRaw);
+  const proofApprovalMetricsWindow = getProofApprovalMetricsWindow(currentSubmission?.validated_at);
+  const metricsWindowStart = proofApprovalMetricsWindow.start;
+  const metricsWindowEnd = proofApprovalMetricsWindow.end;
   const metricsWindowLabel = metricsWindowStart && metricsWindowEnd
     ? `${metricsWindowStart.toLocaleDateString('pt-BR')} até ${metricsWindowEnd.toLocaleDateString('pt-BR')}`
     : null;
@@ -301,7 +288,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
   const metricsWindowHoverText = metricsWindowLabel
     ? `Só será possível enviar as métricas na janela: de ${metricsWindowLabel}.`
-    : 'A janela de envio de métricas será disponibilizada conforme o prazo da tarefa.';
+    : 'A janela de envio de métricas será disponibilizada 24 horas após a aprovação da prova.';
 
   const metricsSubmitHint = (!metricsFiles || metricsFiles.length === 0)
     ? 'Anexe o arquivo de métricas para enviar.'
@@ -345,11 +332,11 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
         proof_url: null,
       });
 
-      alert('Candidatura enviada com sucesso! Aguarde a aprovação do administrador. ✅');
+      notifySuccess('Candidatura enviada com sucesso! Aguarde a aprovação do administrador. ✅');
       onClose();
     } catch (error) {
       console.error('Erro ao candidatar-se:', error);
-      alert(`Erro ao enviar candidatura.\n\nDetalhes: ${error?.message || 'Sem detalhes.'}`);
+      notifyError(error?.message || 'Erro ao enviar candidatura.');
     } finally {
       setIsSubmitting(false);
     }
@@ -361,7 +348,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
     const trimmedProofLink = String(proofLink || '').trim();
     if (!trimmedProofLink && !proofFile) {
-      alert('Envie pelo menos uma prova: link ou arquivo.');
+      notifyWarning('Envie pelo menos uma prova: link ou arquivo.');
       return;
     }
 
@@ -369,7 +356,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
       try {
         validateFileSize(proofFile, 'Arquivo de prova');
       } catch (error) {
-        alert(error.message);
+        notifyWarning(error.message);
         return;
       }
     }
@@ -396,11 +383,11 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
         },
       });
 
-      alert('Prova enviada com sucesso! Aguarde a aprovação final do administrador. ✅');
+      notifySuccess('Prova enviada com sucesso! Aguarde a aprovação final do administrador. ✅');
       onClose();
     } catch (error) {
       console.error('Erro ao enviar prova:', error);
-      alert(`Erro ao enviar prova da tarefa.\n\nDetalhes: ${error?.message || 'Sem detalhes.'}`);
+      notifyError(error?.message || 'Erro ao enviar prova da tarefa.');
     } finally {
       setIsSubmitting(false);
     }
@@ -410,14 +397,14 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     e.preventDefault();
     if (!canSubmitMetrics || !metricsFiles || metricsFiles.length === 0) return;
     if (!isInsideMetricsWindow) {
-      alert('As métricas só podem ser enviadas entre o 1º e o 3º dia útil após o fechamento da postagem.');
+      notifyWarning('As métricas só podem ser enviadas a partir de 24 horas após a aprovação da prova e por até 2 dias úteis após esse momento.');
       return;
     }
 
     try {
       for (const f of metricsFiles) validateFileSize(f, 'Arquivo de métricas');
     } catch (error) {
-      alert(error.message);
+      notifyWarning(error.message);
       return;
     }
 
@@ -438,14 +425,14 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
         description: metricsDescription,
       });
 
-      alert('Métricas enviadas com sucesso! Aguarde a análise do administrador.');
+      notifySuccess('Métricas enviadas com sucesso! Aguarde a análise do administrador.');
       setMetricsDescription('');
       setMetricsLink('');
       setMetricsFiles([]);
       onClose();
     } catch (error) {
       console.error('Erro ao enviar métricas:', error);
-      alert(`Erro ao enviar métricas.\n\nDetalhes: ${error?.message || 'Sem detalhes.'}`);
+      notifyError(error?.message || 'Erro ao enviar métricas.');
     } finally {
       setIsSubmitting(false);
     }
@@ -762,13 +749,13 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
               {!isInsideMetricsWindow && !hasMetricsWindowPassed && (
                 <div className="text-xs rounded-lg p-3 border bg-blue-50 border-blue-200 text-blue-800">
-                  O envio ainda não está disponível. Aguarde o 1º dia útil após o fechamento da postagem.
+                  O envio ainda não está disponível. Aguarde 24 horas após a aprovação da prova para que a janela seja aberta.
                 </div>
               )}
 
               {hasMetricsWindowPassed && (
                 <div className="text-xs rounded-lg p-3 border bg-red-50 border-red-200 text-red-800">
-                  A janela para envio de métricas foi encerrada (após o 3º dia útil do fechamento da postagem).
+                  A janela para envio de métricas foi encerrada (2 dias úteis após 24 horas da aprovação da prova).
                 </div>
               )}
 

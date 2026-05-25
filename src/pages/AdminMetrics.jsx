@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
 
 const STATUS_LABELS = {
   pending: 'Pendente',
@@ -57,10 +58,10 @@ export default function AdminMetrics() {
   const handleApprove = async (submission) => {
     try {
       await approveMetricsMutation.mutateAsync(submission.id)
-      alert('Métricas aprovadas com sucesso. O pagamento foi sinalizado para processamento.')
+      notifySuccess('Métricas aprovadas com sucesso. O pagamento foi sinalizado para processamento.')
     } catch (error) {
       console.error('Erro ao aprovar métricas:', error)
-      alert('Erro ao aprovar métricas.')
+      notifyError('Erro ao aprovar métricas.')
     }
   }
 
@@ -69,7 +70,7 @@ export default function AdminMetrics() {
 
     const reason = rejectionReason.trim()
     if (!reason) {
-      alert('Informe o motivo da rejeição.')
+      notifyWarning('Informe o motivo da rejeição.')
       return
     }
 
@@ -80,10 +81,10 @@ export default function AdminMetrics() {
       })
       setSelectedSubmission(null)
       setRejectionReason('')
-      alert('Métricas rejeitadas. O ecoante pode reenviar em até 2 dias após a rejeição.')
+      notifySuccess('Métricas rejeitadas. O ecoante pode reenviar em até 2 dias após a rejeição.')
     } catch (error) {
       console.error('Erro ao rejeitar métricas:', error)
-      alert('Erro ao rejeitar métricas.')
+      notifyError('Erro ao rejeitar métricas.')
     }
   }
 
@@ -100,177 +101,261 @@ export default function AdminMetrics() {
 
       setSelectedPaymentSubmission(null)
       setPaymentNotes('')
-      alert('Pagamento marcado como pago com sucesso.')
+      notifySuccess('Pagamento marcado como pago com sucesso.')
     } catch (error) {
       console.error('Erro ao registrar pagamento manual:', error)
-      alert(error?.message || 'Erro ao registrar pagamento manual.')
+      notifyError(error?.message || 'Erro ao registrar pagamento manual.')
     }
   }
 
-  const renderMetricsCard = (submission, showActions = false) => (
-    (() => {
-      const postingDeadline = submission?.task?.posting_deadline
-        ? new Date(submission.task.posting_deadline)
-        : null
-      const postedAt = submission?.posted_at ? new Date(submission.posted_at) : null
-      const hasPostingDeadline = postingDeadline && !Number.isNaN(postingDeadline.getTime())
-      const hasPostedAt = postedAt && !Number.isNaN(postedAt.getTime())
-      const isLatePosting = hasPostingDeadline && hasPostedAt ? postedAt > postingDeadline : false
+  const renderMetricsCard = (submission, showActions = false) => {
+    const postingDeadline = submission?.task?.posting_deadline
+      ? new Date(submission.task.posting_deadline)
+      : null
 
-      return (
-    <Card key={submission.id} className="shadow-md hover:shadow-lg transition-all duration-300 border-gray-200 bg-white">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <CardTitle className="text-lg leading-tight">{submission.task_title || submission.task?.title || 'Campanha'}</CardTitle>
-              {Number(submission.attempt_number || 1) > 1 && (
-                <Badge className="bg-orange-100 text-orange-700 border-orange-200">
-                  Tentativa {submission.attempt_number}
-                </Badge>
-              )}
+    const postedAt = submission?.posted_at
+      ? new Date(submission.posted_at)
+      : null
+
+    const hasPostingDeadline =
+      postingDeadline && !Number.isNaN(postingDeadline.getTime())
+
+    const hasPostedAt =
+      postedAt && !Number.isNaN(postedAt.getTime())
+
+    const isLatePosting =
+      hasPostingDeadline && hasPostedAt
+        ? postedAt > postingDeadline
+        : false
+
+    return (
+      <Card
+        key={submission.id}
+        className={`
+        group overflow-hidden border bg-white shadow-sm transition-all duration-200
+        hover:-translate-y-0.5 hover:shadow-md
+        ${submission.status === 'pending'
+            ? 'border-yellow-100 hover:border-yellow-300'
+            : submission.status === 'approved'
+              ? 'border-emerald-100 hover:border-emerald-300'
+              : 'border-red-100 hover:border-red-300'
+          }
+      `}
+      >
+        <CardContent className="p-4 space-y-4">
+
+          {/* HEADER */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <CardTitle className="text-[17px] leading-snug text-[#3c0b14] line-clamp-2">
+                {submission.task_title || submission.task?.title || 'Campanha'}
+              </CardTitle>
+
+              <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
+                  <User className="w-4 h-4" />
+                </div>
+
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900 line-clamp-1">
+                    {submission.user_name ||
+                      submission.profile?.display_name ||
+                      submission.profile?.full_name ||
+                      'Ecoante'}
+                  </p>
+
+                  <p className="text-xs text-gray-500 line-clamp-1">
+                    {submission.user_email || submission.profile?.email}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-600 flex-wrap">
-              <User className="w-4 h-4" />
-              <span>{submission.user_name || submission.profile?.display_name || submission.profile?.full_name || 'Ecoante'}</span>
-              <span className="text-gray-400">•</span>
-              <span className="text-xs">{submission.user_email || submission.profile?.email}</span>
-              {(submission.profile?.instagram_handle || '').trim() && (
-                <>
-                  <span className="text-gray-400">•</span>
-                  <span className="text-xs inline-flex items-center gap-1">
-                    <Instagram className="w-3.5 h-3.5" />
-                    {submission.profile.instagram_handle}
-                  </span>
-                </>
-              )}
+
+            <div className="shrink-0">
+              <Badge
+                className={
+                  submission.status === 'pending'
+                    ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                    : submission.status === 'approved'
+                      ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                      : 'bg-red-100 text-red-700 border-red-200'
+                }
+              >
+                {submission.status === 'pending' && (
+                  <Clock className="w-3 h-3 mr-1" />
+                )}
+
+                {submission.status === 'approved' && (
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                )}
+
+                {submission.status === 'rejected' && (
+                  <XCircle className="w-3 h-3 mr-1" />
+                )}
+
+                {STATUS_LABELS[submission.status] || submission.status}
+              </Badge>
             </div>
           </div>
 
-          <div>
-            <Badge className={
-              submission.status === 'pending'
-                ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
-                : submission.status === 'approved'
-                  ? 'bg-green-100 text-green-700 border-green-200'
-                  : 'bg-red-100 text-red-700 border-red-200'
-            }>
-              {submission.status === 'pending' && <Clock className="w-3 h-3 mr-1" />}
-              {submission.status === 'approved' && <CheckCircle className="w-3 h-3 mr-1" />}
-              {submission.status === 'rejected' && <XCircle className="w-3 h-3 mr-1" />}
-              {STATUS_LABELS[submission.status] || submission.status}
-            </Badge>
-          </div>
-        </div>
-      </CardHeader>
+          {/* BADGES */}
+          <div className="flex flex-wrap items-center gap-2">
+            {Number(submission.attempt_number || 1) > 1 && (
+              <Badge className="bg-orange-100 text-orange-700 border-orange-200">
+                Tentativa {submission.attempt_number}
+              </Badge>
+            )}
 
-      <CardContent className="space-y-4">
-        {submission.description && (
-          <div>
-            <p className="text-sm font-medium text-gray-700 mb-1">Observações do Ecoante:</p>
-            <p className="text-sm text-gray-600">{submission.description}</p>
-          </div>
-        )}
+            {isLatePosting && (
+              <Badge className="bg-red-100 text-red-700 border-red-200">
+                Fora do prazo
+              </Badge>
+            )}
 
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-gray-700">Validação de prazo de postagem:</p>
-          <div className="text-sm text-gray-600">
-            {hasPostedAt ? `Postado em ${format(postedAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}` : 'Data/hora de postagem não informada'}
+            {submission.quarter && (
+              <Badge className="bg-gray-100 text-gray-700 border-gray-200">
+                {submission.quarter}
+              </Badge>
+            )}
           </div>
-          {hasPostingDeadline && (
-            <div className="text-sm text-gray-600">
-              Prazo de postagem: {format(postingDeadline, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+
+          {/* OBSERVAÇÃO */}
+          {submission.description && (
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">
+                Observações
+              </p>
+
+              <p className="text-sm text-gray-700 whitespace-pre-wrap break-words line-clamp-3">
+                {submission.description}
+              </p>
             </div>
           )}
-          {isLatePosting && (
-            <Badge className="bg-orange-100 text-orange-800 border-orange-200 mt-1">
-              Postagem fora do prazo (avaliar plano B)
-            </Badge>
-          )}
-        </div>
 
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700">Arquivo e links:</p>
-          <div className="flex flex-col gap-2">
+          {/* LINKS */}
+          <div className="space-y-2">
+
             {submission.metrics_link && (
               <a
                 href={submission.metrics_link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700"
+                className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3 transition-colors hover:border-emerald-200 hover:bg-emerald-50/40"
               >
-                <ExternalLink className="w-4 h-4" />
-                Ver post público
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-emerald-100 bg-emerald-50 text-emerald-700">
+                  <ExternalLink className="h-5 w-5" />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">
+                    Ver publicação
+                  </p>
+
+                  <p className="text-xs text-gray-500">
+                    Abrir post enviado pelo ecoante
+                  </p>
+                </div>
               </a>
             )}
-            {submission.metrics_file_urls && submission.metrics_file_urls.length > 0 ? (
-              submission.metrics_file_urls.map((url, i) => (
-                <a
-                  key={i}
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
-                >
-                  <Download className="w-4 h-4" />
-                  Baixar métricas/insights ({i + 1})
-                </a>
-              ))
-            ) : submission.metrics_file_url ? (
+
+            {(submission.metrics_file_urls?.length > 0
+              ? submission.metrics_file_urls
+              : submission.metrics_file_url
+                ? [submission.metrics_file_url]
+                : []
+            ).map((url, i) => (
               <a
-                href={submission.metrics_file_url}
+                key={i}
+                href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
+                className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3 transition-colors hover:border-blue-200 hover:bg-blue-50/40"
               >
-                <Download className="w-4 h-4" />
-                Baixar métricas/insights
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-blue-700">
+                  <Download className="h-5 w-5" />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">
+                    Arquivo de métricas
+                  </p>
+
+                  <p className="text-xs text-gray-500">
+                    Clique para visualizar/download
+                  </p>
+                </div>
               </a>
-            ) : (!submission.metrics_link && !submission.metrics_file_url) && (
-              <p className="text-sm text-gray-400 italic">Nenhum arquivo enviado</p>
+            ))}
+          </div>
+
+          {/* REJEIÇÃO */}
+          {submission.rejection_reason && (
+            <div className="rounded-xl border border-red-100 bg-red-50 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-red-700 mb-1">
+                Motivo da rejeição
+              </p>
+
+              <p className="text-sm text-red-700">
+                {submission.rejection_reason}
+              </p>
+            </div>
+          )}
+
+          {/* FOOTER */}
+          <div className="flex items-center justify-between gap-3 border-t border-gray-100 pt-3 text-xs text-gray-500">
+            <span className="inline-flex items-center gap-1.5 min-w-0">
+              <Calendar className="w-3.5 h-3.5 shrink-0" />
+
+              <span className="truncate">
+                {format(
+                  new Date(submission.submitted_at || submission.created_at),
+                  "dd/MM/yyyy 'às' HH:mm",
+                  { locale: ptBR }
+                )}
+              </span>
+            </span>
+
+            {hasPostedAt && (
+              <span className="text-right">
+                Postado em{' '}
+                {format(postedAt, "dd/MM HH:mm", {
+                  locale: ptBR
+                })}
+              </span>
             )}
           </div>
-        </div>
 
-        {submission.rejection_reason && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm font-medium text-red-700 mb-1">Motivo da rejeição:</p>
-            <p className="text-sm text-red-600">{submission.rejection_reason}</p>
-          </div>
-        )}
+          {/* ACTIONS */}
+          {showActions && (
+            <div className="flex flex-col gap-3 pt-1 md:flex-row">
+              <Button
+                onClick={() => handleApprove(submission)}
+                disabled={approveMetricsMutation.isPending}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Aprovar
+              </Button>
 
-        <div className="flex items-center gap-2 text-sm text-gray-500 pt-2 border-t flex-wrap">
-          <Calendar className="w-4 h-4" />
-          Enviado em {format(new Date(submission.submitted_at || submission.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-          {submission.quarter && <span className="ml-2 text-xs bg-gray-100 px-2 py-0.5 rounded-full">{submission.quarter}</span>}
-        </div>
+              <Button
+                onClick={() => {
+                  setSelectedSubmission(submission)
+                  setRejectionReason(
+                    isLatePosting
+                      ? LATE_POSTING_PLAN_B_TEXT
+                      : ''
+                  )
+                }}
+                variant="outline"
+                className="flex-1 border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-400"
+              >
+                <XCircle className="w-4 h-4 mr-2" />
+                Rejeitar
+              </Button>
+            </div>
+          )}
 
-        {showActions && (
-          <div className="flex gap-3 pt-4">
-            <Button
-              onClick={() => handleApprove(submission)}
-              className="flex-1 bg-green-600 hover:bg-green-700"
-              disabled={approveMetricsMutation.isPending}
-            >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Aprovar
-            </Button>
-            <Button
-              onClick={() => {
-                setSelectedSubmission(submission)
-                setRejectionReason(isLatePosting ? LATE_POSTING_PLAN_B_TEXT : '')
-              }}
-              variant="destructive"
-              className="flex-1"
-            >
-              <XCircle className="w-4 h-4 mr-2" />
-              Rejeitar
-            </Button>
-          </div>
-        )}
-
-        {!showActions && submission.status === 'approved' && (
-          <div className="pt-4 border-t">
+          {!showActions && submission.status === 'approved' && (
             <Button
               onClick={() => {
                 setSelectedPaymentSubmission(submission)
@@ -281,13 +366,11 @@ export default function AdminMetrics() {
               <CheckCircle className="w-4 h-4 mr-2" />
               Marcar como pago
             </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-      )
-    })()
-  );
+          )}
+        </CardContent>
+      </Card>
+    )
+  }
 
   if (isLoading) {
     return (
@@ -375,7 +458,7 @@ export default function AdminMetrics() {
                 <p className="text-gray-500 text-lg">Nenhuma métrica pendente de aprovação</p>
               </div>
             ) : (
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 {pendingMetrics.map((submission) => renderMetricsCard(submission, true))}
               </div>
             )}
@@ -388,7 +471,7 @@ export default function AdminMetrics() {
                 <p className="text-gray-500 text-lg">Nenhuma métrica aprovada</p>
               </div>
             ) : (
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 {approvedMetrics.map((submission) => renderMetricsCard(submission, false))}
               </div>
             )}
@@ -401,7 +484,7 @@ export default function AdminMetrics() {
                 <p className="text-gray-500 text-lg">Nenhuma métrica rejeitada</p>
               </div>
             ) : (
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 {rejectedMetrics.map((submission) => renderMetricsCard(submission, false))}
               </div>
             )}

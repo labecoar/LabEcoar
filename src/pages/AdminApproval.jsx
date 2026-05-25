@@ -20,6 +20,7 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
 
 const normalizeSubmissionStatus = (status) => {
   const normalized = String(status || '').trim().toLowerCase();
@@ -42,35 +43,8 @@ const STATUS_LABELS = {
 const BUSINESS_START_HOUR = 8;
 const BUSINESS_END_HOUR = 18;
 const REVIEW_SLA_BUSINESS_HOURS = 5;
-const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.avif'];
-
-const isImageProofUrl = (url) => {
-  const raw = String(url || '').trim().toLowerCase();
-  if (!raw) return false;
-  if (raw.startsWith('data:image/')) return true;
-
-  const withoutQuery = raw.split('?')[0].split('#')[0];
-  return IMAGE_EXTENSIONS.some((ext) => withoutQuery.endsWith(ext));
-};
 
 function ProofPreview({ url, compact = false }) {
-  const [hasLoadError, setHasLoadError] = useState(false);
-  const shouldRenderImage = isImageProofUrl(url) && !hasLoadError;
-
-  if (shouldRenderImage) {
-    return (
-      <img
-        src={url}
-        alt="Comprovante"
-        onError={() => setHasLoadError(true)}
-        className={compact
-          ? 'w-full h-32 object-cover rounded-lg border border-gray-200'
-          : 'w-full rounded-lg border-2 border-gray-200'
-        }
-      />
-    );
-  }
-
   return (
     <div className={compact
       ? 'w-full h-32 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center gap-2 text-gray-600'
@@ -152,9 +126,10 @@ export default function AdminApproval() {
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [isRejecting, setIsRejecting] = useState(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [, setNowTick] = useState(Date.now());
   const { profile } = useAuth();
-  
+
   const { data: pendingSubmissions = [], isLoading } = usePendingSubmissions();
   const { data: approvalHistory = [] } = useApprovalHistory(200);
   const approveSubmission = useApproveSubmission();
@@ -178,7 +153,7 @@ export default function AdminApproval() {
     const deadline = getReviewDeadline(submission);
     if (!deadline) return 'Sem prazo';
     const diffMs = deadline.getTime() - Date.now();
-    if (diffMs <= 0) return 'Prazo estourado';
+    if (diffMs <= 0) return 'Expirado';
 
     const totalMinutes = Math.floor(diffMs / (1000 * 60));
     const hours = Math.floor(totalMinutes / 60);
@@ -256,7 +231,7 @@ export default function AdminApproval() {
     try {
       const isCampaign = submission.task?.category === 'campanha';
       const pointsToAward = isCampaign ? 0 : Number(submission.task?.points || 0);
-      
+
       // Aprovar submissão
       const approvedSubmission = await approveSubmission.mutateAsync({
         submissionId: submission.id,
@@ -271,7 +246,7 @@ export default function AdminApproval() {
         });
       }
 
-      alert(
+      notifySuccess(
         approvedSubmission?.status === 'application_approved'
           ? 'Inscrição aprovada! Agora o usuário pode enviar a prova.'
           : 'Prova aprovada com sucesso! Pontos adicionados.'
@@ -279,13 +254,13 @@ export default function AdminApproval() {
       setSelectedSubmission(null);
     } catch (error) {
       console.error('Erro ao aprovar:', error);
-      alert('Erro ao aprovar submissão');
+      notifyError('Erro ao aprovar submissão');
     }
   };
 
   const handleReject = async () => {
     if (!rejectionReason.trim()) {
-      alert('Por favor, informe o motivo da rejeição');
+      notifyWarning('Por favor, informe o motivo da rejeição');
       return;
     }
 
@@ -295,110 +270,112 @@ export default function AdminApproval() {
         rejectionReason: rejectionReason
       });
 
-      alert('Submissão rejeitada');
+      notifySuccess('Submissão rejeitada');
       setSelectedSubmission(null);
       setRejectionReason('');
       setIsRejecting(false);
     } catch (error) {
       console.error('Erro ao rejeitar:', error);
-      alert('Erro ao rejeitar submissão');
+      notifyError('Erro ao rejeitar submissão');
     }
   };
 
   const SubmissionCard = ({ submission }) => (
     <Card
-      className={`cursor-pointer hover:shadow-lg transition-all border-2 ${
-        normalizeSubmissionStatus(submission.status) === 'proof_pending' && isReviewOverdue(submission)
-          ? 'border-red-400 bg-red-50/70 hover:border-red-500'
+      className={`group cursor-pointer overflow-hidden border border-emerald-100 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-300 ${normalizeSubmissionStatus(submission.status) === 'proof_pending' && isReviewOverdue(submission)
+          ? 'border-red-200 bg-red-50/70 hover:border-red-300'
           : normalizeSubmissionStatus(submission.status) === 'proof_pending' && isReviewCritical(submission)
-            ? 'border-amber-300 bg-amber-50/50 hover:border-amber-400'
-            : 'border-gray-200 hover:border-emerald-300'
-      }`}
+            ? 'border-amber-200 bg-amber-50/50 hover:border-amber-300'
+            : 'border-emerald-100 hover:border-emerald-300'
+        }`}
       onClick={() => setSelectedSubmission(submission)}
     >
-      <CardHeader className="pb-3">
+      <CardContent className="p-4 space-y-4">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex-1">
-            <CardTitle className="text-lg leading-tight mb-2">
+          <div className="min-w-0 flex-1">
+            <CardTitle className="text-[17px] leading-snug text-[#3c0b14] line-clamp-2">
               {submission.task?.title || 'Tarefa'}
             </CardTitle>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <User className="w-4 h-4" />
-              <span>{submission.profile?.full_name || submission.profile?.email || 'Usuário'}</span>
+            <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
+                <User className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-medium text-gray-900 line-clamp-1">
+                  {submission.profile?.full_name || submission.profile?.email || 'Usuário'}
+                </p>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-1 px-3 py-1 bg-amber-50 rounded-full border border-amber-200">
-            <Star className="w-4 h-4 text-amber-600 fill-amber-600" />
-            <span className="font-bold text-amber-700">
+
+          <div className="shrink-0 rounded-xl border border-amber-200 bg-amber-50 px-2 py-1 text-right shadow-sm">
+            <p className="mt-1 flex items-center justify-center gap-1 text-xs font-bold text-amber-800">
+              <Star className="h-4 w-4 fill-amber-600 text-amber-600" />
+
               {submission.task?.category === 'campanha'
                 ? `R$ ${Number(submission.task?.offered_value || 0).toLocaleString('pt-BR')}`
                 : `${Number(submission.task?.points || 0).toLocaleString('pt-BR')} pts`}
-            </span>
+            </p>
           </div>
         </div>
-      </CardHeader>
 
-      <CardContent className="space-y-3">
-        {submission.description && (
-          <div>
-            <p className="text-xs text-gray-500 mb-1">Descrição:</p>
-            <p className="text-sm text-gray-700 line-clamp-2">{submission.description}</p>
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {normalizeSubmissionStatus(submission.status) === 'proof_pending' ? (
+            <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
+              <Clock className="w-3 h-3 mr-1" />
+              Prova Pendente
+            </Badge>
+          ) : normalizeSubmissionStatus(submission.status) === 'approved' ? (
+            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+              <CheckCircle className="w-3 h-3 mr-1" />
+              Prova Aprovada
+            </Badge>
+          ) : normalizeSubmissionStatus(submission.status) === 'rejected' ? (
+            <Badge className="bg-red-100 text-red-700 border-red-200">
+              <XCircle className="w-3 h-3 mr-1" />
+              Prova Rejeitada
+            </Badge>
+          ) : (
+            <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
+              <Clock className="w-3 h-3 mr-1" />
+              Inscrição Pendente
+            </Badge>
+          )}
 
-        {submission.proof_url && (
-          <div>
-            <p className="text-xs text-gray-500 mb-2">Comprovante:</p>
-            <ProofPreview url={submission.proof_url} compact />
-          </div>
-        )}
+          {normalizeSubmissionStatus(submission.status) === 'proof_pending' && isReviewOverdue(submission) ? (
+            <Badge className="bg-red-600 text-white border-red-700 animate-pulse">
+              Expirado
+            </Badge>
+          ) : normalizeSubmissionStatus(submission.status) === 'proof_pending' && isReviewCritical(submission) ? (
+            <Badge className="bg-amber-500 text-white border-amber-600">
+              Urgente: {formatRemainingReviewTime(submission)}
+            </Badge>
+          ) : normalizeSubmissionStatus(submission.status) === 'proof_pending' ? (
+            <Badge className="bg-red-100 text-red-700 border-red-200">
+              Revisar em {formatRemainingReviewTime(submission)}
+            </Badge>
+          ) : null}
+        </div>
 
-        <div className="flex items-center justify-between pt-3 border-t">
-          <div className="flex items-center gap-1 text-sm text-gray-500">
-            <Calendar className="w-4 h-4" />
-            <span>{format(new Date(submission.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
-          </div>
-          <div className="flex flex-col items-end gap-1">
-            {normalizeSubmissionStatus(submission.status) === 'proof_pending' ? (
-              <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
-                <Clock className="w-3 h-3 mr-1" />
-                Prova Pendente
-              </Badge>
-            ) : normalizeSubmissionStatus(submission.status) === 'approved' ? (
-              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
-                <CheckCircle className="w-3 h-3 mr-1" />
-                Prova Aprovada
-              </Badge>
-            ) : normalizeSubmissionStatus(submission.status) === 'rejected' ? (
-              <Badge className="bg-red-100 text-red-700 border-red-200">
-                <XCircle className="w-3 h-3 mr-1" />
-                Prova Rejeitada
-              </Badge>
-            ) : (
-              <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
-                <Clock className="w-3 h-3 mr-1" />
-                Inscrição Pendente
-              </Badge>
-            )}
-            {normalizeSubmissionStatus(submission.status) === 'proof_pending' && isReviewOverdue(submission) ? (
-              <Badge className="bg-red-600 text-white border-red-700 animate-pulse">
-                Prazo estourado
-              </Badge>
-            ) : normalizeSubmissionStatus(submission.status) === 'proof_pending' && isReviewCritical(submission) ? (
-              <Badge className="bg-amber-500 text-white border-amber-600">
-                Urgente: {formatRemainingReviewTime(submission)}
-              </Badge>
-            ) : normalizeSubmissionStatus(submission.status) === 'proof_pending' ? (
-              <Badge className="bg-red-100 text-red-700 border-red-200">
-                Revisar em {formatRemainingReviewTime(submission)}
-              </Badge>
-            ) : null}
-            {normalizeSubmissionStatus(submission.status) === 'approved' && latestProofApprovalBySubmission[submission.id] && (
-              <span className="text-xs text-gray-500 text-right max-w-[210px]">
-                Aprovado por {latestProofApprovalBySubmission[submission.id].approver_name || latestProofApprovalBySubmission[submission.id].approver_email || 'Admin'}
-              </span>
-            )}
-          </div>
+        <div className="flex items-center justify-between gap-3 border-t border-gray-100 pt-3 text-xs text-gray-500">
+          <span className="inline-flex min-w-0 items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">
+              {format(new Date(submission.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+            </span>
+          </span>
+
+          {normalizeSubmissionStatus(submission.status) === 'approved' && latestProofApprovalBySubmission[submission.id] ? (
+            <span className="max-w-[190px] truncate text-right">
+              Por {latestProofApprovalBySubmission[submission.id].approver_name || latestProofApprovalBySubmission[submission.id].approver_email || 'Admin'}
+            </span>
+          ) : (
+            <span className="text-right">
+              {normalizeSubmissionStatus(submission.status) === 'proof_pending'
+                ? `Revisar em ${formatRemainingReviewTime(submission)}`
+                : 'Toque para abrir'}
+            </span>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -451,7 +428,7 @@ export default function AdminApproval() {
                   <p className={`text-2xl font-bold ${overdueProofSubmissions.length > 0 ? 'text-red-700' : 'text-gray-900'}`}>
                     {overdueProofSubmissions.length}
                   </p>
-                  <p className="text-sm text-gray-600">Com Prazo Estourado (&gt;5h úteis)</p>
+                  <p className="text-sm text-gray-600">Com Prazo Expirado</p>
                 </div>
               </div>
             </CardContent>
@@ -556,132 +533,169 @@ export default function AdminApproval() {
 
       {/* Modal de Detalhes */}
       {selectedSubmission && (
-        <Dialog open={!!selectedSubmission} onOpenChange={() => setSelectedSubmission(null)}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <Dialog open={!!selectedSubmission} onOpenChange={() => {
+          setSelectedSubmission(null);
+          setIsDescriptionExpanded(false);
+        }}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white shadow-2xl">
             <DialogHeader>
-              <DialogTitle className="text-2xl">Validar Submissão</DialogTitle>
+              <DialogTitle className="text-2xl text-[#3c0b14]">Detalhes da Prova</DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-6 py-4">
-              {/* Informações da Tarefa */}
+            <div className="space-y-5 py-4">
               <div>
-                <h3 className="font-semibold text-lg mb-2">{selectedSubmission.task?.title}</h3>
-                <div className="flex items-center gap-4 text-sm text-gray-600">
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 text-amber-600 fill-amber-600" />
-                    <span className="font-semibold">
-                      {selectedSubmission.task?.category === 'campanha'
-                        ? `R$ ${Number(selectedSubmission.task?.offered_value || 0).toLocaleString('pt-BR')}`
-                        : `${Number(selectedSubmission.task?.points || 0).toLocaleString('pt-BR')} pontos`}
-                    </span>
-                  </div>
-                  <Badge>{selectedSubmission.task?.category}</Badge>
+                <h3 className="mb-2 text-lg font-semibold text-[#3c0b14] break-words">
+                  {selectedSubmission.task?.title || 'Tarefa'}
+                </h3>
+                <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
+                  <Badge className="bg-gray-100 text-gray-700 border-gray-200">
+                    {STATUS_LABELS[selectedSubmission.status] || selectedSubmission.status}
+                  </Badge>
                   {selectedSubmission.task?.category === 'campanha' && (
                     <Badge className="bg-blue-100 text-blue-700 border-blue-200">
                       Após prova, aguarda etapa de métricas
                     </Badge>
                   )}
-                  <Badge className="bg-gray-100 text-gray-700 border-gray-200">
-                    {STATUS_LABELS[selectedSubmission.status] || selectedSubmission.status}
-                  </Badge>
                 </div>
               </div>
 
-              {/* Informações do Usuário */}
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm font-medium text-gray-700 mb-1">Enviado por:</p>
-                <p className="font-semibold">{selectedSubmission.profile?.full_name || 'Usuário'}</p>
-                <p className="text-sm text-gray-600">{selectedSubmission.profile?.email}</p>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="rounded-lg border border-emerald-100 bg-[#f3fbf7] p-3">
+                  <p className="text-xs text-gray-600">Categoria</p>
+                  <p className="mt-1 text-base font-semibold text-gray-900 capitalize">
+                    {selectedSubmission.task?.category || '-'}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-amber-100 bg-[#fff8eb] p-3">
+                  <p className="text-xs text-gray-600">Valor / Pontuação</p>
+                  <p className="mt-1 text-base font-semibold text-gray-900">
+                    {selectedSubmission.task?.category === 'campanha'
+                      ? `R$ ${Number(selectedSubmission.task?.offered_value || 0).toLocaleString('pt-BR')}`
+                      : `${Number(selectedSubmission.task?.points || 0).toLocaleString('pt-BR')} pontos`}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-blue-100 bg-[#f4f8ff] p-3">
+                  <p className="text-xs text-gray-600">Enviado em</p>
+                  <p className="mt-1 text-base font-semibold text-gray-900">
+                    {format(new Date(selectedSubmission.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-purple-100 bg-[#f9f4ff] p-3">
+                  <p className="text-xs text-gray-600">Prazo de revisão</p>
+                  <p className="mt-1 text-base font-semibold text-gray-900">
+                    {formatRemainingReviewTime(selectedSubmission)}
+                  </p>
+                </div>
               </div>
 
-              {/* Descrição da Submissão */}
+              <div className="rounded-lg border border-gray-200 bg-white p-3">
+                <p className="text-xs text-gray-600 mb-1">Enviado por</p>
+                <p className="font-semibold text-gray-900">
+                  {selectedSubmission.profile?.full_name || 'Usuário'}
+                </p>
+                <p className="text-sm text-gray-600">
+                  {selectedSubmission.profile?.email || 'sem email'}
+                </p>
+              </div>
+
               {selectedSubmission.description && (
-                <div>
-                  <Label className="text-base font-semibold mb-2 block">Descrição:</Label>
-                  <p className="text-gray-700 p-4 bg-gray-50 rounded-lg whitespace-pre-wrap">
+                <div className="rounded-lg border border-gray-200 bg-white p-3">
+                  <p className="text-xs text-gray-600 mb-1">Descrição</p>
+                  <div
+                    className={isDescriptionExpanded
+                      ? 'text-sm text-gray-800 whitespace-pre-wrap break-words'
+                      : 'text-sm text-gray-800 whitespace-pre-wrap break-all line-clamp-2 overflow-hidden'}
+                  >
                     {selectedSubmission.description}
-                  </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="mt-2 text-xs font-medium text-emerald-700 hover:underline"
+                    onClick={() => setIsDescriptionExpanded((current) => !current)}
+                  >
+                    {isDescriptionExpanded ? 'Ver menos' : 'Ver mais'}
+                  </button>
                 </div>
               )}
 
-              {/* Comprovante */}
               {selectedSubmission.proof_url && (
-                <div>
-                  <Label className="text-base font-semibold mb-2 block">Comprovante:</Label>
-                  <ProofPreview url={selectedSubmission.proof_url} />
+                <div className="rounded-lg border border-gray-200 bg-white p-3">
+                  <p className="text-xs text-gray-600 mb-1">Comprovante</p>
                   <a
                     href={selectedSubmission.proof_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-emerald-600 hover:underline flex items-center gap-1 mt-2"
+                    className="block rounded-lg border border-white bg-white px-4 py-3 shadow-sm transition-colors hover:border-emerald-200 hover:bg-emerald-50/50"
                   >
-                    <ExternalLink className="w-4 h-4" />
-                    Abrir em nova aba
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 border border-gray-200 text-emerald-600 shadow-sm">
+                        <ExternalLink className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900">Abrir arquivo</p>
+                        <p className="text-xs text-gray-500">Clique para visualizar o comprovante enviado</p>
+                      </div>
+                    </div>
                   </a>
                 </div>
               )}
 
-              {/* Ações */}
-              {normalizeSubmissionStatus(selectedSubmission.status) !== 'proof_pending' ? (
-                <div className="pt-4">
-                  <Badge className="bg-gray-100 text-gray-700 border-gray-300">
-                    Histórico: esta submissão não está mais pendente de decisão.
-                  </Badge>
-                </div>
-              ) : !isRejecting ? (
-                <div className="flex gap-3 pt-4">
-                  <Button
-                    onClick={() => handleApprove(selectedSubmission)}
-                    disabled={approveSubmission.isPending}
-                    className="flex-1 bg-green-600 hover:bg-green-700"
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    {approveSubmission.isPending
-                      ? 'Aprovando...'
-                      : selectedSubmission.status === 'proof_pending'
-                        ? 'Aprovar Prova e Finalizar'
-                        : 'Aprovar Inscrição'}
-                  </Button>
-                  <Button
-                    onClick={() => setIsRejecting(true)}
-                    variant="outline"
-                    className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
-                  >
-                    <XCircle className="w-4 h-4 mr-2" />
-                    {selectedSubmission.status === 'proof_pending' ? 'Rejeitar Prova' : 'Rejeitar Inscrição'}
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3 pt-4">
-                  <Label htmlFor="rejection-reason">Motivo da Rejeição:</Label>
-                  <Textarea
-                    id="rejection-reason"
-                    value={rejectionReason}
-                    onChange={(e) => setRejectionReason(e.target.value)}
-                    placeholder="Explique o motivo da rejeição para o usuário..."
-                    rows={4}
-                  />
-                  <div className="flex gap-3">
+              {normalizeSubmissionStatus(selectedSubmission.status) === 'proof_pending' ? (
+                !isRejecting ? (
+                  <div className="flex flex-col gap-3 pt-1 md:flex-row">
                     <Button
-                      onClick={handleReject}
-                      disabled={rejectSubmission.isPending}
-                      className="flex-1 bg-red-600 hover:bg-red-700"
+                      onClick={() => handleApprove(selectedSubmission)}
+                      disabled={approveSubmission.isPending}
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700"
                     >
-                      {rejectSubmission.isPending ? 'Rejeitando...' : 'Confirmar Rejeição'}
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      {approveSubmission.isPending ? 'Aprovando...' : 'Aprovar'}
                     </Button>
                     <Button
-                      onClick={() => {
-                        setIsRejecting(false);
-                        setRejectionReason('');
-                      }}
+                      onClick={() => setIsRejecting(true)}
                       variant="outline"
-                      className="flex-1"
+                      className="flex-1 border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-400"
                     >
-                      Cancelar
+                      <XCircle className="w-4 h-4 mr-2" />
+                      Rejeitar
                     </Button>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="space-y-3 rounded-2xl border border-red-100 bg-red-50/50 p-5">
+                    <Label htmlFor="rejection-reason" className="text-sm font-semibold text-gray-700">Motivo da Rejeição</Label>
+                    <Textarea
+                      id="rejection-reason"
+                      value={rejectionReason}
+                      onChange={(e) => setRejectionReason(e.target.value)}
+                      placeholder="Explique o motivo da rejeição para o usuário..."
+                      rows={4}
+                      className="bg-white"
+                    />
+                    <div className="flex flex-col gap-3 md:flex-row">
+                      <Button
+                        onClick={handleReject}
+                        disabled={rejectSubmission.isPending}
+                        className="flex-1 bg-red-600 hover:bg-red-700"
+                      >
+                        {rejectSubmission.isPending ? 'Rejeitando...' : 'Confirmar Rejeição'}
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setIsRejecting(false);
+                          setRejectionReason('');
+                        }}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )
+              ) : null}
             </div>
           </DialogContent>
         </Dialog>

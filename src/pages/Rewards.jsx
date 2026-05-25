@@ -24,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { notifyError, notifySuccess } from "@/lib/toast";
 
 const CATEGORY_INFO = {
   alimentacao: { name: "Alimentacao", icon: Apple, color: "bg-green-100 text-green-700 border-green-200" },
@@ -60,10 +61,10 @@ export default function Rewards() {
   const handleClaim = async (reward) => {
     try {
       await claimRewardMutation.mutateAsync(reward.id);
-      alert("Recompensa resgatada com sucesso! ✅\nA equipe entrara em contato para mais informacoes.\nSeus pontos ja foram debitados.");
+      notifySuccess("Recompensa resgatada com sucesso! A equipe entrara em contato para mais informacoes. Seus pontos ja foram debitados.");
       setSelectedReward(null);
     } catch (error) {
-      alert(error?.message || "Erro ao resgatar recompensa");
+      notifyError(error?.message || "Erro ao resgatar recompensa");
     }
   };
 

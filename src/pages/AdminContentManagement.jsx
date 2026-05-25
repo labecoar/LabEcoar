@@ -33,6 +33,7 @@ import {
   MessageSquare,
   Archive,
 } from 'lucide-react'
+import { notifyError, notifySuccess, notifyWarning } from '@/lib/toast'
 
 const CATEGORY_OPTIONS = [
   { value: 'campanha', label: 'Campanha (Paga)' },
@@ -322,10 +323,10 @@ export default function AdminContentManagement() {
       if (editingTask?.id === taskId) {
         resetForm()
       }
-      alert('Tarefa excluída com sucesso! ✅')
+      notifySuccess('Tarefa excluída com sucesso! ✅')
     } catch (deleteError) {
       console.error('Erro ao excluir tarefa:', deleteError)
-      alert(deleteError?.message || 'Não foi possível excluir a tarefa.')
+      notifyError(deleteError?.message || 'Não foi possível excluir a tarefa.')
     }
   }
 
@@ -420,10 +421,10 @@ export default function AdminContentManagement() {
 
       if (editingTask) {
         await updateTask.mutateAsync({ taskId: editingTask.id, updates: taskPayload })
-        alert('Tarefa atualizada com sucesso! ✅')
+        notifySuccess('Tarefa atualizada com sucesso! ✅')
       } else {
         await createTask.mutateAsync(taskPayload)
-        alert('Tarefa criada com sucesso! ✅')
+        notifySuccess('Tarefa criada com sucesso! ✅')
       }
 
       resetForm()
@@ -440,7 +441,7 @@ export default function AdminContentManagement() {
     const description = forumForm.description.trim()
 
     if (!title || !description || !forumForm.category) {
-      alert('Preencha título, descrição e categoria do tópico.')
+      notifyWarning('Preencha título, descrição e categoria do tópico.')
       return
     }
 
@@ -454,7 +455,7 @@ export default function AdminContentManagement() {
             category: forumForm.category,
           },
         })
-        alert('Tópico atualizado com sucesso! ✅')
+        notifySuccess('Tópico atualizado com sucesso! ✅')
       } else {
         await createForumTopic.mutateAsync({
           title,
@@ -464,14 +465,14 @@ export default function AdminContentManagement() {
           author_name: profile?.display_name || profile?.full_name || 'Admin',
           author_email: profile?.email || user?.email || null,
         })
-        alert('Tópico criado com sucesso! ✅')
+        notifySuccess('Tópico criado com sucesso! ✅')
       }
 
       setForumForm(initialForumForm)
       setEditingForumTopic(null)
     } catch (forumError) {
       console.error('Erro ao criar tópico:', forumError)
-      alert(forumError?.message || 'Não foi possível criar o tópico.')
+      notifyError(forumError?.message || 'Não foi possível criar o tópico.')
     }
   }
 
@@ -498,10 +499,10 @@ export default function AdminContentManagement() {
       if (editingForumTopic?.id === topicId) {
         resetForumForm()
       }
-      alert('Tópico excluído com sucesso! ✅')
+      notifySuccess('Tópico excluído com sucesso! ✅')
     } catch (deleteError) {
       console.error('Erro ao excluir tópico:', deleteError)
-      alert(deleteError?.message || 'Não foi possível excluir o tópico.')
+      notifyError(deleteError?.message || 'Não foi possível excluir o tópico.')
     }
   }
 
@@ -520,44 +521,40 @@ export default function AdminContentManagement() {
           <button
             type="button"
             onClick={() => setActiveTab('create')}
-            className={`px-3 py-1.5 rounded-md border text-sm font-medium transition-colors ${
-              activeTab === 'create'
-                ? 'bg-white border-gray-300 text-[#3c0b14]'
-                : 'bg-gray-50 border-transparent text-gray-600 hover:bg-gray-100'
-            }`}
+            className={`px-3 py-1.5 rounded-md border text-sm font-medium transition-colors ${activeTab === 'create'
+              ? 'bg-white border-gray-300 text-[#3c0b14]'
+              : 'bg-gray-50 border-transparent text-gray-600 hover:bg-gray-100'
+              }`}
           >
             Criar Tarefa
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('active')}
-            className={`px-3 py-1.5 rounded-md border text-sm font-medium transition-colors ${
-              activeTab === 'active'
-                ? 'bg-white border-gray-300 text-[#3c0b14]'
-                : 'bg-gray-50 border-transparent text-gray-600 hover:bg-gray-100'
-            }`}
+            className={`px-3 py-1.5 rounded-md border text-sm font-medium transition-colors ${activeTab === 'active'
+              ? 'bg-white border-gray-300 text-[#3c0b14]'
+              : 'bg-gray-50 border-transparent text-gray-600 hover:bg-gray-100'
+              }`}
           >
             Ativas ({activeTasks.length})
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('completed')}
-            className={`px-3 py-1.5 rounded-md border text-sm font-medium transition-colors ${
-              activeTab === 'completed'
-                ? 'bg-white border-gray-300 text-[#3c0b14]'
-                : 'bg-gray-50 border-transparent text-gray-600 hover:bg-gray-100'
-            }`}
+            className={`px-3 py-1.5 rounded-md border text-sm font-medium transition-colors ${activeTab === 'completed'
+              ? 'bg-white border-gray-300 text-[#3c0b14]'
+              : 'bg-gray-50 border-transparent text-gray-600 hover:bg-gray-100'
+              }`}
           >
             Concluídas ({completedTasks.length})
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('forum')}
-            className={`px-3 py-1.5 rounded-md border text-sm font-medium transition-colors ${
-              activeTab === 'forum'
-                ? 'bg-white border-gray-300 text-[#3c0b14]'
-                : 'bg-gray-50 border-transparent text-gray-600 hover:bg-gray-100'
-            }`}
+            className={`px-3 py-1.5 rounded-md border text-sm font-medium transition-colors ${activeTab === 'forum'
+              ? 'bg-white border-gray-300 text-[#3c0b14]'
+              : 'bg-gray-50 border-transparent text-gray-600 hover:bg-gray-100'
+              }`}
           >
             Criar Tópico Fórum
           </button>
@@ -896,55 +893,73 @@ export default function AdminContentManagement() {
                       icon: Target,
                       color: 'bg-gray-100 text-gray-700 border-gray-200',
                     }
+
                     const Icon = categoryMeta.icon
                     const deadline = getTaskDeadlineState(task)
 
                     return (
-                      <div key={task.id} className="border rounded-lg p-4 border-gray-200 bg-white overflow-hidden">
-                        <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
-                          <div className="min-w-0 flex-1">
-                            <h3 className="font-semibold text-gray-900">{task.title}</h3>
-                            <p className="text-sm text-gray-600 mt-1 line-clamp-2 break-words break-all whitespace-normal">{task.description}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge className={`${categoryMeta.color} border`}>
-                              <Icon className="w-3 h-3 mr-1" />
-                              {categoryMeta.label}
-                            </Badge>
-                            <Badge className="bg-amber-50 text-amber-700 border-amber-200 border">
-                              {task.category === 'campanha'
-                                ? <CircleDollarSign className="w-3 h-3 mr-1" />
-                                : <Star className="w-3 h-3 mr-1 fill-amber-600" />}
-                              {task.category === 'campanha'
-                                ? `R$ ${Number(task.offered_value || 0).toLocaleString('pt-BR')}`
-                                : `${Number(task.points || 0).toLocaleString('pt-BR')} pts`}
-                            </Badge>
-                          </div>
+                      <div
+                        key={task.id}
+                        className="relative border rounded-lg p-4 border-gray-200 bg-white overflow-hidden"
+                      >
+                        {/* BADGES FIXAS */}
+                        <div className="absolute top-4 right-4 flex items-center gap-2 flex-wrap justify-end max-w-[45%]">
+                          <Badge className={`${categoryMeta.color} border`}>
+                            <Icon className="w-3 h-3 mr-1" />
+                            {categoryMeta.label}
+                          </Badge>
+
+                          <Badge className="bg-amber-50 text-amber-700 border-amber-200 border">
+                            {task.category === 'campanha'
+                              ? <CircleDollarSign className="w-3 h-3 mr-1" />
+                              : <Star className="w-3 h-3 mr-1 fill-amber-600" />}
+
+                            {task.category === 'campanha'
+                              ? `R$ ${Number(task.offered_value || 0).toLocaleString('pt-BR')}`
+                              : `${Number(task.points || 0).toLocaleString('pt-BR')} pts`}
+                          </Badge>
                         </div>
 
-                        <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-                          <span className="inline-flex items-center gap-1">
-                            <Users className="w-3.5 h-3.5" />
-                            Vagas: {task.max_participants || 'Sem limite'}
-                          </span>
-                          <span className="inline-flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5" />
-                            Expira em: {task.expires_at ? new Date(task.expires_at).toLocaleString('pt-BR') : 'Sem data'}
-                          </span>
-                          {task.expires_at && (
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border font-semibold ${
-                              deadline.isCritical
-                                ? 'bg-red-100 text-red-700 border-red-200'
+                        {/* CONTEÚDO */}
+                        <div className="pr-44">
+                          <h3 className="font-semibold text-gray-900 break-words">
+                            {task.title}
+                          </h3>
+
+                          <p className="text-sm text-gray-600 mt-1 break-words line-clamp-2">
+                            {task.description}
+                          </p>
+                        </div>
+
+                        {/* INFO */}
+                        <div className="flex flex-wrap gap-3 text-xs text-gray-500 mt-4">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border ${deadline.isExpired
+                              ? 'bg-red-100 text-red-700 border-red-200'
+                              : deadline.isCritical
+                                ? 'bg-orange-100 text-orange-700 border-orange-200'
                                 : deadline.isWarning
-                                  ? 'bg-amber-100 text-amber-700 border-amber-200'
+                                  ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
                                   : 'bg-gray-100 text-gray-700 border-gray-200'
-                            }`}>
-                              Prazo: {deadline.timeLabel}
-                            </span>
-                          )}
+                              }`}
+                          >
+                            <Calendar className="w-3.5 h-3.5" />
+
+                            {deadline.isExpired
+                              ? 'Expirada'
+                              : task.expires_at
+                                ? `${new Date(task.expires_at).toLocaleString('pt-BR')} (${deadline.timeLabel})`
+                                : 'Sem data'}
+                          </span>
+
+                          <span className="inline-flex items-center gap-1">
+                            <Target className="w-3.5 h-3.5" />
+                            Conteúdo: {getProofTypeLabel(task)}
+                          </span>
                         </div>
 
-                        <div className="flex gap-2 mt-3">
+                        {/* AÇÕES */}
+                        <div className="flex gap-2 mt-4">
                           <Button
                             size="sm"
                             variant="outline"
@@ -954,6 +969,7 @@ export default function AdminContentManagement() {
                             <Pencil className="w-3 h-3 mr-1" />
                             Editar
                           </Button>
+
                           <Button
                             size="sm"
                             variant="outline"
@@ -1000,49 +1016,68 @@ export default function AdminContentManagement() {
                     const isExpiredCompleted = deadline.isExpired
 
                     return (
-                      <div key={task.id} className="border rounded-lg p-4 bg-gray-50 border-gray-200 opacity-80">
-                        <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
-                          <div>
-                            <h3 className="font-semibold text-gray-900">{task.title}</h3>
-                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">{task.description}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge className={`${categoryMeta.color} border`}>
-                              <Icon className="w-3 h-3 mr-1" />
-                              {categoryMeta.label}
-                            </Badge>
-                            <Badge className="bg-amber-50 text-amber-700 border-amber-200 border">
-                              {task.category === 'campanha'
-                                ? <CircleDollarSign className="w-3 h-3 mr-1" />
-                                : <Star className="w-3 h-3 mr-1 fill-amber-600" />}
-                              {task.category === 'campanha'
-                                ? `R$ ${Number(task.offered_value || 0).toLocaleString('pt-BR')}`
-                                : `${Number(task.points || 0).toLocaleString('pt-BR')} pts`}
-                            </Badge>
-                            {task.status !== 'active' && !isExpiredCompleted && (
-                              <Badge className="bg-gray-100 text-gray-700 border-gray-300 border">
-                                Concluída/Arquivada
-                              </Badge>
-                            )}
-                          </div>
+                      <div
+                        key={task.id}
+                        className="relative border rounded-lg p-4 bg-gray-50 border-gray-200 opacity-80 overflow-hidden"
+                      >
+                        {/* BADGES FIXAS */}
+                        <div className="absolute top-4 right-4 flex items-center gap-2 flex-wrap justify-end max-w-[45%]">
+                          <Badge className={`${categoryMeta.color} border`}>
+                            <Icon className="w-3 h-3 mr-1" />
+                            {categoryMeta.label}
+                          </Badge>
+
+                          <Badge className="bg-amber-50 text-amber-700 border-amber-200 border">
+                            {task.category === 'campanha'
+                              ? <CircleDollarSign className="w-3 h-3 mr-1" />
+                              : <Star className="w-3 h-3 mr-1 fill-amber-600" />}
+
+                            {task.category === 'campanha'
+                              ? `R$ ${Number(task.offered_value || 0).toLocaleString('pt-BR')}`
+                              : `${Number(task.points || 0).toLocaleString('pt-BR')} pts`}
+                          </Badge>
                         </div>
 
-                        <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border ${
-                            isExpiredCompleted
-                              ? 'bg-red-100 text-red-700 border-red-200'
-                              : 'bg-gray-100 text-gray-700 border-gray-200'
-                          }`}>
+                        {/* CONTEÚDO */}
+                        <div className="pr-44">
+                          <h3 className="font-semibold text-gray-900 break-words">
+                            {task.title}
+                          </h3>
+
+                          <p className="text-sm text-gray-600 mt-1 break-words line-clamp-2">
+                            {task.description}
+                          </p>
+                        </div>
+
+                        {/* INFO */}
+                        <div className="flex flex-wrap gap-3 text-xs text-gray-500 mt-4">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border ${deadline.isExpired
+                                ? 'bg-red-100 text-red-700 border-red-200'
+                                : deadline.isCritical
+                                  ? 'bg-orange-100 text-orange-700 border-orange-200'
+                                  : deadline.isWarning
+                                    ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                                    : 'bg-gray-100 text-gray-700 border-gray-200'
+                              }`}
+                          >
                             <Calendar className="w-3.5 h-3.5" />
-                            {isExpiredCompleted ? 'Expirada em:' : 'Data final:'} {task.expires_at ? new Date(task.expires_at).toLocaleString('pt-BR') : 'Sem data'}
+
+                            {deadline.isExpired
+                              ? 'Expirada'
+                              : task.expires_at
+                                ? `${new Date(task.expires_at).toLocaleString('pt-BR')} (${deadline.timeLabel})`
+                                : 'Sem data'}
                           </span>
+
                           <span className="inline-flex items-center gap-1">
                             <Target className="w-3.5 h-3.5" />
                             Conteúdo: {getProofTypeLabel(task)}
                           </span>
                         </div>
 
-                        <div className="flex gap-2 mt-3">
+                        {/* AÇÕES */}
+                        <div className="flex gap-2 mt-4">
                           <Button
                             size="sm"
                             variant="outline"
@@ -1052,6 +1087,7 @@ export default function AdminContentManagement() {
                             <Pencil className="w-3 h-3 mr-1" />
                             Editar
                           </Button>
+
                           <Button
                             size="sm"
                             variant="outline"
@@ -1192,6 +1228,6 @@ export default function AdminContentManagement() {
           </Card>
         )}
       </div>
-    </div>
+    </div >
   )
 }

@@ -7,9 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Clock, CheckCircle, XCircle, Star, ExternalLink, CircleDollarSign } from "lucide-react";
-import { addBusinessDays, format } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import TaskDetailsModal from "../components/tasks/TaskDetailsModal";
+import { getProofApprovalMetricsWindow, getMetricsResubmissionDeadline } from '@/lib/metrics-window';
 
 const normalizeSubmissionStatus = (status) => {
   if (status === 'pendente') return 'pending';
@@ -40,25 +41,6 @@ const toDateOrNull = (value) => {
   if (!value) return null;
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
-};
-
-const firstBusinessDayAfter = (baseDate) => {
-  if (!baseDate) return null;
-  const result = new Date(baseDate);
-  result.setDate(result.getDate() + 1);
-
-  while (result.getDay() === 0 || result.getDay() === 6) {
-    result.setDate(result.getDate() + 1);
-  }
-
-  return result;
-};
-
-const endOfDay = (date) => {
-  if (!date) return null;
-  const value = new Date(date);
-  value.setHours(23, 59, 59, 999);
-  return value;
 };
 
 function ProofPreview({ proofUrl }) {
@@ -100,16 +82,7 @@ export default function MySubmissions() {
   };
 
   const getCampaignMetricsWindowEnd = (submission) => {
-    const postingDeadline = toDateOrNull(submission?.task?.posting_deadline);
-    const validatedAt = toDateOrNull(submission?.validated_at);
-    const metricsBaseDate = postingDeadline || validatedAt;
-
-    if (!metricsBaseDate) return null;
-
-    const metricsWindowStart = new Date(metricsBaseDate.getTime() + 24 * 60 * 60 * 1000);
-    if (!metricsWindowStart) return null;
-
-    return endOfDay(addBusinessDays(metricsWindowStart, 2));
+    return getProofApprovalMetricsWindow(submission?.validated_at || submission?.updated_at).end;
   };
 
   const getCampaignMetricsResubmissionDeadline = (submission) => {
@@ -120,10 +93,7 @@ export default function MySubmissions() {
     const metricsStatus = String(metricsSubmission?.status || '').trim().toLowerCase();
     if (metricsStatus !== 'rejected') return null;
 
-    const reviewedAt = toDateOrNull(metricsSubmission?.reviewed_at);
-    if (!reviewedAt) return null;
-
-    return new Date(reviewedAt.getTime() + 2 * 24 * 60 * 60 * 1000);
+    return getMetricsResubmissionDeadline(metricsSubmission?.reviewed_at);
   };
 
   const isCampaignWithPendingMetrics = (submission) => {

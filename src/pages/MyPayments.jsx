@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { notifyError, notifySuccess } from "@/lib/toast";
 
 const CATEGORY_VALUES = {
   voz_e_violao: { value: 1000, name: "Voz e Violao", emoji: "🎸", color: "from-yellow-400 to-orange-500", range: "1000-1999 pts" },
@@ -90,7 +91,6 @@ export default function MyPayments() {
   });
 
   const [savedPaymentData, setSavedPaymentData] = useState(null);
-  const [saveMessage, setSaveMessage] = useState("");
 
   useEffect(() => {
     const saved = paymentInfo;
@@ -127,7 +127,7 @@ export default function MyPayments() {
 
     const cpfDigits = onlyDigits(paymentData.cpf);
     if (cpfDigits.length !== 11) {
-      alert("CPF invalido. Informe 11 digitos.");
+      notifyError("CPF invalido. Informe 11 digitos.");
       return;
     }
 
@@ -145,19 +145,13 @@ export default function MyPayments() {
         setPaymentData(saved);
         setSavedPaymentData(saved);
         setIsEditing(false);
-        setSaveMessage("Dados bancarios salvos com sucesso.");
+        notifySuccess("Dados bancarios salvos com sucesso.");
       },
       onError: (error) => {
-        alert(error?.message || "Nao foi possivel salvar os dados bancarios.");
+        notifyError(error?.message || "Nao foi possivel salvar os dados bancarios.");
       },
     });
   };
-
-  useEffect(() => {
-    if (!saveMessage) return;
-    const timeout = setTimeout(() => setSaveMessage(""), 3500);
-    return () => clearTimeout(timeout);
-  }, [saveMessage]);
 
   const hasPaymentInfo = Boolean(
     paymentData.bank_name
@@ -216,12 +210,6 @@ export default function MyPayments() {
           <p className="text-gray-600 mt-2">Gerencie seus dados bancarios e acompanhe seus pagamentos</p>
         </div>
 
-        {saveMessage && (
-          <div className="mb-6 p-3 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm">
-            {saveMessage}
-          </div>
-        )}
-
         <Card className="shadow-xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 mb-8">
           <CardContent className="p-8">
             <div className="flex items-start justify-between mb-6">
@@ -247,11 +235,10 @@ export default function MyPayments() {
                 return (
                   <div
                     key={key}
-                    className={`p-4 rounded-xl border-2 transition-all ${
-                      isCurrentCategory
+                    className={`p-4 rounded-xl border-2 transition-all ${isCurrentCategory
                         ? "bg-white border-emerald-500 shadow-md scale-105"
                         : "bg-white/50 border-gray-200"
-                    }`}
+                      }`}
                   >
                     <div className="text-center">
                       <div className="text-2xl mb-2">{info.emoji}</div>
@@ -272,12 +259,10 @@ export default function MyPayments() {
                 <div className="flex-1">
                   <p className="text-sm font-medium text-blue-900 mb-1">Como funciona o pagamento?</p>
                   <p className="text-sm text-blue-700">
-                    Cada ponto equivale a R$ 1,00 no fechamento do trimestre.
-                    Quanto mais pontos voce acumular, maior sera seu ganho e sua categoria.
-                    As faixas acima servem como metas de categoria.
+                    Cada ponto equivale a R$ 1,00 e é convertido em pagamento ao final de cada trimestre. O acúmulo de pontos também determina sua categoria na plataforma — as faixas acima indicam os limites de cada nível.
                   </p>
                   <p className="text-sm text-blue-700 mt-2">
-                    O pagamento e feito fora da plataforma. Aqui voce so mantem os dados bancarios para o time nao precisar pedir novamente.
+                    O pagamento é realizado fora da plataforma, por meio dos dados bancários cadastrados abaixo. Essas informações ficam salvas para que não seja necessário fornecê-las novamente a cada ciclo.
                   </p>
                 </div>
               </div>

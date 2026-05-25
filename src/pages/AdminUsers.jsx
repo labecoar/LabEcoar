@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Shield, Users, Search, Pencil, Power, PowerOff, Trash2, Save, UserRound } from 'lucide-react'
+import { notifyError, notifySuccess } from '@/lib/toast'
 
 const CATEGORY_OPTIONS = [
   { value: 'voz_e_violao', label: 'Voz e Violão' },
@@ -150,10 +151,10 @@ export default function AdminUsers() {
           is_active: Boolean(formData.is_active),
         },
       })
-      alert('Usuário atualizado com sucesso.')
+      notifySuccess('Usuário atualizado com sucesso.')
     } catch (saveError) {
       console.error('Erro ao atualizar usuário:', saveError)
-      alert(saveError?.message || 'Não foi possível salvar o usuário.')
+      notifyError(saveError?.message || 'Não foi possível salvar o usuário.')
     }
   }
 
@@ -166,7 +167,7 @@ export default function AdminUsers() {
       }
     } catch (toggleError) {
       console.error('Erro ao alterar status do usuário:', toggleError)
-      alert(toggleError?.message || 'Não foi possível alterar o status do usuário.')
+      notifyError(toggleError?.message || 'Não foi possível alterar o status do usuário.')
     }
   }
 
@@ -176,11 +177,11 @@ export default function AdminUsers() {
 
     try {
       await adminUsersService.deleteUser(user.id)
-      alert('Usuário excluído permanentemente com sucesso.')
+      notifySuccess('Usuário excluído permanentemente com sucesso.')
       await queryClient.invalidateQueries({ queryKey: ['admin-users'] })
     } catch (deleteError) {
       console.error('Erro ao excluir usuário:', deleteError)
-      alert(deleteError?.message || 'Não foi possível excluir o usuário.')
+      notifyError(deleteError?.message || 'Não foi possível excluir o usuário.')
     }
   }
 

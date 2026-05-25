@@ -15,6 +15,7 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { notifyError } from "@/lib/toast";
 import {
   Dialog,
   DialogContent,
@@ -68,7 +69,7 @@ export default function Forum() {
       setNewTopic({ title: "", description: "", category: "geral" });
     } catch (error) {
       console.error('Erro ao criar tópico:', error);
-      alert(error?.message || 'Não foi possível criar o tópico.');
+      notifyError(error?.message || 'Não foi possível criar o tópico.');
     }
   };
 

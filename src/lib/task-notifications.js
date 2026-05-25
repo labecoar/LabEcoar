@@ -1,6 +1,5 @@
-import { differenceInCalendarDays, endOfDay, startOfDay } from 'date-fns'
-
-const METRICS_RESUBMISSION_WINDOW_DAYS = 2
+import { differenceInCalendarDays, startOfDay } from 'date-fns'
+import { getProofApprovalMetricsWindow, getMetricsResubmissionDeadline } from '@/lib/metrics-window'
 
 const normalizeSubmissionStatus = (status) => {
   if (!status) return null
@@ -26,32 +25,6 @@ const isBusinessDay = (date) => {
   return weekDay !== 0 && weekDay !== 6
 }
 
-const addBusinessDays = (baseDate, businessDays) => {
-  if (!baseDate || businessDays <= 0) return baseDate ? new Date(baseDate) : null
-
-  const result = new Date(baseDate)
-  let addedDays = 0
-
-  while (addedDays < businessDays) {
-    result.setDate(result.getDate() + 1)
-    if (isBusinessDay(result)) addedDays += 1
-  }
-
-  return result
-}
-
-const firstBusinessDayAfter = (baseDate) => {
-  if (!baseDate) return null
-  const result = new Date(baseDate)
-  result.setDate(result.getDate() + 1)
-
-  while (!isBusinessDay(result)) {
-    result.setDate(result.getDate() + 1)
-  }
-
-  return result
-}
-
 const resolveProofDeadline = (task) => {
   if (task?.category === 'campanha') {
     const campaignPostingDeadline = toDateOrNull(task?.posting_deadline)
@@ -62,21 +35,6 @@ const resolveProofDeadline = (task) => {
     || toDateOrNull(task?.posting_deadline)
     || toDateOrNull(task?.delivery_deadline)
     || null
-}
-
-const resolveMetricsWindow = (task, submission) => {
-  const postingDeadline = toDateOrNull(task?.posting_deadline)
-  const metricsBaseDate = postingDeadline || toDateOrNull(submission?.validated_at)
-
-  if (!metricsBaseDate) return { start: null, end: null }
-
-  const metricsWindowStart = new Date(metricsBaseDate.getTime() + 24 * 60 * 60 * 1000)
-  if (!metricsWindowStart) return { start: null, end: null }
-
-  return {
-    start: startOfDay(metricsWindowStart),
-    end: endOfDay(addBusinessDays(metricsWindowStart, 2)),
-  }
 }
 
 const buildHumanDayLabel = (deadlineDate, nowDate) => {
@@ -156,10 +114,10 @@ const buildMetricsDeadlineNotification = ({ task, submission, metricsSubmission,
   const metricsStatus = normalizeSubmissionStatus(metricsSubmission?.status)
   if (metricsStatus === 'approved') return null
 
-  const metricsWindow = resolveMetricsWindow(task, submission)
+  const metricsWindow = getProofApprovalMetricsWindow(submission?.validated_at || submission?.updated_at)
   const reviewedAt = toDateOrNull(metricsSubmission?.reviewed_at)
   const deadlineSource = metricsStatus === 'rejected' && reviewedAt
-    ? new Date(reviewedAt.getTime() + METRICS_RESUBMISSION_WINDOW_DAYS * 24 * 60 * 60 * 1000)
+    ? getMetricsResubmissionDeadline(reviewedAt)
     : metricsWindow.end
 
   if (!deadlineSource || Number.isNaN(deadlineSource.getTime())) return null

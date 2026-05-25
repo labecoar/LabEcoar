@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DollarSign, Clock, CheckCircle, AlertCircle, RefreshCw, Calendar, User } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { notifyError, notifyInfo, notifySuccess } from '@/lib/toast'
 
 const STATUS_LABELS = {
   pendente: 'Pendente',
@@ -71,6 +72,33 @@ export default function AdminPayments() {
           ? 'Erro no processamento do pagamento. Necessária revisão.'
           : 'Pagamento reaberto para pendência.'
 
+    const normalizedStatus = String(nextStatus).toLowerCase()
+
+    // Marking as paid, processing or error now shows a short toast and no input.
+    if (['pago', 'processando', 'erro'].includes(normalizedStatus)) {
+      try {
+        await updatePaymentStatus.mutateAsync({
+          paymentId: payment.id,
+          status: nextStatus,
+          notes: defaultNote,
+        })
+
+        if (normalizedStatus === 'pago') {
+          notifySuccess('pagamento concluído')
+        } else if (normalizedStatus === 'processando') {
+          notifyInfo('pagamento em processamento', 'Processando')
+        } else {
+          notifyError('pagamento com erro')
+        }
+      } catch (error) {
+        console.error('Erro ao atualizar pagamento:', error)
+        notifyError(error?.message || 'Não foi possível atualizar o status do pagamento.')
+      }
+
+      return
+    }
+
+    // Fallback for other statuses: keep prompt behavior
     const note = window.prompt('Observação do status (opcional):', defaultNote)
     if (note === null) return
 
@@ -81,16 +109,19 @@ export default function AdminPayments() {
         notes: note,
       })
 
-      alert(`Status atualizado para ${STATUS_LABELS[nextStatus] || nextStatus}.`)
+      notifySuccess(`Status atualizado para ${STATUS_LABELS[nextStatus] || nextStatus}.`)
     } catch (error) {
       console.error('Erro ao atualizar pagamento:', error)
-      alert(error?.message || 'Não foi possível atualizar o status do pagamento.')
+      notifyError(error?.message || 'Não foi possível atualizar o status do pagamento.')
     }
   }
 
   return (
     <div className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-emerald-50 via-white to-green-50">
       <div className="max-w-7xl mx-auto space-y-8">
+
+        {/* status banner moved to top */}
+
         <div>
           <h1 className="text-3xl font-bold text-emerald-700 mb-2 inline-flex items-center gap-2">
             Fila de Pagamentos
@@ -185,19 +216,16 @@ export default function AdminPayments() {
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-2 text-sm">
                         <InfoChip label="Trimestre" value={payment.quarter || '-'} />
                         <InfoChip label="Categoria" value={String(payment.category || '-').replace(/_/g, ' ')} />
-                        <InfoChip label="Pontos" value={String(payment.points ?? '-')} />
+                        {String(payment.category || '').toLowerCase() !== 'campanha' && (
+                          <InfoChip label="Pontos" value={String(payment.points ?? '-')} />
+                        )}
                         <InfoChip
                           label={payment.paid_at ? 'Pago em' : 'Criado em'}
                           value={format(new Date(payment.paid_at || payment.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                         />
                       </div>
 
-                      {payment.notes && (
-                        <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
-                          <span className="font-medium">Observação: </span>
-                          {payment.notes}
-                        </div>
-                      )}
+                      {/* Observações removidas conforme solicitado */}
 
                       <div className="flex flex-wrap gap-2 pt-2 border-t">
                         {(isPending || isError) && (

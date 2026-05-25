@@ -14,6 +14,7 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { notifyError } from "@/lib/toast";
 
 const CATEGORY_INFO = {
   dicas: { name: "Dicas", color: "bg-yellow-100 text-yellow-700 border-yellow-200" },
@@ -60,7 +61,7 @@ export default function ForumTopic() {
       });
     } catch (error) {
       setNewPost(content);
-      alert(error?.message || 'Não foi possível enviar a resposta.');
+      notifyError(error?.message || 'Não foi possível enviar a resposta.');
     }
   };
 

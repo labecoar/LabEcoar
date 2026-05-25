@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { User, Instagram, Save, Trophy, Award, Star, Camera, Pencil, Users } from 'lucide-react'
+import { notifyError, notifySuccess } from '@/lib/toast'
 
 const CATEGORY_LABELS = {
   voz_e_violao: 'Voz e Violão',
@@ -192,12 +193,12 @@ export default function Profile() {
       setIsEditing(false)
       queryClient.invalidateQueries({ queryKey: ['scores'] })
       queryClient.invalidateQueries({ queryKey: ['current-user'] })
-      alert('Perfil atualizado com sucesso! ✅')
+      notifySuccess('Perfil atualizado com sucesso! ✅')
     },
     onError: (error) => {
       console.error('Erro ao atualizar perfil:', error)
       const message = error?.message ? `\n\nDetalhes: ${error.message}` : ''
-      alert(`Erro ao atualizar perfil. Tente novamente.${message}`)
+      notifyError(`Erro ao atualizar perfil. Tente novamente.${message}`)
     },
   })
 
@@ -223,7 +224,7 @@ export default function Profile() {
       setAvatarCropOpen(true)
     } catch (error) {
       console.error('Erro ao fazer upload da imagem:', error)
-      alert(error?.message || 'Erro ao fazer upload da imagem.')
+      notifyError(error?.message || 'Erro ao fazer upload da imagem.')
     } finally {
       if (event?.target) {
         event.target.value = ''
@@ -301,7 +302,7 @@ export default function Profile() {
       closeAvatarCropDialog()
     } catch (error) {
       console.error('Erro ao salvar foto de perfil:', error)
-      alert(error?.message || 'Nao foi possivel salvar a foto de perfil.')
+      notifyError(error?.message || 'Nao foi possivel salvar a foto de perfil.')
     }
   }
 

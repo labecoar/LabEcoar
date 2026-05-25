@@ -1,13 +1,12 @@
 import { supabase } from '@/lib/supabase'
 import { storageService } from '@/services/storage.service'
+import { getProofApprovalMetricsWindow, getMetricsResubmissionDeadline } from '@/lib/metrics-window'
 
 const METRICS_STATUS = {
   PENDING: 'pending',
   APPROVED: 'approved',
   REJECTED: 'rejected',
 }
-
-const METRICS_RESUBMISSION_WINDOW_DAYS = 2
 
 const isMissingPostedAtColumnError = (error) => {
   const raw = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`.toLowerCase()
@@ -154,6 +153,34 @@ export const metricsService = {
     // metricsFileUrls: optional array of uploaded file URLs (preferred)
     const trimmedLink = String(metricsLink || '').trim() || null
     const trimmedDescription = String(description || '').trim() || null
+
+    if (task?.category !== 'campanha') {
+      throw new Error('Métricas são permitidas apenas para campanhas.')
+    }
+
+    const { data: proofSubmission, error: proofSubmissionError } = await supabase
+      .from('submissions')
+      .select('id, status, validated_at, updated_at')
+      .eq('user_id', user.id)
+      .eq('task_id', task.id)
+      .eq('status', 'approved')
+      .maybeSingle()
+
+    if (proofSubmissionError) throw proofSubmissionError
+
+    const proofMetricsWindow = getProofApprovalMetricsWindow(proofSubmission?.validated_at || proofSubmission?.updated_at)
+    const now = new Date()
+    if (!proofMetricsWindow.start || !proofMetricsWindow.end) {
+      throw new Error('A janela de envio de métricas ainda não foi liberada.')
+    }
+
+    if (now < proofMetricsWindow.start) {
+      throw new Error('As métricas só podem ser enviadas 24 horas após a aprovação da prova.')
+    }
+
+    if (now > proofMetricsWindow.end) {
+      throw new Error('A janela de envio de métricas foi encerrada.')
+    }
     
     // Capture timestamp automatically at submission time (prevents date fraud)
     const postedAtDate = new Date()
@@ -219,10 +246,8 @@ export const metricsService = {
     }
 
     const reviewedAt = existing.reviewed_at ? new Date(existing.reviewed_at) : null
-    const hasValidReviewedAt = reviewedAt && !Number.isNaN(reviewedAt.getTime())
-    if (hasValidReviewedAt) {
-      const resubmissionDeadline = new Date(reviewedAt)
-      resubmissionDeadline.setDate(resubmissionDeadline.getDate() + METRICS_RESUBMISSION_WINDOW_DAYS)
+    const resubmissionDeadline = getMetricsResubmissionDeadline(reviewedAt)
+    if (resubmissionDeadline) {
       if (new Date() > resubmissionDeadline) {
         throw new Error('Prazo de reenvio encerrado (2 dias após a rejeição). Você não receberá pontos nem pagamento para esta campanha.')
       }

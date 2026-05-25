@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Clock, CheckCircle, XCircle, User, Calendar, Users, Star, Eye, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
 
 const CONTACT_HELP_TEXT = 'Se precisar, fale com a equipe no Fórum (categoria Dúvidas) para esclarecimentos.';
 
@@ -26,6 +27,8 @@ const normalizeSubmissionStatus = (status) => {
 export default function AdminApplications() {
   const [activeTab, setActiveTab] = useState('pending');
   const [selectedTaskPreview, setSelectedTaskPreview] = useState(null);
+  const [isPreviewDescriptionExpanded, setIsPreviewDescriptionExpanded] = useState(false);
+  const [isPreviewJustificationExpanded, setIsPreviewJustificationExpanded] = useState(false);
   const { profile } = useAuth();
   const queryClient = useQueryClient();
 
@@ -111,21 +114,21 @@ export default function AdminApplications() {
         ? proofDeadline.toLocaleDateString('pt-BR')
         : null
 
-      alert(
+      notifySuccess(
         proofDeadlineLabel
           ? `Inscrição aprovada! O usuário já pode enviar a prova até ${proofDeadlineLabel} (prazo D-2 dias úteis da postagem).`
           : 'Inscrição aprovada! O usuário já pode enviar a prova.'
       );
     } catch (error) {
       console.error('Erro ao aprovar inscrição:', error);
-      alert('Erro ao aprovar inscrição.');
+      notifyError('Erro ao aprovar inscrição.');
     }
   };
 
   const handleReject = async (submission) => {
     const reason = window.prompt('Motivo da rejeição da inscrição:');
     if (!reason || !reason.trim()) {
-      alert('Informe um motivo de rejeição para continuar.');
+      notifyWarning('Informe um motivo de rejeição para continuar.');
       return;
     }
 
@@ -151,10 +154,10 @@ export default function AdminApplications() {
       await queryClient.invalidateQueries({ queryKey: ['submissions'] });
       await queryClient.refetchQueries({ queryKey: ['submissions', 'pending'] });
 
-      alert('Inscrição rejeitada.');
+      notifySuccess('Inscrição rejeitada.');
     } catch (error) {
       console.error('Erro ao rejeitar inscrição:', error);
-      alert('Erro ao rejeitar inscrição.');
+      notifyError('Erro ao rejeitar inscrição.');
     }
   };
 
@@ -177,10 +180,10 @@ export default function AdminApplications() {
 
       await queryClient.invalidateQueries({ queryKey: ['submissions'] });
       await queryClient.refetchQueries({ queryKey: ['submissions', 'pending'] });
-      alert('Inscrição voltou para análise pendente.');
+      notifySuccess('Inscrição voltou para análise pendente.');
     } catch (error) {
       console.error('Erro ao reabrir análise:', error);
-      alert('Erro ao reabrir análise.');
+      notifyError('Erro ao reabrir análise.');
     }
   };
 
@@ -191,6 +194,12 @@ export default function AdminApplications() {
   };
 
   const visibleItems = tabData[activeTab].items;
+
+  const openTaskPreview = (task) => {
+    setSelectedTaskPreview(task || null)
+    setIsPreviewDescriptionExpanded(false)
+    setIsPreviewJustificationExpanded(false)
+  }
 
   if (isLoading) {
     return (
@@ -293,20 +302,20 @@ export default function AdminApplications() {
         ) : (
           <div className="space-y-4 max-w-2xl">
             {visibleItems.map((submission) => (
-              <Card key={submission.id} className="border border-emerald-100 shadow-sm">
-                <CardContent className="pt-5">
+              <Card
+                key={submission.id}
+                className="border border-emerald-100 shadow-sm transition-all hover:shadow-md hover:border-emerald-300 cursor-pointer"
+                onClick={() => openTaskPreview(submission)}
+              >
+                <CardContent className="pt-4 pb-4">
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div>
                       <p className="text-2xl font-semibold text-[#3c0b14] leading-tight">
                         {submission.profile?.display_name || submission.profile?.full_name || 'Usuário'}
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedTaskPreview(submission.task || null)}
-                        className="text-sm text-gray-500 mt-1 inline-flex items-center gap-1 hover:text-emerald-700 hover:underline"
-                      >
+                      <p className="text-sm text-gray-500 mt-1 inline-flex items-center gap-1">
                         Tarefa: {submission.task?.title || 'Tarefa'}
-                      </button>
+                      </p>
                     </div>
                     <FileTextBadge
                       category={submission.task?.category}
@@ -338,13 +347,6 @@ export default function AdminApplications() {
                     </div>
                   </div>
 
-                  <div className="mb-3">
-                    <p className="text-sm font-semibold mb-1">Justificativa:</p>
-                    <div className="rounded-md bg-gray-50 border border-gray-100 p-3 text-sm text-gray-700">
-                      {submission.description || 'Sem justificativa informada.'}
-                    </div>
-                  </div>
-
                   <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
                     <span className="inline-flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5" />
@@ -359,7 +361,10 @@ export default function AdminApplications() {
                   {activeTab === 'pending' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4">
                       <Button
-                        onClick={() => handleApprove(submission)}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          handleApprove(submission)
+                        }}
                         disabled={approveSubmission.isPending}
                         className="bg-emerald-600 hover:bg-emerald-700"
                       >
@@ -367,10 +372,13 @@ export default function AdminApplications() {
                         Selecionar
                       </Button>
                       <Button
-                        onClick={() => handleReject(submission)}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          handleReject(submission)
+                        }}
                         disabled={rejectSubmission.isPending}
                         variant="outline"
-                        className="border-gray-300"
+                        className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-400"
                       >
                         <XCircle className="w-4 h-4 mr-2" />
                         Não Selecionar
@@ -381,19 +389,25 @@ export default function AdminApplications() {
                   {activeTab === 'selected' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4">
                       <Button
-                        onClick={() => handleResetReview(submission)}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          handleResetReview(submission)
+                        }}
                         disabled={resetSubmissionReview.isPending}
                         variant="outline"
-                        className="border-gray-300"
+                        className="border-gray-300 text-gray-700 hover:bg-gray-50"
                       >
                         <RotateCcw className="w-4 h-4 mr-2" />
                         Voltar para Análise
                       </Button>
                       <Button
-                        onClick={() => handleReject(submission)}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          handleReject(submission)
+                        }}
                         disabled={rejectSubmission.isPending}
                         variant="outline"
-                        className="border-gray-300"
+                        className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-400"
                       >
                         <XCircle className="w-4 h-4 mr-2" />
                         Não Selecionar
@@ -404,16 +418,22 @@ export default function AdminApplications() {
                   {activeTab === 'rejected' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4">
                       <Button
-                        onClick={() => handleResetReview(submission)}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          handleResetReview(submission)
+                        }}
                         disabled={resetSubmissionReview.isPending}
                         variant="outline"
-                        className="border-gray-300"
+                        className="border-gray-300 text-gray-700 hover:bg-gray-50"
                       >
                         <RotateCcw className="w-4 h-4 mr-2" />
                         Reabrir Análise
                       </Button>
                       <Button
-                        onClick={() => handleApprove(submission)}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          handleApprove(submission)
+                        }}
                         disabled={approveSubmission.isPending}
                         className="bg-emerald-600 hover:bg-emerald-700"
                       >
@@ -432,7 +452,7 @@ export default function AdminApplications() {
       <Dialog open={!!selectedTaskPreview} onOpenChange={(open) => { if (!open) setSelectedTaskPreview(null) }}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>{selectedTaskPreview?.title || 'Detalhes da Tarefa'}</DialogTitle>
+            <DialogTitle>{selectedTaskPreview?.task?.title || 'Detalhes da Tarefa'}</DialogTitle>
           </DialogHeader>
 
           {selectedTaskPreview && (
@@ -440,59 +460,79 @@ export default function AdminApplications() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-3">
                   <p className="text-xs text-gray-600">Categoria</p>
-                  <p className="font-semibold text-gray-800">{selectedTaskPreview.category || '-'}</p>
+                  <p className="font-semibold text-gray-800">{selectedTaskPreview.task?.category || '-'}</p>
                 </div>
 
                 <div className="rounded-lg border border-amber-100 bg-amber-50/60 p-3">
                   <p className="text-xs text-gray-600">Valor / Pontuação</p>
                   <p className="font-semibold text-gray-800">
-                    {selectedTaskPreview.category === 'campanha'
-                      ? `R$ ${Number(selectedTaskPreview.offered_value || 0).toLocaleString('pt-BR')}`
-                      : `${Number(selectedTaskPreview.points || 0).toLocaleString('pt-BR')} pts`}
+                    {selectedTaskPreview.task?.category === 'campanha'
+                      ? `R$ ${Number(selectedTaskPreview.task?.offered_value || 0).toLocaleString('pt-BR')}`
+                      : `${Number(selectedTaskPreview.task?.points || 0).toLocaleString('pt-BR')} pts`}
                   </p>
                 </div>
 
                 <div className="rounded-lg border border-blue-100 bg-blue-50/60 p-3">
                   <p className="text-xs text-gray-600">Vagas</p>
                   <p className="font-semibold text-gray-800">
-                    {Number(selectedTaskPreview.current_participants || 0)}
-                    {selectedTaskPreview.max_participants ? ` / ${Number(selectedTaskPreview.max_participants)}` : ''}
+                    {Number(selectedTaskPreview.task?.current_participants || 0)}
+                    {selectedTaskPreview.task?.max_participants ? ` / ${Number(selectedTaskPreview.task?.max_participants)}` : ''}
                   </p>
                 </div>
 
                 <div className="rounded-lg border border-purple-100 bg-purple-50/60 p-3">
                   <p className="text-xs text-gray-600">Mínimo de Seguidores</p>
-                  <p className="font-semibold text-gray-800">{Number(selectedTaskPreview.min_followers || 0)}</p>
+                  <p className="font-semibold text-gray-800">{Number(selectedTaskPreview.task?.min_followers || 0)}</p>
                 </div>
               </div>
 
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                 <p className="text-xs text-gray-600 mb-1">Descrição</p>
-                <p className="text-sm text-gray-800 whitespace-pre-wrap">
-                  {selectedTaskPreview.description || 'Sem descrição cadastrada.'}
-                </p>
+                <div className={isPreviewDescriptionExpanded ? 'text-sm text-gray-800 whitespace-pre-wrap' : 'text-sm text-gray-800 line-clamp-2 break-words whitespace-pre-wrap'}>
+                  {selectedTaskPreview.task?.description || 'Sem descrição cadastrada.'}
+                </div>
+                {(selectedTaskPreview.task?.description || '').trim() && (
+                  <button
+                    type="button"
+                    className="mt-2 text-xs font-medium text-emerald-700 hover:underline"
+                    onClick={() => setIsPreviewDescriptionExpanded((current) => !current)}
+                  >
+                    {isPreviewDescriptionExpanded ? 'Ver menos' : 'Ver mais'}
+                  </button>
+                )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-gray-600">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs text-gray-600 mb-1">Justificativa</p>
+                <div className={isPreviewJustificationExpanded ? 'text-sm text-gray-800 whitespace-pre-wrap break-all overflow-hidden' : 'text-sm text-gray-800 line-clamp-2 break-all overflow-hidden whitespace-pre-wrap'}>
+                  {selectedTaskPreview.description || 'Sem justificativa informada.'}
+                </div>
+                {(selectedTaskPreview.description || '').trim() && (
+                  <button
+                    type="button"
+                    className="mt-2 text-xs font-medium text-emerald-700 hover:underline"
+                    onClick={() => setIsPreviewJustificationExpanded((current) => !current)}
+                  >
+                    {isPreviewJustificationExpanded ? 'Ver menos' : 'Ver mais'}
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-600">
                 <div className="rounded-md border border-gray-200 p-2">
                   <p className="mb-0.5">Prazo de postagem</p>
                   <p className="font-medium text-gray-800">
-                    {selectedTaskPreview.posting_deadline
-                      ? format(new Date(selectedTaskPreview.posting_deadline), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                    {selectedTaskPreview.task?.posting_deadline
+                      ? format(new Date(selectedTaskPreview.task.posting_deadline), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
                       : '-'}
                   </p>
                 </div>
 
                 <div className="rounded-md border border-gray-200 p-2">
-                  <p className="mb-0.5">Delivery deadline</p>
-                  <p className="font-medium text-gray-800">{selectedTaskPreview.delivery_deadline || '-'}</p>
-                </div>
-
-                <div className="rounded-md border border-gray-200 p-2">
                   <p className="mb-0.5">Expira em</p>
                   <p className="font-medium text-gray-800">
-                    {selectedTaskPreview.expires_at
-                      ? format(new Date(selectedTaskPreview.expires_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                    {selectedTaskPreview.task?.expires_at
+                      ? format(new Date(selectedTaskPreview.task.expires_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
                       : '-'}
                   </p>
                 </div>
