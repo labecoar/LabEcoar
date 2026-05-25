@@ -718,8 +718,8 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                 <ul className="text-xs text-emerald-900 list-disc pl-5 space-y-1">
                   <li>
                     Publique no dia e horário combinados
-                    {hasValidPostingDeadline
-                      ? ` (até ${postingDeadline.toLocaleDateString('pt-BR')} às ${postingDeadline.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })})`
+                    {hasProofDeadline
+                      ? ` (até ${proofDeadline.toLocaleDateString('pt-BR')} às ${proofDeadline.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })})`
                       : ''}
                     .
                   </li>
