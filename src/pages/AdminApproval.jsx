@@ -361,7 +361,7 @@ export default function AdminApproval() {
           <span className="inline-flex min-w-0 items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate">
-              {format(new Date(submission.created_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
+              {format(new Date(submission.submitted_at || submission.updated_at || submission.created_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })}
             </span>
           </span>
 
