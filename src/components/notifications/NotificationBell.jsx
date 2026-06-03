@@ -1,11 +1,13 @@
 // @ts-nocheck
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom'
 import { Bell, CheckCheck, X } from 'lucide-react';
 import NotificationItem from '@/components/notifications/NotificationItem';
 import { useTaskNotifications } from '@/hooks/useTaskNotifications';
 
 export default function NotificationBell() {
+  const navigate = useNavigate()
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef(null)
   const { notifications, unreadCount, markAsRead, markAllAsRead, loading } = useTaskNotifications()
@@ -50,8 +52,12 @@ export default function NotificationBell() {
     setPopoverPos({ top, left, right, width: estimatedWidth })
   }, [isOpen])
 
-  const handleNotificationClick = (notificationId) => {
-    markAsRead(notificationId)
+  const handleNotificationClick = (notification) => {
+    markAsRead(notification.id)
+    
+    // Navegar para a página de tarefas disponíveis
+    navigate('/Tasks')
+    
     setIsOpen(false)
   }
 
@@ -109,7 +115,7 @@ export default function NotificationBell() {
               <NotificationItem
                 key={notification.id}
                 notification={notification}
-                onMarkAsRead={() => handleNotificationClick(notification.id)}
+                onMarkAsRead={() => handleNotificationClick(notification)}
               />
             ))
           )}

@@ -275,6 +275,13 @@ ALTER TABLE payments
   ADD CONSTRAINT payments_status_check
   CHECK (status IN ('pendente', 'processando', 'pago', 'erro'));
 
+-- Foreign Key para metrics_submissions
+ALTER TABLE payments DROP CONSTRAINT IF EXISTS fk_payments_metrics_submission;
+ALTER TABLE payments
+  ADD CONSTRAINT fk_payments_metrics_submission
+  FOREIGN KEY (metrics_submission_id)
+  REFERENCES metrics_submissions(id) ON DELETE SET NULL;
+
 -- ===================================
 -- TABELA: rewards
 -- Catálogo de recompensas
@@ -349,6 +356,13 @@ ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS claimed_at TIMESTAMPTZ DEFAUL
 ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS processed_at TIMESTAMPTZ;
 ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ;
 ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS cep TEXT;
+ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS endereco TEXT;
+ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS numero TEXT;
+ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS complemento TEXT;
+ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS bairro TEXT;
+ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS cidade TEXT;
+ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS estado TEXT;
 ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 ALTER TABLE reward_claims ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 

@@ -3,10 +3,13 @@ import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserScore } from "@/hooks/useScores";
 import { useClaimReward, useMyRewardClaims, useRewards } from "@/hooks/useRewards";
+import { useCepLookup } from "@/hooks/useCepLookup";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Gift,
   Star,
@@ -17,14 +20,17 @@ import {
   Heart,
   Smartphone,
   Package,
+  MapPin,
+  Loader2,
 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { notifyError, notifySuccess } from "@/lib/toast";
+import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
 
 const CATEGORY_INFO = {
   alimentacao: { name: "Alimentacao", icon: Apple, color: "bg-green-100 text-green-700 border-green-200" },
@@ -38,7 +44,18 @@ const CATEGORY_INFO = {
 export default function Rewards() {
   const [selectedCategory, setSelectedCategory] = useState("todas");
   const [selectedReward, setSelectedReward] = useState(null);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [address, setAddress] = useState({
+    cep: "",
+    endereco: "",
+    numero: "",
+    complemento: "",
+    bairro: "",
+    cidade: "",
+    estado: "",
+  });
   const { user } = useAuth();
+  const { searchCep, isLoading: isCepLoading } = useCepLookup();
 
   const { data: rewards = [], isLoading } = useRewards();
   const { data: myClaims = [] } = useMyRewardClaims(user?.id);
@@ -58,11 +75,62 @@ export default function Rewards() {
     return Number(reward.quantity_claimed || 0) < Number(reward.quantity_available || 0);
   };
 
-  const handleClaim = async (reward) => {
+  const handleClaim = (reward) => {
+    setShowAddressModal(true);
+  };
+
+  const handleCepBlur = async (cepValue) => {
+    if (!cepValue) return;
+
+    const data = await searchCep(cepValue);
+    if (data) {
+      setAddress((prev) => ({
+        ...prev,
+        endereco: data.endereco,
+        complemento: data.complemento,
+        bairro: data.bairro,
+        cidade: data.cidade,
+        estado: data.estado,
+      }));
+    }
+  };
+
+  const handleConfirmClaim = async () => {
+    // Validar endereço
+    if (!address.cep || !address.endereco || !address.numero || !address.bairro || !address.cidade || !address.estado) {
+      notifyWarning("Por favor, preencha todos os campos obrigatórios do endereço");
+      return;
+    }
+
+    // Validar CEP (apenas números e 8 dígitos)
+    if (!/^\d{5}-?\d{3}$/.test(address.cep)) {
+      notifyWarning("CEP inválido. Use o formato: 12345-678");
+      return;
+    }
+
+    // Validar estado (2 letras)
+    if (!/^[A-Z]{2}$/.test(address.estado.toUpperCase())) {
+      notifyWarning("Estado deve ter 2 letras (ex: SP, RJ)");
+      return;
+    }
+
     try {
-      await claimRewardMutation.mutateAsync(reward.id);
-      notifySuccess("Recompensa resgatada com sucesso! A equipe entrara em contato para mais informacoes. Seus pontos ja foram debitados.");
+      await claimRewardMutation.mutateAsync({ 
+        rewardId: String(selectedReward.id).trim(),
+        address: address
+      });
+      notifySuccess("Recompensa resgatada com sucesso! A equipe entrará em contato para confirmar o endereço de entrega.");
       setSelectedReward(null);
+      setShowAddressModal(false);
+      setAddress({
+        cep: "",
+        endereco: "",
+        numero: "",
+        complemento: "",
+        bairro: "",
+        cidade: "",
+        estado: "",
+      });
     } catch (error) {
       notifyError(error?.message || "Erro ao resgatar recompensa");
     }
@@ -246,6 +314,9 @@ export default function Rewards() {
             <DialogContent className="sm:max-w-2xl">
               <DialogHeader>
                 <DialogTitle className="text-2xl">{selectedReward.title}</DialogTitle>
+                <DialogDescription>
+                  Informações sobre a recompensa
+                </DialogDescription>
               </DialogHeader>
 
               <div className="space-y-6">
@@ -322,6 +393,153 @@ export default function Rewards() {
                     className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
                   >
                     {claimRewardMutation.isPending ? "Resgatando..." : "Resgatar Agora"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* MODAL DE ENDEREÇO */}
+        {showAddressModal && selectedReward && (
+          <Dialog open={showAddressModal} onOpenChange={() => setShowAddressModal(false)}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-emerald-600" />
+                  Endereço de Entrega
+                </DialogTitle>
+                <DialogDescription>
+                  Para concluir seu resgate, adicione seu endereço de entrega
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6">
+                <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                  <p className="text-sm text-emerald-900">
+                    Para concluir seu resgate, adicione seu endereço de entrega
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  {/* CEP */}
+                  <div>
+                    <Label htmlFor="modal-cep" className="text-sm font-medium">CEP *</Label>
+                    <div className="relative">
+                      <Input
+                        id="modal-cep"
+                        placeholder="12345-678"
+                        value={address.cep}
+                        onChange={(e) => {
+                          let value = e.target.value.replace(/\D/g, '');
+                          if (value.length > 5) {
+                            value = value.slice(0, 5) + '-' + value.slice(5, 8);
+                          }
+                          setAddress({ ...address, cep: value });
+                          
+                          // Chamar API quando tiver 9 caracteres (5 dígitos + hífen + 3 dígitos)
+                          if (value.length === 9) {
+                            handleCepBlur(value);
+                          }
+                        }}
+                        className="mt-1"
+                        disabled={isCepLoading}
+                        maxLength="9"
+                      />
+                      {isCepLoading && (
+                        <Loader2 className="absolute right-3 top-3 w-5 h-5 text-emerald-600 animate-spin" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Endereço */}
+                  <div>
+                    <Label htmlFor="modal-endereco" className="text-sm font-medium">Rua *</Label>
+                    <Input
+                      id="modal-endereco"
+                      placeholder="Rua Principal"
+                      value={address.endereco}
+                      onChange={(e) => setAddress({ ...address, endereco: e.target.value })}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  {/* Número e Complemento */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="modal-numero" className="text-sm font-medium">Número *</Label>
+                      <Input
+                        id="modal-numero"
+                        placeholder="123"
+                        value={address.numero}
+                        onChange={(e) => setAddress({ ...address, numero: e.target.value })}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="modal-complemento" className="text-sm font-medium">Complemento</Label>
+                      <Input
+                        id="modal-complemento"
+                        placeholder="Apto 45"
+                        value={address.complemento}
+                        onChange={(e) => setAddress({ ...address, complemento: e.target.value })}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Bairro */}
+                  <div>
+                    <Label htmlFor="modal-bairro" className="text-sm font-medium">Bairro *</Label>
+                    <Input
+                      id="modal-bairro"
+                      placeholder="Centro"
+                      value={address.bairro}
+                      onChange={(e) => setAddress({ ...address, bairro: e.target.value })}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  {/* Cidade e Estado */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="col-span-2">
+                      <Label htmlFor="modal-cidade" className="text-sm font-medium">Cidade *</Label>
+                      <Input
+                        id="modal-cidade"
+                        placeholder="São Paulo"
+                        value={address.cidade}
+                        onChange={(e) => setAddress({ ...address, cidade: e.target.value })}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="modal-estado" className="text-sm font-medium">UF *</Label>
+                      <Input
+                        id="modal-estado"
+                        placeholder="SP"
+                        value={address.estado.toUpperCase()}
+                        onChange={(e) => setAddress({ ...address, estado: e.target.value })}
+                        className="mt-1 uppercase"
+                        maxLength="2"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowAddressModal(false)}
+                    className="flex-1"
+                  >
+                    Voltar
+                  </Button>
+                  <Button
+                    onClick={handleConfirmClaim}
+                    disabled={claimRewardMutation.isPending}
+                    className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+                  >
+                    {claimRewardMutation.isPending ? "Confirmando..." : "Confirmar Resgate"}
                   </Button>
                 </div>
               </div>

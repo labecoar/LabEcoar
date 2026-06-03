@@ -149,6 +149,34 @@ export const metricsService = {
     return data
   },
 
+  async revertMetricsSubmission(metricsSubmissionId) {
+    // Revert approved metrics back to pending and delete associated payment
+    const { data, error } = await supabase
+      .from('metrics_submissions')
+      .update({
+        status: METRICS_STATUS.PENDING,
+        reviewed_at: null,
+        rejection_reason: null,
+      })
+      .eq('id', metricsSubmissionId)
+      .eq('status', METRICS_STATUS.APPROVED)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    // Delete the payment that was created for this approval
+    const { error: paymentError } = await supabase
+      .from('payments')
+      .delete()
+      .eq('metrics_submission_id', metricsSubmissionId)
+      .eq('status', 'pendente')
+
+    if (paymentError) throw paymentError
+
+    return data
+  },
+
   async submitMetricsSubmission({ user, task, metricsFileUrl, metricsFileUrls, metricsLink, description }) {
     // metricsFileUrls: optional array of uploaded file URLs (preferred)
     const trimmedLink = String(metricsLink || '').trim() || null

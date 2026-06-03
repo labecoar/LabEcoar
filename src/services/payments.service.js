@@ -42,63 +42,25 @@ export const paymentsService = {
   },
 
   async getAdminPayments(status = 'all') {
-    const applyStatusFilter = (queryBuilder) => {
+    // Começar pelo fallback (sem relação metrics_submission) já que a FK não existe ainda
+    const selectFieldsFallback = '*,profile:profiles(id,display_name,full_name,email,instagram_handle)'
+
+    const buildQuery = (selectStr) => {
+      let q = supabase.from('payments').select(selectStr)
       if (status && status !== 'all') {
-        return queryBuilder.eq('status', status)
+        q = q.eq('status', status)
       }
-      return queryBuilder
+      return q.order('created_at', { ascending: false })
     }
 
-    const fullQuery = applyStatusFilter(
-      supabase
-        .from('payments')
-        .select(`
-          *,
-          profile:profiles (
-            id,
-            display_name,
-            full_name,
-            email,
-            instagram_handle
-          ),
-          metrics_submission:metrics_submissions (
-            id,
-            task_title,
-            submitted_at
-          )
-        `)
-        .order('created_at', { ascending: false })
-    )
+    const fallbackQuery = buildQuery(selectFieldsFallback)
+    const { data, error } = await fallbackQuery
 
-    const { data, error } = await fullQuery
+    // Se funcionar sem a relação, retorna
     if (!error) return data || []
 
-    const rawError = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`.toLowerCase()
-    const missingRelation = rawError.includes('relationship') && rawError.includes('metrics_submissions')
-
-    if (!missingRelation) throw error
-
-    // Fallback para bancos sem FK explícita payments.metrics_submission_id -> metrics_submissions.id
-    const fallbackQuery = applyStatusFilter(
-      supabase
-        .from('payments')
-        .select(`
-          *,
-          profile:profiles (
-            id,
-            display_name,
-            full_name,
-            email,
-            instagram_handle
-          )
-        `)
-        .order('created_at', { ascending: false })
-    )
-
-    const { data: fallbackData, error: fallbackError } = await fallbackQuery
-    if (fallbackError) throw fallbackError
-
-    return fallbackData || []
+    // Se erro for por outro motivo, lança
+    throw error
   },
 
   async updatePaymentStatus({ paymentId, status, notes }) {

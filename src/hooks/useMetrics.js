@@ -42,6 +42,18 @@ export function useRejectMetricsSubmission() {
   })
 }
 
+export function useRevertMetricsSubmission() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (metricsSubmissionId) => metricsService.revertMetricsSubmission(metricsSubmissionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['metrics-submissions', 'admin', 'pending'] })
+      queryClient.invalidateQueries({ queryKey: ['metrics-submissions', 'admin', 'approved'] })
+    },
+  })
+}
+
 export function useSubmitMetricsSubmission() {
   const queryClient = useQueryClient()
 

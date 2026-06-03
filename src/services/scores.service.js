@@ -44,20 +44,21 @@ export const scoresService = {
       return toScoreModel(null, quarterKey, 0, 0)
     }
 
-    const range = getQuarterRange(quarterKey)
+    // Buscar diretamente de user_scores em vez de calcular
     const { data, error } = await supabase
-      .from('submissions')
-      .select('points_awarded, validated_at')
+      .from('user_scores')
+      .select('total_points, tasks_completed')
       .eq('user_id', userId)
-      .eq('status', 'approved')
-      .gte('validated_at', range.start.toISOString())
-      .lt('validated_at', range.end.toISOString())
+      .maybeSingle()
 
     if (error) throw error
 
-    const totalPoints = (data || []).reduce((acc, item) => acc + Number(item.points_awarded || 0), 0)
-    const tasksCompleted = (data || []).length
-    return toScoreModel(userId, quarterKey, totalPoints, tasksCompleted)
+    if (data) {
+      return toScoreModel(userId, quarterKey, data.total_points || 0, data.tasks_completed || 0)
+    }
+
+    // Se não existir registro, retornar 0
+    return toScoreModel(userId, quarterKey, 0, 0)
   },
 
   /**

@@ -1,8 +1,7 @@
 // @ts-nocheck
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAdminMetricsByStatus, useApproveMetricsSubmission, useRejectMetricsSubmission } from "@/hooks/useMetrics";
-import { useRegisterManualPayment } from "@/hooks/usePayments";
+import { useAdminMetricsByStatus, useApproveMetricsSubmission, useRejectMetricsSubmission, useRevertMetricsSubmission } from "@/hooks/useMetrics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,9 +27,7 @@ const LATE_POSTING_PLAN_B_TEXT = 'Você perdeu o prazo original de postagem e es
 
 export default function AdminMetrics() {
   const [selectedSubmission, setSelectedSubmission] = useState(null);
-  const [selectedPaymentSubmission, setSelectedPaymentSubmission] = useState(null);
   const [rejectionReason, setRejectionReason] = useState("");
-  const [paymentNotes, setPaymentNotes] = useState('');
   const { profile } = useAuth();
 
   const { data: pendingMetricsRaw = [], isLoading: loadingPending } = useAdminMetricsByStatus('pending');
@@ -40,7 +37,7 @@ export default function AdminMetrics() {
 
   const approveMetricsMutation = useApproveMetricsSubmission();
   const rejectMetricsMutation = useRejectMetricsSubmission();
-  const registerManualPaymentMutation = useRegisterManualPayment();
+  const revertMetricsMutation = useRevertMetricsSubmission();
 
   if (profile?.role !== 'admin') {
     return (
@@ -89,25 +86,17 @@ export default function AdminMetrics() {
     }
   }
 
-  const handleRegisterManualPayment = async () => {
-    if (!selectedPaymentSubmission) return
-
+  const handleRevert = async (submission) => {
     try {
-      await registerManualPaymentMutation.mutateAsync({
-        metricsSubmissionId: selectedPaymentSubmission.id,
-        userId: selectedPaymentSubmission.user_id,
-        quarter: selectedPaymentSubmission.quarter,
-        notes: paymentNotes,
-      })
-
-      setSelectedPaymentSubmission(null)
-      setPaymentNotes('')
-      notifySuccess('Pagamento marcado como pago com sucesso.')
+      await revertMetricsMutation.mutateAsync(submission.id)
+      notifySuccess('Métrica revertida para pendente com sucesso.')
     } catch (error) {
-      console.error('Erro ao registrar pagamento manual:', error)
-      notifyError(error?.message || 'Erro ao registrar pagamento manual.')
+      console.error('Erro ao reverter métrica:', error)
+      notifyError('Erro ao reverter métrica.')
     }
   }
+
+
 
   const renderMetricsCard = (submission, showActions = false) => {
     const postingDeadline = submission?.task?.posting_deadline
@@ -315,15 +304,6 @@ export default function AdminMetrics() {
                 )}
               </span>
             </span>
-
-            {hasPostedAt && (
-              <span className="text-right">
-                Postado em{' '}
-                {format(postedAt, "dd/MM HH:mm:ss", {
-                  locale: ptBR
-                })}
-              </span>
-            )}
           </div>
 
           {/* ACTIONS */}
@@ -358,16 +338,17 @@ export default function AdminMetrics() {
 
           {!showActions && submission.status === 'approved' && (
             <Button
-              onClick={() => {
-                setSelectedPaymentSubmission(submission)
-                setPaymentNotes('')
-              }}
-              className="w-full bg-emerald-700 hover:bg-emerald-800"
+              onClick={() => handleRevert(submission)}
+              disabled={revertMetricsMutation.isPending}
+              variant="outline"
+              className="w-full border-orange-300 text-orange-700 hover:bg-orange-50 hover:text-orange-800 hover:border-orange-400"
             >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Marcar como pago
+              <Clock className="w-4 h-4 mr-2" />
+              Voltar para Pendentes
             </Button>
           )}
+
+
         </CardContent>
       </Card>
     )
@@ -557,65 +538,7 @@ export default function AdminMetrics() {
           </Dialog>
         )}
 
-        {selectedPaymentSubmission && (
-          <Dialog
-            open={!!selectedPaymentSubmission}
-            onOpenChange={() => {
-              setSelectedPaymentSubmission(null)
-              setPaymentNotes('')
-            }}
-          >
-            <DialogContent className="sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Confirmar Pagamento Manual</DialogTitle>
-              </DialogHeader>
 
-              <div className="space-y-4">
-                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-                  <p className="text-sm text-gray-700"><strong>Campanha:</strong> {selectedPaymentSubmission.task_title || selectedPaymentSubmission.task?.title}</p>
-                  <p className="text-sm text-gray-700 mt-1"><strong>Ecoante:</strong> {selectedPaymentSubmission.user_name || selectedPaymentSubmission.profile?.display_name || selectedPaymentSubmission.profile?.full_name}</p>
-                </div>
-
-                <p className="text-xs text-gray-600">
-                  O pagamento é feito fora da plataforma. Este registro apenas atualiza o status para pago.
-                </p>
-
-                <div>
-                  <Label htmlFor="payment-notes">Observações (opcional)</Label>
-                  <Textarea
-                    id="payment-notes"
-                    value={paymentNotes}
-                    onChange={(e) => setPaymentNotes(e.target.value)}
-                    placeholder="Ex: Transferência realizada via TED às 14h32."
-                    className="mt-2"
-                  />
-                </div>
-
-                <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setSelectedPaymentSubmission(null)
-                      setPaymentNotes('')
-                    }}
-                    className="flex-1"
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    onClick={handleRegisterManualPayment}
-                    disabled={registerManualPaymentMutation.isPending}
-                    className="flex-1 bg-emerald-700 hover:bg-emerald-800"
-                  >
-                    {(registerManualPaymentMutation.isPending)
-                      ? 'Salvando...'
-                      : 'Marcar como pago'}
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
       </div>
     </div>
   );

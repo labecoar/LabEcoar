@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
 import { tasksService } from '@/services/tasks.service'
@@ -31,6 +31,7 @@ export function useTaskNotifications() {
   const storageKey = useMemo(() => (user?.id ? `${STORAGE_PREFIX}:${user.id}` : null), [user?.id])
   const [seenIds, setSeenIds] = useState([])
   const [loadingSeen, setLoadingSeen] = useState(false)
+  const lastValidIdsRef = useRef(new Set())
 
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ['tasks', 'all'],
@@ -90,6 +91,18 @@ export function useTaskNotifications() {
     if (!storageKey) return
 
     const validIds = new Set(notifications.map((notification) => notification.id))
+    
+    // Only update if the set of valid IDs actually changed
+    const validIdsArray = Array.from(validIds).sort()
+    const lastValidIdsArray = Array.from(lastValidIdsRef.current).sort()
+    
+    if (validIdsArray.length === lastValidIdsArray.length && 
+        validIdsArray.every((id, i) => id === lastValidIdsArray[i])) {
+      return // No change in valid IDs, skip update
+    }
+    
+    lastValidIdsRef.current = validIds
+    
     setSeenIds((current) => {
       const next = current.filter((id) => validIds.has(id))
       writeSeenIds(storageKey, next)

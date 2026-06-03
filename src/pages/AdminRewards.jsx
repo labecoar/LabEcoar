@@ -55,13 +55,16 @@ export default function AdminRewards() {
   )
 
   const startEditingRow = (reward) => {
-    setEditById((previous) => ({
-      ...previous,
-      [reward.id]: {
-        points_required: String(reward.points_required || ''),
-        quantity_available: reward.quantity_available == null ? '' : String(reward.quantity_available),
-      },
-    }))
+    setEditById((previous) => {
+      if (previous[reward.id]) return previous;
+      return {
+        ...previous,
+        [reward.id]: {
+          points_required: String(reward.points_required || ''),
+          quantity_available: reward.quantity_available == null ? '' : String(reward.quantity_available),
+        },
+      }
+    })
   }
 
   const handleCreate = async (event) => {
@@ -133,6 +136,7 @@ export default function AdminRewards() {
     }
 
     try {
+      console.log('Tentando atualizar recompensa:', reward.id, { points_required: pointsRequired, quantity_available: quantityAvailable });
       await updateReward.mutateAsync({
         rewardId: reward.id,
         payload: {
@@ -141,7 +145,15 @@ export default function AdminRewards() {
         },
       })
 
+      console.log('Recompensa atualizada com sucesso, limpando estado de edicao para:', reward.id);
+        setEditById((prev) => {
+          const newState = { ...prev }
+          delete newState[reward.id]
+          return newState
+        })
+
       notifySuccess('Item atualizado com sucesso.')
+      // React Query deve automaticamente refetch 'admin-rewards' aqui devido ao onSuccess em useUpdateReward
     } catch (updateError) {
       console.error('Erro ao atualizar recompensa:', updateError)
       notifyError(updateError?.message || 'Nao foi possivel salvar este item.')
@@ -366,11 +378,13 @@ export default function AdminRewards() {
                             value={rowEdit.points_required}
                             onFocus={() => startEditingRow(reward)}
                             onChange={(event) => {
-                              startEditingRow(reward)
                               setEditById((prev) => ({
                                 ...prev,
                                 [reward.id]: {
-                                  ...rowEdit,
+                                ...(prev[reward.id] || {
+                                  points_required: String(reward.points_required || ''),
+                                  quantity_available: reward.quantity_available == null ? '' : String(reward.quantity_available),
+                                }),
                                   points_required: event.target.value,
                                 },
                               }))
@@ -383,11 +397,13 @@ export default function AdminRewards() {
                             value={rowEdit.quantity_available}
                             onFocus={() => startEditingRow(reward)}
                             onChange={(event) => {
-                              startEditingRow(reward)
                               setEditById((prev) => ({
                                 ...prev,
                                 [reward.id]: {
-                                  ...rowEdit,
+                                ...(prev[reward.id] || {
+                                  points_required: String(reward.points_required || ''),
+                                  quantity_available: reward.quantity_available == null ? '' : String(reward.quantity_available),
+                                }),
                                   quantity_available: event.target.value,
                                 },
                               }))

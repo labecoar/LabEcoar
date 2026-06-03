@@ -74,7 +74,7 @@ export const rewardsService = {
     return data || []
   },
 
-  async claimReward(rewardId, userId) {
+  async claimReward(rewardId, userId, addressData) {
     if (!userId) {
       throw new Error('Usuário não autenticado.')
     }
@@ -82,7 +82,7 @@ export const rewardsService = {
     const [reward, currentQuarterScore] = await Promise.all([
       supabase
         .from('rewards')
-        .select('id, points_required, is_active')
+        .select('id, points_required, is_active, title')
         .eq('id', rewardId)
         .maybeSingle(),
       scoresService.getUserScore(userId, getCurrentQuarterKey()),
@@ -95,11 +95,82 @@ export const rewardsService = {
 
     const availablePoints = Number(currentQuarterScore?.total_points || 0)
     const requiredPoints = Number(reward.data.points_required || 0)
+
     if (availablePoints < requiredPoints) {
-      throw new Error('Pontos insuficientes no trimestre atual para este resgate.')
+      throw new Error(`Pontos insuficientes no trimestre atual para este resgate. Você tem ${availablePoints} pontos e precisa de ${requiredPoints}.`)
     }
 
-    const { data, error } = await supabase.rpc('claim_reward', { p_reward_id: rewardId })
+    // Obter dados do usuário
+    const { data: userData } = await supabase
+      .from('profiles')
+      .select('email, full_name')
+      .eq('id', userId)
+      .maybeSingle()
+
+    // Criar registro de reward_claim diretamente
+    const { data: claimData, error: claimError } = await supabase
+      .from('reward_claims')
+      .insert({
+        reward_id: rewardId,
+        user_id: userId,
+        reward_title: reward.data.title,
+        user_email: userData?.email || '',
+        user_name: userData?.full_name || '',
+        points_spent: requiredPoints,
+        status: 'pendente',
+        claimed_at: new Date().toISOString(),
+        cep: addressData?.cep || null,
+        endereco: addressData?.endereco || null,
+        numero: addressData?.numero || null,
+        complemento: addressData?.complemento || null,
+        bairro: addressData?.bairro || null,
+        cidade: addressData?.cidade || null,
+        estado: addressData?.estado || null,
+      })
+      .select('id')
+      .single()
+
+    if (claimError) {
+      throw claimError
+    }
+
+    // Decrementar pontos do usuário
+    const newTotalPoints = availablePoints - requiredPoints
+
+    const { data: updateData, error: updateError } = await supabase
+      .from('user_scores')
+      .update({ total_points: newTotalPoints })
+      .eq('user_id', userId)
+      .select('*')
+      .single()
+
+    if (updateError) {
+      // Deletar o claim que foi criado
+      await supabase.from('reward_claims').delete().eq('id', claimData.id)
+      throw updateError
+    }
+
+    return claimData.id
+  },
+
+  async getAdminClaims() {
+    const { data, error } = await supabase
+      .from('reward_claims')
+      .select('*')
+      .order('claimed_at', { ascending: false })
+
+    if (error) throw error
+    return data || []
+  },
+
+  async updateClaimStatus(claimId, payload) {
+    const { data, error } = await supabase
+      .from('reward_claims')
+      .update(payload)
+      .eq('id', claimId)
+      .select('*')
+      .single()
+
     if (error) throw error
     return data
   },

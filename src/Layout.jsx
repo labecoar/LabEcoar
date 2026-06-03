@@ -103,6 +103,11 @@ const adminNavigationItems = [
     icon: Gift,
   },
   {
+    title: "Resgates de Recompensas",
+    url: createPageUrl("AdminRewardClaims"),
+    icon: Gift,
+  },
+  {
     title: "Ranking",
     url: createPageUrl("Leaderboard"),
     icon: Trophy,
