@@ -33,7 +33,7 @@ export default function NotificationItem({ notification, onMarkAsRead }) {
 
   return (
     <div
-      className={`p-4 bg-white hover:bg-gray-50 cursor-pointer transition-colors ${!notification.is_read ? 'border-l-4' : ''}`}
+      className={`p-4 bg-black hover:bg-white/5 cursor-pointer transition-colors border-b border-white/5 ${!notification.is_read ? 'border-l-4' : ''}`}
       style={!notification.is_read ? { borderColor: colors.color } : {}}
       onClick={onMarkAsRead}
     >
@@ -46,14 +46,14 @@ export default function NotificationItem({ notification, onMarkAsRead }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-1">
-            <h4 className={`text-sm ${!notification.is_read ? 'font-bold' : 'font-medium'}`} style={{ color: '#3c0b14' }}>
+            <h4 className={`text-sm ${!notification.is_read ? 'font-bold text-white' : 'font-medium text-white/80'}`}>
               {notification.title}
             </h4>
             {!notification.is_read && (
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: colors.color }} />
             )}
           </div>
-          <p className="text-sm mb-2" style={{ color: '#929292' }}>
+          <p className="text-sm mb-2 text-white/60">
             {notification.message}
           </p>
           {notification.related_task_title && (
@@ -61,7 +61,7 @@ export default function NotificationItem({ notification, onMarkAsRead }) {
               📋 {notification.related_task_title}
             </p>
           )}
-          <p className="text-xs" style={{ color: '#929292' }}>
+          <p className="text-xs text-white/40">
             {format(new Date(notification.created_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
           </p>
         </div>

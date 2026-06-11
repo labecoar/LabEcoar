@@ -66,7 +66,7 @@ export default function NotificationBell() {
     <>
       <div onClick={() => setIsOpen(false)} className="fixed inset-0 z-40" />
       <div
-        className="fixed mt-2 w-[22rem] max-w-[90vw] rounded-2xl border border-gray-200 bg-white shadow-2xl z-50 overflow-hidden"
+        className="fixed mt-2 w-[22rem] max-w-[90vw] rounded-2xl border border-white/10 bg-white shadow-2xl z-50 overflow-hidden"
         style={(() => {
           if (!popoverPos) return { right: 8, top: 0 }
           const s = { top: popoverPos.top + 'px' }
@@ -77,16 +77,16 @@ export default function NotificationBell() {
         })()}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-gray-100 bg-white">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10 bg-black">
           <div>
-            <p className="text-sm font-semibold text-[#3c0b14]">Notificações</p>
-            <p className="text-xs text-gray-500">Tarefas disponíveis e prazos próximos</p>
+            <p className="text-sm font-semibold text-white">Notificações</p>
+            <p className="text-xs text-white/60">Tarefas disponíveis e prazos próximos</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={markAllAsRead}
-              className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:text-emerald-800"
+              className="inline-flex items-center gap-1 text-xs font-medium text-emerald-500 hover:text-emerald-400"
               title="Marcar todas como lidas"
             >
               <CheckCheck className="w-4 h-4" />
@@ -95,7 +95,7 @@ export default function NotificationBell() {
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500"
+              className="p-1.5 rounded-full hover:bg-white/10 text-white/60"
               aria-label="Fechar notificações"
             >
               <X className="w-4 h-4" />
@@ -103,11 +103,11 @@ export default function NotificationBell() {
           </div>
         </div>
 
-        <div className="max-h-[70vh] overflow-y-auto bg-white">
+        <div className="max-h-[70vh] overflow-y-auto bg-black">
           {loading ? (
-            <div className="p-4 text-sm text-gray-500">Carregando notificações...</div>
+            <div className="p-4 text-sm text-white/50">Carregando notificações...</div>
           ) : notifications.length === 0 ? (
-            <div className="p-6 text-center text-sm text-gray-500">
+            <div className="p-6 text-center text-sm text-white/50">
               Nenhuma notificação no momento.
             </div>
           ) : (
@@ -129,11 +129,11 @@ export default function NotificationBell() {
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className="relative inline-flex items-center justify-center p-2.5 rounded-full bg-gray-100 transition-colors hover:bg-gray-200"
+        className="relative inline-flex items-center justify-center p-2.5 rounded-full bg-white/10 transition-colors hover:bg-white/20"
         aria-label="Abrir notificações"
         aria-expanded={isOpen}
       >
-        <Bell className="w-5.5 h-5.5 text-gray-600" />
+        <Bell className="w-5.5 h-5.5 text-white" />
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 min-w-6.5 h-6.5 px-1.5 rounded-full bg-[#ce161c] text-white text-[11px] font-bold flex items-center justify-center shadow-md shadow-[#ce161c30] border border-white/60">
             {unreadCount > 9 ? '9+' : unreadCount}

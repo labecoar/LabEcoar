@@ -2,11 +2,16 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Home, Target, CheckCircle2, Trophy, LogOut, Shield, User, Users, MessageSquare, Gift, DollarSign, BarChart3 } from "lucide-react";
+import { Home, Target, CheckCircle2, Trophy, LogOut, Shield, User, Users, MessageSquare, Gift, DollarSign, BarChart3, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserScore } from "@/hooks/useScores";
-import logoCuica from "@/assets/images/logo_cuica.png";
+import logoCuica from "@/assets/images/cuica_lab.png";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import { C, heading, body } from '@/lib/theme'
+import { useQuery } from "@tanstack/react-query";
+import { adminUsersService } from "@/services/admin-users.service";
+import { useAdminTasks } from "@/hooks/useTasks";
+
 import {
   Sidebar,
   SidebarContent,
@@ -21,6 +26,11 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+
+const isTaskExpired = (task) => {
+  if (!task?.expires_at) return false;
+  return new Date(task.expires_at).getTime() < Date.now();
+};
 
 const navigationItems = [
   {
@@ -143,19 +153,26 @@ function NavigationMenu({ items, isNavItemActive }) {
         <SidebarMenuItem key={item.title}>
           <SidebarMenuButton
             asChild
-            className={`hover:bg-[#096e4c10] transition-all duration-200 rounded-xl mb-1 ${isNavItemActive(item.url) ? 'text-white shadow-md' : 'text-[#3c0b14]'
+            className={`hover:bg-[#096e4c10] transition-all duration-200 rounded-xl mb-1 ${isNavItemActive(item.url) ? 'text-black shadow-md' : 'text-white'
               }`}
             style={isNavItemActive(item.url) ? {
-              background: 'linear-gradient(135deg, #096e4c 0%, #00c331 100%)'
+              background: C.lime
             } : {}}
           >
             <Link
               to={item.url}
-              className="flex items-center gap-3 px-4 py-3"
+              className="flex items-center gap-3 px-4 py-2.5"
               onClick={handleNavigationClick}
             >
-              <item.icon className="w-5 h-5" />
-              <span className="font-medium">{item.title}</span>
+              <item.icon className="w-4 h-4" />
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: isNavItemActive(item.url) ? 700 : 400,
+                }}
+              >
+                {item.title}
+              </span>
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -182,6 +199,17 @@ export default function Layout({ children, currentPageName }) {
   const { data: userScore } = useUserScore(user?.id);
   const visibleNavigationItems = isAdmin ? adminNavigationItems : navigationItems;
   const landingPageUrl = currentPageName ? createPageUrl(currentPageName) : null;
+
+  // Chamadas de hooks devem ficar obrigatoriamente dentro do componente
+  const { data: users } = useQuery({
+    queryKey: ['admin-users'],
+    queryFn: () => adminUsersService.listUsers(),
+    enabled: !!isAdmin // Evita buscar a lista de usuários para não-admins
+  });
+  const { data: tasks } = useAdminTasks();
+
+  const activeUsers = users?.filter(u => u.is_active !== false).length ?? 0;
+  const activeTasks = tasks?.filter(t => t.status === 'active' && !isTaskExpired(t)).length ?? 0;
 
   const isNavItemActive = (itemUrl) => {
     if (location.pathname === itemUrl) return true;
@@ -238,10 +266,6 @@ export default function Layout({ children, currentPageName }) {
           --vermelho: #ce161c;
         }
         
-        body {
-          color: #3c0b14;
-        }
-        
         .bg-gradient-primary {
           background: linear-gradient(135deg, #096e4c 0%, #00c331 100%);
         }
@@ -256,61 +280,139 @@ export default function Layout({ children, currentPageName }) {
           -webkit-text-fill-color: transparent;
           background-clip: text;
         }
-      `}</style>
-      <div className="min-h-screen flex w-full" style={{ background: 'linear-gradient(to br, #f5fff8, #ffffff, #fff5f8)' }}>
-        <Sidebar className="border-r bg-white/80 backdrop-blur-sm" style={{ borderColor: '#096e4c20' }}>
-          <SidebarHeader className="border-b p-6" style={{ borderColor: '#096e4c20' }}>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden">
-                <img
-                  src={logoCuica}
-                  alt="Cuíca Lab"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div>
-                <h2 className="font-bold text-lg" style={{ color: '#3c0b14' }}>Cuíca Lab</h2>
-                <p className="text-xs" style={{ color: '#096e4c' }}>Cuíca x Ecoantes</p>
-              </div>
-            </div>
+      `}
+      </style>
+
+      <div className="min-h-screen flex w-full bg-background text-foreground">
+        <Sidebar
+          className="border-r flex flex-col"
+          // style={{
+          style={{
+            backgroundColor: C.blue
+          }}
+        >
+          <SidebarHeader className="border-a p-6" >
+            <img
+              src={logoCuica}
+              style={{ height: 38, width: 172, justifyContent: "center", alignSelf: "center" }}
+              className="w-full h-full object-cover"
+            />
           </SidebarHeader>
 
-          <SidebarContent className="p-3">
-            <SidebarGroup>
-              <SidebarGroupContent>
-                <NavigationMenu
-                  items={visibleNavigationItems}
-                  isNavItemActive={isNavItemActive}
-                />
-              </SidebarGroupContent>
-            </SidebarGroup>
+          <SidebarContent className="flex flex-col h-full">
 
-            {user && !isAdmin && (
-              <SidebarGroup className="mt-6">
-                <div className="px-4 py-4 rounded-xl border-2" style={{
-                  background: 'linear-gradient(135deg, #096e4c05 0%, #00c33105 100%)',
-                  borderColor: '#096e4c'
-                }}>
-                  <div className="mb-3 pb-3 border-b" style={{ borderColor: '#096e4c20' }}>
-                    <p className="text-xs mb-1" style={{ color: '#929292' }}>Categoria Atual</p>
-                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${categoryInfo.color} bg-opacity-20 border-2 border-current`}>
-                      <span className="font-bold text-sm">{categoryInfo.name}</span>
-                    </div>
-                    <p className="text-xs mt-1" style={{ color: '#929292' }}>{categoryInfo.range}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm" style={{ color: '#3c0b14' }}>Pontos</span>
-                      <span className="font-bold" style={{ color: '#096e4c' }}>{currentPoints}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm" style={{ color: '#3c0b14' }}>Ganho Previsto</span>
-                      <span className="font-bold" style={{ color: '#00c331' }}>{categoryInfo.value}</span>
-                    </div>
-                  </div>
-                </div>
+            <div className="flex-1 overflow-y-auto p-3">
+              <SidebarGroup>
+                <SidebarGroupContent>
+                  <NavigationMenu
+                    items={visibleNavigationItems}
+                    isNavItemActive={isNavItemActive}
+                  />
+                </SidebarGroupContent>
               </SidebarGroup>
-            )}
+            </div>
+            <div className="p-3 pt-0 shrink-0">
+
+              {isAdmin && (
+                <SidebarGroup>
+                  <div
+                    className="p-4 rounded-2xl border"
+                    style={{
+                      background: "rgba(255,255,255,0.05)",
+                      borderColor: "rgba(255,255,255,0.15)",
+                    }}
+                  >
+                    <p className="text-xs text-white/50 uppercase mb-3">
+                      Painel Admin
+                    </p>
+
+                    <div
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-bold"
+                      style={{
+                        background: C.lime,
+                        color: C.black,
+                        fontSize: 12,
+                        ...body,
+                        fontWeight: 700,
+                      }}
+                    >
+                      <ShieldCheck size={16} />
+                      Administrador
+                    </div>
+
+                    <p className="text-white/50 mt-1" style={{ fontFamily: body.fontFamily, fontSize: 11, fontWeight: 400 }}>
+                      Agência CuícaLab
+                    </p>
+
+                    <div className="mt-1 space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Ecoantes ativos</span>
+                        <span className="text-lime-300 font-bold">
+                          {activeUsers}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Tarefas ativas</span>
+                        <span className="font-bold text-white">
+                          {activeTasks}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </SidebarGroup>
+              )}
+
+              {!isAdmin && (
+                <SidebarGroup className="mt-6">
+                  <div
+                    className="p-5 rounded-3xl border"
+                    style={{
+                      background: "rgba(255,255,255,0.05)",
+                      borderColor: "rgba(255,255,255,0.15)",
+                    }}
+                  >
+                    <p className="text-xs text-white/50 uppercase mb-4">
+                      Minha Categoria
+                    </p>
+
+                    <div
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-bold"
+                      style={{
+                        background: C.lime,
+                        color: C.black,
+                        fontSize: 11,
+                        ...body,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {categoryInfo.name}
+                    </div>
+
+                    <div className="mt-6">
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Pontos</span>
+                        <span className="font-bold text-white">
+                          {currentPoints}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between mt-3">
+                        <span className="text-white/60">
+                          Ganho Previsto
+                        </span>
+                        <span
+                          className="font-bold"
+                          style={{ color: C.lime }}
+                        >
+                          {categoryInfo.value}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </SidebarGroup>
+              )}
+            </div>
           </SidebarContent>
 
           <SidebarFooter className="border-t p-4" style={{ borderColor: '#096e4c20' }}>
@@ -324,17 +426,21 @@ export default function Layout({ children, currentPageName }) {
                     style={{ borderColor: '#096e4c' }}
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{
-                    background: 'linear-gradient(135deg, #096e4c 0%, #00c331 100%)'
-                  }}>
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center"
+                    style={{
+                      backgroundColor: C.orange,
+                      color: C.cream
+                    }}
+                  >
                     <span className="text-white font-bold text-sm">
-                      {(user?.display_name?.charAt(0) || user?.full_name?.charAt(0) || 'E').toUpperCase()}
+                      {displayUserName.charAt(0).toUpperCase()}
                     </span>
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate" style={{ color: '#3c0b14' }}>{displayUserName}</p>
-                  <p className="text-xs truncate" style={{ color: '#929292' }}>{user?.instagram_handle || user?.email}</p>
+                  <p className="font-medium text-sm truncate text-white">{displayUserName}</p>
+                  <p className="text-xs truncate text-white/50" >{user?.instagram_handle || user?.email}</p>
                 </div>
               </div>
               <button
@@ -342,27 +448,29 @@ export default function Layout({ children, currentPageName }) {
                 className="p-2 rounded-lg transition-colors duration-200 hover:bg-[#ce161c10]"
                 title="Sair"
               >
-                <LogOut className="w-4 h-4" style={{ color: '#ce161c' }} />
+                <LogOut className="w-4 h-4 text-white" />
               </button>
             </div>
           </SidebarFooter>
         </Sidebar>
 
         <main className="flex-1 flex flex-col">
-          <header className="bg-white/80 backdrop-blur-sm border-b px-6 py-4" style={{ borderColor: '#096e4c20' }}>
+          <header className="backdrop-blur-sm border-b px-6 py-4" style={{ borderColor: 'rgba(255,255,255,0.1)', background: C.black}}>
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <SidebarTrigger className="p-2 rounded-lg transition-colors duration-200 md:hidden hover:bg-[#096e4c10]" />
+                <SidebarTrigger className="p-2 rounded-lg transition-colors duration-200 md:hidden hover:bg-white/10 text-white" />
                 <div className="md:hidden flex items-center gap-2">
                   <img
                     src={logoCuica}
                     alt="Cuíca Lab"
                     className="w-7 h-7 rounded-lg object-cover"
                   />
-                  <h1 className="text-xl font-bold" style={{ color: '#3c0b14' }}>Cuíca Lab</h1>
+                  <h1 className="text-xl font-bold text-white">Cuíca Lab</h1>
                 </div>
               </div>
-              <NotificationBell />
+              <div className="flex items-center gap-2">
+                <NotificationBell />
+              </div>
             </div>
           </header>
 
