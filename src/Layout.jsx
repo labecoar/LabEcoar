@@ -364,16 +364,16 @@ export default function Layout({ children, currentPageName }) {
               )}
 
               {!isAdmin && (
-                <SidebarGroup className="mt-6">
+                <SidebarGroup>
                   <div
-                    className="p-5 rounded-3xl border"
+                    className="p-4 rounded-2xl border"
                     style={{
                       background: "rgba(255,255,255,0.05)",
                       borderColor: "rgba(255,255,255,0.15)",
                     }}
                   >
-                    <p className="text-xs text-white/50 uppercase mb-4">
-                      Minha Categoria
+                    <p className="text-xs text-white/50 uppercase mb-3">
+                      Categoria Atual
                     </p>
 
                     <div
@@ -381,30 +381,30 @@ export default function Layout({ children, currentPageName }) {
                       style={{
                         background: C.lime,
                         color: C.black,
-                        fontSize: 11,
+                        fontSize: 12,
                         ...body,
                         fontWeight: 700,
                       }}
                     >
+                      <Trophy size={16} />
                       {categoryInfo.name}
                     </div>
 
-                    <div className="mt-6">
+                    <p className="text-white/50 mt-1" style={{ fontFamily: body.fontFamily, fontSize: 11, fontWeight: 400 }}>
+                      Agência CuícaLab
+                    </p>
+
+                    <div className="mt-1 space-y-1">
                       <div className="flex justify-between">
                         <span className="text-white/60">Pontos</span>
-                        <span className="font-bold text-white">
+                        <span className="text-lime-300 font-bold">
                           {currentPoints}
                         </span>
                       </div>
 
-                      <div className="flex justify-between mt-3">
-                        <span className="text-white/60">
-                          Ganho Previsto
-                        </span>
-                        <span
-                          className="font-bold"
-                          style={{ color: C.lime }}
-                        >
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Ganho Previsto</span>
+                        <span className="font-bold text-white">
                           {categoryInfo.value}
                         </span>
                       </div>
@@ -455,7 +455,7 @@ export default function Layout({ children, currentPageName }) {
         </Sidebar>
 
         <main className="flex-1 flex flex-col">
-          <header className="backdrop-blur-sm border-b px-6 py-4" style={{ borderColor: 'rgba(255,255,255,0.1)', background: C.black}}>
+          <header className="backdrop-blur-sm border-b px-6 py-4" style={{ borderColor: 'rgba(255,255,255,0.1)', background: C.black }}>
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <SidebarTrigger className="p-2 rounded-lg transition-colors duration-200 md:hidden hover:bg-white/10 text-white" />

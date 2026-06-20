@@ -1,63 +1,22 @@
 // @ts-nocheck
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUserScore } from "@/hooks/useScores";
 import { useMyPayments, usePaymentInfo, useUpsertPaymentInfo } from "@/hooks/usePayments";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   DollarSign,
   CreditCard,
-  CheckCircle,
   Clock,
-  AlertCircle,
-  Calendar,
   Edit,
   TrendingUp,
-  Award,
+  Wallet,
+  Download,
+  Star,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { notifyError, notifySuccess } from "@/lib/toast";
-
-const CATEGORY_VALUES = {
-  voz_e_violao: { value: 1000, name: "Voz e Violao", emoji: "🎸", color: "from-yellow-400 to-orange-500", range: "1000-1999 pts" },
-  dueto: { value: 2000, name: "Dueto", emoji: "🎤", color: "from-pink-400 to-rose-500", range: "2000-3499 pts" },
-  fanfarra: { value: 3500, name: "Fanfarra", emoji: "🎺", color: "from-blue-400 to-cyan-500", range: "3500-4499 pts" },
-  carnaval: { value: 4500, name: "Carnaval", emoji: "🎉", color: "from-orange-400 to-red-500", range: "4500+ pts" },
-};
-
-const getCategoryByPoints = (points = 0) => {
-  if (points >= 4500) return "carnaval";
-  if (points >= 3500) return "fanfarra";
-  if (points >= 2000) return "dueto";
-  if (points >= 1000) return "voz_e_violao";
-  return null;
-};
-
-const NO_CATEGORY_INFO = {
-  value: 0,
-  name: "Sem faixa",
-  emoji: "🎯",
-  color: "from-gray-400 to-gray-500",
-  range: "0-999 pts",
-};
-
-const getCurrentQuarterLabel = () => {
-  const now = new Date();
-  const quarter = Math.floor(now.getMonth() / 3) + 1;
-  return `Q${quarter}-${now.getFullYear()}`;
-};
+import { C, heading, body } from '@/lib/theme';
+import { useUserScore } from "@/hooks/useScores";
 
 const formatCurrency = (value) => Number(value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 });
 const onlyDigits = (value) => String(value || "").replace(/\D/g, "");
@@ -72,7 +31,6 @@ const formatCpf = (value) => {
 
 export default function MyPayments() {
   const { user, profile } = useAuth();
-  const { data: userScore } = useUserScore(user?.id);
   const { data: paymentInfo } = usePaymentInfo(user?.id);
   const { data: payments = [] } = useMyPayments(user?.id);
   const upsertPaymentInfo = useUpsertPaymentInfo(user?.id);
@@ -89,6 +47,7 @@ export default function MyPayments() {
     pix_key: "",
     pix_type: "cpf",
   });
+  const { data: userScore } = useUserScore(user?.id);
 
   const [savedPaymentData, setSavedPaymentData] = useState(null);
 
@@ -162,198 +121,123 @@ export default function MyPayments() {
     && paymentData.cpf
   );
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "pago":
-        return "bg-green-100 text-green-700 border-green-200";
-      case "processando":
-        return "bg-blue-100 text-blue-700 border-blue-200";
-      case "erro":
-        return "bg-red-100 text-red-700 border-red-200";
-      default:
-        return "bg-yellow-100 text-yellow-700 border-yellow-200";
-    }
+  const pagChip = (status) => {
+    if (status === "pago") return { bg: `${C.lime}1A`, color: C.lime };
+    if (status === "pendente") return { bg: `${C.orange}1A`, color: C.orange };
+    return { bg: `${C.blue}22`, color: "#7799FF" }; // processando
   };
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "pago":
-        return <CheckCircle className="w-4 h-4" />;
-      case "processando":
-        return <Clock className="w-4 h-4" />;
-      case "erro":
-        return <AlertCircle className="w-4 h-4" />;
-      default:
-        return <Clock className="w-4 h-4" />;
-    }
-  };
-
-  const currentPoints = Number(userScore?.total_points || 0);
-  const currentCategory = getCategoryByPoints(currentPoints);
-  const categoryInfo = currentCategory ? CATEGORY_VALUES[currentCategory] : NO_CATEGORY_INFO;
-  const currentQuarter = getCurrentQuarterLabel();
 
   const totalReceived = payments
     .filter((p) => p.status === "pago")
     .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
   const awaiting = payments
     .filter((p) => p.status === "pendente" || p.status === "processando")
     .reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
+    <main className="flex-1 overflow-y-auto" style={{ backgroundColor: C.black }}>
+      <div className="flex items-center justify-between px-8 py-4 sticky top-0 z-10" style={{ backgroundColor: `${C.black}F5`, backdropFilter: "blur(16px)", borderBottom: `1px solid rgba(255,255,222,0.05)` }}>
+        <div className="flex items-center gap-3">
+          <CreditCard size={16} style={{ color: C.lime }} />
+          <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", textTransform: "uppercase" }}>Meus Pagamentos</span>
+        </div>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.black }}>
+          <Star size={11} fill={C.black} />
+          <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>{userScore?.total_points || 0} pts</span>
+        </div>
+      </div>
+
+      <div className="px-8 pt-7 pb-10 max-w-6xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+          <h1 style={{ ...heading, fontSize: 40, fontWeight: 900, color: C.cream, letterSpacing: "-0.03em", lineHeight: 1 }}>
             Meus Pagamentos
           </h1>
-          <p className="text-gray-600 mt-2">Gerencie seus dados bancarios e acompanhe seus pagamentos</p>
+          <p style={{ fontSize: 14, color: `${C.cream}50`, marginTop: 6 }}>Histórico de recebimentos por campanhas.</p>
         </div>
 
-        <Card className="shadow-xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 mb-8">
-          <CardContent className="p-8">
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <p className="text-sm text-gray-600 mb-2">Ganho Previsto no Trimestre {currentQuarter}</p>
-                <div className="flex items-baseline gap-3 flex-wrap">
-                  <h2 className="text-5xl font-black text-emerald-700">
-                    R$ {currentPoints.toLocaleString("pt-BR")}
-                  </h2>
-                  <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r ${categoryInfo?.color} text-white font-bold shadow-lg`}>
-                    <span className="text-xl">{categoryInfo?.emoji}</span>
-                    <span>{categoryInfo?.name}</span>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 mt-2">Com base nos seus {currentPoints} pontos atuais</p>
-              </div>
-              <Award className="w-16 h-16 text-emerald-600 opacity-20" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-7">
+          <div className="p-5 rounded-2xl" style={{ backgroundColor: C.darkGreen, border: `1px solid ${C.lime}20` }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Wallet size={14} style={{ color: C.lime }} />
+              <span style={{ fontSize: 11, color: `${C.cream}60` }}>Total recebido</span>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-6 border-t border-emerald-200">
-              {Object.entries(CATEGORY_VALUES).map(([key, info]) => {
-                const isCurrentCategory = key === currentCategory;
-                return (
-                  <div
-                    key={key}
-                    className={`p-4 rounded-xl border-2 transition-all ${isCurrentCategory
-                        ? "bg-white border-emerald-500 shadow-md scale-105"
-                        : "bg-white/50 border-gray-200"
-                      }`}
-                  >
-                    <div className="text-center">
-                      <div className="text-2xl mb-2">{info.emoji}</div>
-                      <p className="font-bold text-sm text-gray-900 mb-1">{info.name}</p>
-                      <p className="text-xs text-gray-600 mb-2">{info.range}</p>
-                      <p className={`text-lg font-bold ${isCurrentCategory ? "text-emerald-700" : "text-gray-700"}`}>
-                        R$ {info.value.toLocaleString("pt-BR")}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
+            <div style={{ ...heading, fontSize: 34, fontWeight: 900, color: C.lime, lineHeight: 1, letterSpacing: "-0.03em" }}>
+              R$ {formatCurrency(totalReceived)}
             </div>
-
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-start gap-3">
-                <TrendingUp className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-blue-900 mb-1">Como funciona o pagamento?</p>
-                  <p className="text-sm text-blue-700">
-                    Cada ponto equivale a R$ 1,00 e é convertido em pagamento ao final de cada trimestre. O acúmulo de pontos também determina sua categoria na plataforma — as faixas acima indicam os limites de cada nível.
-                  </p>
-                  <p className="text-sm text-blue-700 mt-2">
-                    O pagamento é realizado fora da plataforma, por meio dos dados bancários cadastrados abaixo. Essas informações ficam salvas para que não seja necessário fornecê-las novamente a cada ciclo.
-                  </p>
-                </div>
-              </div>
+          </div>
+          <div className="p-5 rounded-2xl" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Clock size={14} style={{ color: C.orange }} />
+              <span style={{ fontSize: 11, color: `${C.cream}60` }}>A receber</span>
             </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid lg:grid-cols-3 gap-6 mb-8">
-          <Card className="shadow-lg border-green-200 bg-green-50">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Total Recebido</p>
-                  <p className="text-3xl font-bold text-green-700">R$ {formatCurrency(totalReceived)}</p>
-                </div>
-                <DollarSign className="w-12 h-12 text-green-600 opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-lg border-yellow-200 bg-yellow-50">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Aguardando</p>
-                  <p className="text-3xl font-bold text-yellow-700">R$ {formatCurrency(awaiting)}</p>
-                </div>
-                <Clock className="w-12 h-12 text-yellow-600 opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-lg border-blue-200 bg-blue-50">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Pagamentos</p>
-                  <p className="text-3xl font-bold text-blue-700">{payments.length}</p>
-                </div>
-                <Calendar className="w-12 h-12 text-blue-600 opacity-50" />
-              </div>
-            </CardContent>
-          </Card>
+            <div style={{ ...heading, fontSize: 34, fontWeight: 900, color: C.orange, lineHeight: 1, letterSpacing: "-0.03em" }}>
+              R$ {formatCurrency(awaiting)}
+            </div>
+          </div>
+          <div className="p-5 rounded-2xl" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp size={14} style={{ color: C.cream }} />
+              <span style={{ fontSize: 11, color: `${C.cream}60` }}>Campanhas pagas</span>
+            </div>
+            <div style={{ ...heading, fontSize: 34, fontWeight: 900, color: C.cream, lineHeight: 1, letterSpacing: "-0.03em" }}>
+              {payments.filter(p => p.status === "pago").length}
+            </div>
+          </div>
         </div>
 
-        <Card className="shadow-lg border-emerald-100 bg-white/80 backdrop-blur-sm mb-8">
-          <CardHeader className="border-b border-emerald-100 flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
+        <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.07)`, marginBottom: 32 }}>
+          <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+            <div className="flex items-center gap-2.5">
               <CreditCard className="w-6 h-6 text-emerald-600" />
-              Dados Bancarios
-            </CardTitle>
+              <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>Dados Bancários</span>
+            </div>
             {!isEditing && hasPaymentInfo && (
-              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+              <button
+                onClick={() => setIsEditing(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all hover:brightness-110"
+                style={{ backgroundColor: C.darkGreen, color: C.lime, ...heading, fontWeight: 700, fontSize: 12 }}
+              >
                 <Edit className="w-4 h-4 mr-2" />
                 Editar
-              </Button>
+              </button>
             )}
-          </CardHeader>
+          </div>
 
-          <CardContent className="pt-6">
+          <div className="p-6">
             {!hasPaymentInfo && !isEditing ? (
-              <div className="text-center py-8">
-                <CreditCard className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-600 mb-4">Voce ainda nao cadastrou seus dados bancarios</p>
-                <Button onClick={() => setIsEditing(true)} className="bg-gradient-to-r from-emerald-500 to-teal-600">
+              <div className="text-center py-8 flex flex-col items-center gap-4">
+                <CreditCard size={36} style={{ color: `${C.cream}20` }} />
+                <p style={{ color: `${C.cream}50` }}>Você ainda não cadastrou seus dados bancários.</p>
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-2 px-5 py-3 rounded-xl transition-all hover:brightness-110"
+                  style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 13 }}
+                >
                   Cadastrar Dados Bancarios
-                </Button>
+                </button>
               </div>
             ) : isEditing ? (
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="account_type">Tipo de Conta *</Label>
-                    <Select
+                    <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>Tipo de Conta *</label>
+                    <select
+                      className="w-full px-4 py-2.5 rounded-xl outline-none"
+                      style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: C.surface, color: C.cream, fontSize: 13, ...body }}
                       value={paymentData.account_type}
                       onValueChange={(value) => setPaymentData({ ...paymentData, account_type: value })}
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="corrente">Conta Corrente</SelectItem>
-                        <SelectItem value="poupanca">Conta Poupanca</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <option value="corrente" style={{ backgroundColor: C.card }}>Conta Corrente</option>
+                      <option value="poupanca" style={{ backgroundColor: C.card }}>Conta Poupança</option>
+                    </select>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="bank_name">Nome do Banco *</Label>
-                    <Input
-                      id="bank_name"
+                    <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>Nome do Banco *</label>
+                    <input
+                      className="w-full px-4 py-2.5 rounded-xl outline-none"
+                      style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: C.surface, color: C.cream, fontSize: 13, ...body }}
                       placeholder="Ex: Banco do Brasil"
                       value={paymentData.bank_name}
                       onChange={(e) => setPaymentData({ ...paymentData, bank_name: e.target.value })}
@@ -364,9 +248,10 @@ export default function MyPayments() {
 
                 <div className="grid md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="bank_code">Codigo do Banco</Label>
-                    <Input
-                      id="bank_code"
+                    <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>Código do Banco</label>
+                    <input
+                      className="w-full px-4 py-2.5 rounded-xl outline-none"
+                      style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: C.surface, color: C.cream, fontSize: 13, ...body }}
                       placeholder="Ex: 001"
                       value={paymentData.bank_code}
                       onChange={(e) => setPaymentData({ ...paymentData, bank_code: onlyDigits(e.target.value).slice(0, 4) })}
@@ -374,9 +259,10 @@ export default function MyPayments() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="agency">Agencia *</Label>
-                    <Input
-                      id="agency"
+                    <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>Agência *</label>
+                    <input
+                      className="w-full px-4 py-2.5 rounded-xl outline-none"
+                      style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: C.surface, color: C.cream, fontSize: 13, ...body }}
                       placeholder="Ex: 1234"
                       value={paymentData.agency}
                       onChange={(e) => setPaymentData({ ...paymentData, agency: onlyDigits(e.target.value).slice(0, 8) })}
@@ -385,22 +271,23 @@ export default function MyPayments() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="account_number">Conta + Digito *</Label>
+                    <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>Conta + Dígito *</label>
                     <div className="flex gap-2">
-                      <Input
-                        id="account_number"
+                      <input
+                        className="flex-1 w-full px-4 py-2.5 rounded-xl outline-none"
+                        style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: C.surface, color: C.cream, fontSize: 13, ...body }}
                         placeholder="12345"
                         value={paymentData.account_number}
                         onChange={(e) => setPaymentData({ ...paymentData, account_number: onlyDigits(e.target.value).slice(0, 16) })}
                         required
-                        className="flex-1"
                       />
-                      <Input
+                      <input
+                        className="w-16 px-4 py-2.5 rounded-xl outline-none"
+                        style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: C.surface, color: C.cream, fontSize: 13, ...body }}
                         placeholder="6"
                         value={paymentData.account_digit}
                         onChange={(e) => setPaymentData({ ...paymentData, account_digit: onlyDigits(e.target.value).slice(0, 1) })}
                         required
-                        className="w-16"
                         maxLength={1}
                       />
                     </div>
@@ -409,9 +296,10 @@ export default function MyPayments() {
 
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="full_name">Nome Completo do Titular *</Label>
-                    <Input
-                      id="full_name"
+                    <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>Nome Completo do Titular *</label>
+                    <input
+                      className="w-full px-4 py-2.5 rounded-xl outline-none"
+                      style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: C.surface, color: C.cream, fontSize: 13, ...body }}
                       placeholder="Como consta no banco"
                       value={paymentData.full_name}
                       onChange={(e) => setPaymentData({ ...paymentData, full_name: e.target.value })}
@@ -420,9 +308,10 @@ export default function MyPayments() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="cpf">CPF *</Label>
-                    <Input
-                      id="cpf"
+                    <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>CPF *</label>
+                    <input
+                      className="w-full px-4 py-2.5 rounded-xl outline-none"
+                      style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: C.surface, color: C.cream, fontSize: 13, ...body }}
                       placeholder="000.000.000-00"
                       value={paymentData.cpf}
                       onChange={(e) => setPaymentData({ ...paymentData, cpf: formatCpf(e.target.value) })}
@@ -435,27 +324,25 @@ export default function MyPayments() {
                   <h3 className="font-semibold mb-4">Chave PIX (Opcional)</h3>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="pix_type">Tipo de Chave</Label>
-                      <Select
+                      <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>Tipo de Chave</label>
+                      <select
+                        className="w-full px-4 py-2.5 rounded-xl outline-none"
+                        style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: C.surface, color: C.cream, fontSize: 13, ...body }}
                         value={paymentData.pix_type}
                         onValueChange={(value) => setPaymentData({ ...paymentData, pix_type: value })}
                       >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="cpf">CPF</SelectItem>
-                          <SelectItem value="email">Email</SelectItem>
-                          <SelectItem value="telefone">Telefone</SelectItem>
-                          <SelectItem value="aleatoria">Chave Aleatoria</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        <option value="cpf" style={{ backgroundColor: C.card }}>CPF</option>
+                        <option value="email" style={{ backgroundColor: C.card }}>Email</option>
+                        <option value="telefone" style={{ backgroundColor: C.card }}>Telefone</option>
+                        <option value="aleatoria" style={{ backgroundColor: C.card }}>Chave Aleatória</option>
+                      </select>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="pix_key">Chave PIX</Label>
-                      <Input
-                        id="pix_key"
+                      <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>Chave PIX</label>
+                      <input
+                        className="w-full px-4 py-2.5 rounded-xl outline-none"
+                        style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: C.surface, color: C.cream, fontSize: 13, ...body }}
                         placeholder="Digite sua chave PIX"
                         value={paymentData.pix_key}
                         onChange={(e) => setPaymentData({ ...paymentData, pix_key: e.target.value })}
@@ -465,121 +352,124 @@ export default function MyPayments() {
                 </div>
 
                 <div className="flex gap-3">
-                  <Button
+                  <button
                     type="button"
-                    variant="outline"
                     onClick={() => {
                       if (savedPaymentData) {
                         setPaymentData((prev) => ({ ...prev, ...savedPaymentData }));
                       }
                       setIsEditing(false);
                     }}
-                    className="flex-1"
+                    className="flex-1 h-12 rounded-xl transition-all hover:bg-[rgba(255,255,222,0.05)]"
+                    style={{ color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}
                   >
                     Cancelar
-                  </Button>
-                  <Button type="submit" className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600">
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 h-12 rounded-xl transition-all hover:brightness-110"
+                    style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}
+                  >
                     {upsertPaymentInfo.isPending ? "Salvando..." : "Salvar Dados"}
-                  </Button>
+                  </button>
                 </div>
               </form>
             ) : (
               <div className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-600">Tipo de Conta</p>
-                    <p className="font-medium">{paymentData.account_type === "corrente" ? "Conta Corrente" : "Conta Poupanca"}</p>
+                    <p style={{ fontSize: 11, color: `${C.cream}50` }}>Tipo de Conta</p>
+                    <p style={{ fontWeight: 500, color: C.cream }}>{paymentData.account_type === "corrente" ? "Conta Corrente" : "Conta Poupança"}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Banco</p>
-                    <p className="font-medium">{paymentData.bank_name}</p>
+                    <p style={{ fontSize: 11, color: `${C.cream}50` }}>Banco</p>
+                    <p style={{ fontWeight: 500, color: C.cream }}>{paymentData.bank_name}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Agencia</p>
-                    <p className="font-medium">{paymentData.agency}</p>
+                    <p style={{ fontSize: 11, color: `${C.cream}50` }}>Agência</p>
+                    <p style={{ fontWeight: 500, color: C.cream }}>{paymentData.agency}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Conta</p>
-                    <p className="font-medium">{paymentData.account_number}-{paymentData.account_digit}</p>
+                    <p style={{ fontSize: 11, color: `${C.cream}50` }}>Conta</p>
+                    <p style={{ fontWeight: 500, color: C.cream }}>{paymentData.account_number}-{paymentData.account_digit}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Titular</p>
-                    <p className="font-medium">{paymentData.full_name}</p>
+                    <p style={{ fontSize: 11, color: `${C.cream}50` }}>Titular</p>
+                    <p style={{ fontWeight: 500, color: C.cream }}>{paymentData.full_name}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">CPF</p>
-                    <p className="font-medium">{paymentData.cpf}</p>
+                    <p style={{ fontSize: 11, color: `${C.cream}50` }}>CPF</p>
+                    <p style={{ fontWeight: 500, color: C.cream }}>{paymentData.cpf}</p>
                   </div>
                   {paymentData.pix_key && (
                     <div className="md:col-span-2">
-                      <p className="text-sm text-gray-600">Chave PIX</p>
-                      <p className="font-medium">{paymentData.pix_key}</p>
+                      <p style={{ fontSize: 11, color: `${C.cream}50` }}>Chave PIX</p>
+                      <p style={{ fontWeight: 500, color: C.cream }}>{paymentData.pix_key}</p>
                     </div>
                   )}
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="shadow-lg border-emerald-100 bg-white/80 backdrop-blur-sm">
-          <CardHeader className="border-b border-emerald-100">
-            <CardTitle>Historico de Pagamentos</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6">
+        <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid rgba(255,255,222,0.07)` }}>
+          <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+            <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>Histórico de Pagamentos</span>
+          </div>
+          <div className="p-6">
             {payments.length === 0 ? (
-              <div className="text-center py-8">
-                <DollarSign className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-600">Nenhum pagamento registrado ainda</p>
+              <div className="text-center py-8 flex flex-col items-center gap-4">
+                <DollarSign size={36} style={{ color: `${C.cream}20` }} />
+                <p style={{ color: `${C.cream}50` }}>Nenhum pagamento registrado ainda.</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {payments.map((payment) => (
-                  <div
-                    key={payment.id}
-                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-emerald-200 transition-colors"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Badge className={getStatusColor(payment.status)}>
-                          {getStatusIcon(payment.status)}
-                          <span className="ml-1">
-                            {payment.status === "pago"
-                              ? "Pago"
-                              : payment.status === "processando"
-                                ? "Processando"
-                                : payment.status === "erro"
-                                  ? "Erro"
-                                  : "Pendente"}
-                          </span>
-                        </Badge>
-                        <span className="font-medium">{payment.quarter}</span>
-                        <span className="text-gray-400">•</span>
-                        <span className="text-sm text-gray-600">{String(payment.category || "").replace(/_/g, " ")}</span>
+              <>
+                <div className="flex px-5 py-3 rounded-t-lg" style={{ backgroundColor: C.surface }}>
+                  <div style={{ width: "40%", fontSize: 10, fontWeight: 700, color: `${C.cream}40`, letterSpacing: "0.08em" }}>Descrição</div>
+                  <div style={{ width: "16%", fontSize: 10, fontWeight: 700, color: `${C.cream}40`, letterSpacing: "0.08em" }}>Campanha</div>
+                  <div style={{ width: "16%", fontSize: 10, fontWeight: 700, color: `${C.cream}40`, letterSpacing: "0.08em" }}>Data</div>
+                  <div style={{ width: "16%", fontSize: 10, fontWeight: 700, color: `${C.cream}40`, letterSpacing: "0.08em" }}>Valor</div>
+                  <div style={{ width: "12%", fontSize: 10, fontWeight: 700, color: `${C.cream}40`, letterSpacing: "0.08em" }}>Status</div>
+                </div>
+                {payments.map((p, i) => {
+                  const { bg, color } = pagChip(p.status);
+                  return (
+                    <div
+                      key={p.id}
+                      className="flex px-5 py-4 items-center transition-colors hover:brightness-110"
+                      style={{ backgroundColor: i % 2 === 0 ? C.card : C.cardDeep, borderBottom: i < payments.length - 1 ? `1px solid rgba(255,255,222,0.04)` : "none" }}
+                    >
+                      <div className="flex items-center gap-3" style={{ width: "40%" }}>
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${C.lime}12`, color: C.lime }}>
+                          <DollarSign size={13} />
+                        </div>
+                        <span style={{ fontSize: 13, color: C.cream, fontWeight: 500 }} className="truncate">{p.metrics_submission?.task_title || 'Pagamento'}</span>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <span>{payment.points} pontos</span>
-                        {payment.paid_at && (
-                          <>
-                            <span className="text-gray-400">•</span>
-                            <span>{format(new Date(payment.paid_at), "dd/MM/yyyy", { locale: ptBR })}</span>
-                          </>
-                        )}
+                      <div style={{ width: "16%" }}>
+                        <span className="px-2 py-0.5 rounded-full text-xs" style={{ backgroundColor: "rgba(255,255,222,0.06)", color: `${C.cream}55` }}>{p.quarter}</span>
+                      </div>
+                      <div style={{ width: "16%", fontSize: 12, color: `${C.cream}45` }}>{format(new Date(p.created_at), "dd MMM yyyy", { locale: ptBR })}</div>
+                      <div style={{ width: "16%", ...heading, fontSize: 15, fontWeight: 800, color: p.status === "pago" ? C.lime : `${C.cream}70` }}>
+                        R$ {formatCurrency(p.amount)}
+                      </div>
+                      <div style={{ width: "12%" }}>
+                        <span className="px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap" style={{ backgroundColor: bg, color }}>{p.status}</span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-emerald-700">
-                        R$ {formatCurrency(payment.amount)}
-                      </p>
-                      {payment.payment_method && <p className="text-sm text-gray-500">via {payment.payment_method}</p>}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  );
+                })}
+              </>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+
+        <div className="flex justify-end mt-5">
+          <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all hover:brightness-110" style={{ backgroundColor: "rgba(255,255,222,0.06)", color: `${C.cream}70`, fontSize: 12, ...body }}>
+            <Download size={13} /> Exportar relatório
+          </button>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }

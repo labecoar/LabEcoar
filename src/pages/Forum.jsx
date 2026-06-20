@@ -2,47 +2,33 @@
 import React, { useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateForumTopic, useForumTopics } from "@/hooks/useForum";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useUserScore } from "@/hooks/useScores";
 import {
-  MessageSquare, Plus, Eye, Pin,
-  Lightbulb, HelpCircle, Award, Megaphone, Hash, Sparkles
+  MessageSquare, Plus, Eye, Pin, MessageCircle, XCircle, Send, Star
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { notifyError } from "@/lib/toast";
+import { C, heading, body } from '@/lib/theme';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 const CATEGORY_INFO = {
-  dicas: { name: "Dicas", icon: Lightbulb, color: "bg-yellow-100 text-yellow-700 border-yellow-200" },
-  duvidas: { name: "Dúvidas", icon: HelpCircle, color: "bg-blue-100 text-blue-700 border-blue-200" },
-  conquistas: { name: "Conquistas", icon: Award, color: "bg-purple-100 text-purple-700 border-purple-200" },
-  campanhas: { name: "Campanhas", icon: Megaphone, color: "bg-green-100 text-green-700 border-green-200" },
-  geral: { name: "Geral", icon: Hash, color: "bg-gray-100 text-gray-700 border-gray-200" },
-  sugestoes: { name: "Sugestões", icon: Sparkles, color: "bg-pink-100 text-pink-700 border-pink-200" }
+  dicas: { name: "Dicas", colorHex: C.orange },
+  duvidas: { name: "Dúvidas", colorHex: C.blue },
+  conquistas: { name: "Conquistas", colorHex: "#AA66FF" },
+  campanhas: { name: "Campanhas", colorHex: C.lime },
+  geral: { name: "Geral", colorHex: `${C.cream}80` },
+  sugestoes: { name: "Sugestões", colorHex: "#FF2255" }
 };
 
 export default function Forum() {
   const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState("todas");
   const [showNewTopicDialog, setShowNewTopicDialog] = useState(false);
   const [newTopic, setNewTopic] = useState({
@@ -52,7 +38,13 @@ export default function Forum() {
   });
 
   const { data: topics = [], isLoading } = useForumTopics();
+  const { data: userScore } = useUserScore(user?.id);
   const createTopicMutation = useCreateForumTopic();
+
+  // Estatísticas do Fórum
+  const totalTopics = topics.length;
+  const totalReplies = topics.reduce((a, t) => a + (t.total_posts || 0), 0);
+  const totalViews = topics.reduce((a, t) => a + (t.views || 0), 0);
 
   const handleCreateTopic = async (e) => {
     e.preventDefault();
@@ -80,237 +72,167 @@ export default function Forum() {
     [topics, selectedCategory]
   );
 
-  const pinnedTopics = filteredTopics.filter((t) => Boolean(t.is_pinned));
-  const regularTopics = filteredTopics.filter((t) => !t.is_pinned);
+  const sortedTopics = useMemo(() => {
+    return [...filteredTopics].sort((a, b) => {
+      if (a.is_pinned && !b.is_pinned) return -1;
+      if (!a.is_pinned && b.is_pinned) return 1;
+      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+    });
+  }, [filteredTopics]);
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-emerald-50 via-white to-green-50">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8 flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-3xl font-bold text-emerald-700 mb-2 inline-flex items-center gap-2">
-              Fórum Ecoantes
-              <MessageSquare className="w-7 h-7" />
-            </h1>
-            <p className="text-gray-600">Converse, compartilhe e aprenda com outros Ecoantes</p>
-          </div>
-
-          <Dialog open={showNewTopicDialog} onOpenChange={setShowNewTopicDialog}>
-            <DialogTrigger asChild>
-              <Button className="bg-emerald-600 hover:bg-emerald-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Tópico
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Criar Novo Tópico</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleCreateTopic} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Título</Label>
-                  <Input
-                    id="title"
-                    placeholder="Qual é o assunto?"
-                    value={newTopic.title}
-                    onChange={(e) => setNewTopic({ ...newTopic, title: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="category">Categoria</Label>
-                  <Select
-                    value={newTopic.category}
-                    onValueChange={(value) => setNewTopic({ ...newTopic, category: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(CATEGORY_INFO).map(([key, info]) => (
-                        <SelectItem key={key} value={key}>
-                          {info.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Descrição</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Descreva o tópico..."
-                    value={newTopic.description}
-                    onChange={(e) => setNewTopic({ ...newTopic, description: e.target.value })}
-                    className="h-32"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-3">
-                  <Button type="button" variant="outline" onClick={() => setShowNewTopicDialog(false)}>
-                    Cancelar
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="bg-emerald-600 hover:bg-emerald-700"
-                    disabled={createTopicMutation.isPending}
-                  >
-                    {createTopicMutation.isPending ? 'Criando...' : 'Criar Tópico'}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+    <div style={{ minHeight: "100vh", background: C.black, ...body }}>
+      {/* Header Fixo */}
+      <div className="flex items-center justify-between px-8 py-4 sticky top-0 z-10" style={{ backgroundColor: `${C.black}F5`, backdropFilter: "blur(16px)", borderBottom: `1px solid rgba(255,255,222,0.05)` }}>
+        <div className="flex items-center gap-3">
+          <MessageSquare size={16} style={{ color: C.lime }} />
+          <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", textTransform: "uppercase" }}>Fórum</span>
         </div>
-
-        <Card className="mb-6 shadow-lg border-emerald-100 bg-white/80 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-lg">Categorias</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
-              <TabsList className="flex flex-wrap h-auto gap-2 bg-emerald-50 p-2">
-                <TabsTrigger value="todas" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
-                  Todas
-                </TabsTrigger>
-                {Object.entries(CATEGORY_INFO).map(([key, info]) => (
-                  <TabsTrigger
-                    key={key}
-                    value={key}
-                    className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
-                  >
-                    <info.icon className="w-4 h-4 mr-1" />
-                    {info.name}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          </CardContent>
-        </Card>
-
-        <div className="space-y-4">
-          {pinnedTopics.length > 0 && (
-            <div className="space-y-3">
-              <h2 className="text-sm font-semibold text-gray-500 flex items-center gap-2">
-                <Pin className="w-4 h-4" />
-                Tópicos Fixados
-              </h2>
-              {pinnedTopics.map((topic) => {
-                const categoryInfo = CATEGORY_INFO[topic.category] || CATEGORY_INFO.geral;
-                const CategoryIcon = categoryInfo.icon;
-
-                return (
-                  <Link key={topic.id} to={createPageUrl(`ForumTopic?id=${topic.id}`)}>
-                    <Card className="shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50">
-                      <CardContent className="p-6">
-                        <div className="flex items-start gap-4">
-                          <div className={`w-12 h-12 rounded-xl ${categoryInfo.color} flex items-center justify-center flex-shrink-0`}>
-                            <CategoryIcon className="w-6 h-6" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-4 mb-2">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <Pin className="w-4 h-4 text-emerald-600" />
-                                  <h3 className="font-bold text-gray-900 text-lg">{topic.title}</h3>
-                                </div>
-                                {topic.description && (
-                                  <p className="text-gray-600 text-sm line-clamp-2">{topic.description}</p>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm text-gray-500">
-                              <span className="flex items-center gap-1">
-                                <MessageSquare className="w-4 h-4" />
-                                {topic.total_posts || 0} respostas
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Eye className="w-4 h-4" />
-                                {topic.views || 0} visualizações
-                              </span>
-                              <span>Por {topic.author_name || 'Comunidade'}</span>
-                              {topic.last_activity && (
-                                <span>• {format(new Date(topic.last_activity), "dd/MM/yyyy", { locale: ptBR })}</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-
-          {isLoading ? (
-            <Card className="shadow-lg border-gray-200">
-              <CardContent className="p-12 text-center">
-                <MessageSquare className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-500 text-lg">Carregando tópicos...</p>
-              </CardContent>
-            </Card>
-          ) : regularTopics.length > 0 ? (
-            <div className="space-y-3">
-              {pinnedTopics.length > 0 && (
-                <h2 className="text-sm font-semibold text-gray-500 mt-6">Tópicos Recentes</h2>
-              )}
-              {regularTopics.map((topic) => {
-                const categoryInfo = CATEGORY_INFO[topic.category] || CATEGORY_INFO.geral;
-                const CategoryIcon = categoryInfo.icon;
-
-                return (
-                  <Link key={topic.id} to={createPageUrl(`ForumTopic?id=${topic.id}`)}>
-                    <Card className="shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border-gray-200 hover:border-emerald-200">
-                      <CardContent className="p-6">
-                        <div className="flex items-start gap-4">
-                          <div className={`w-12 h-12 rounded-xl ${categoryInfo.color} flex items-center justify-center flex-shrink-0`}>
-                            <CategoryIcon className="w-6 h-6" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-4 mb-2">
-                              <div className="flex-1">
-                                <h3 className="font-bold text-gray-900 text-lg mb-1">{topic.title}</h3>
-                                {topic.description && (
-                                  <p className="text-gray-600 text-sm line-clamp-2">{topic.description}</p>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm text-gray-500">
-                              <span className="flex items-center gap-1">
-                                <MessageSquare className="w-4 h-4" />
-                                {topic.total_posts || 0} respostas
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Eye className="w-4 h-4" />
-                                {topic.views || 0} visualizações
-                              </span>
-                              <span>Por {topic.author_name || 'Comunidade'}</span>
-                              {topic.last_activity && (
-                                <span>• {format(new Date(topic.last_activity), "dd/MM/yyyy", { locale: ptBR })}</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                );
-              })}
-            </div>
-          ) : (
-            <Card className="shadow-lg border-gray-200">
-              <CardContent className="p-12 text-center">
-                <MessageSquare className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-500 text-lg">Nenhum tópico nesta categoria ainda</p>
-                <p className="text-gray-400 text-sm mt-2">Seja o primeiro a iniciar uma conversa!</p>
-              </CardContent>
-            </Card>
-          )}
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.black }}>
+          <Star size={11} fill={C.black} />
+          <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>{userScore?.total_points || 0} pts</span>
         </div>
       </div>
+
+      <div className="px-8 pt-7 pb-10 max-w-6xl mx-auto">
+        {/* Hero */}
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <h1 style={{ ...heading, fontSize: 40, fontWeight: 900, color: C.cream, letterSpacing: "-0.03em", lineHeight: 1 }}>Fórum</h1>
+            <p style={{ fontSize: 14, color: `${C.cream}50`, marginTop: 6 }}>Troca ideias com outros Ecoantes da CuícaLab.</p>
+          </div>
+          <button
+            onClick={() => setShowNewTopicDialog(true)}
+            className="flex items-center gap-2 px-5 py-3 rounded-xl transition-all hover:brightness-110"
+            style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 13 }}
+          >
+            <Plus size={15} /> Novo Tópico
+          </button>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-7">
+          {[
+            { label: "Tópicos ativos", value: totalTopics, icon: MessageSquare },
+            { label: "Respostas totais", value: totalReplies, icon: MessageCircle },
+            { label: "Visualizações totais", value: totalViews, icon: Eye },
+          ].map(({ label, value, icon: Icon }) => (
+            <div key={label} className="p-4 rounded-2xl flex items-center gap-4" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${C.lime}14`, color: C.lime }}>
+                <Icon size={16} />
+              </div>
+              <div>
+                <div style={{ ...heading, fontSize: 24, fontWeight: 900, color: C.cream, lineHeight: 1 }}>{value}</div>
+                <div style={{ fontSize: 11, color: `${C.cream}40`, marginTop: 3 }}>{label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Cat tabs */}
+        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+          {[{ key: "todas", name: "Todas" }, ...Object.entries(CATEGORY_INFO).map(([k, v]) => ({ key: k, name: v.name }))].map((c) => {
+            const active = c.key === selectedCategory;
+            return (
+              <button key={c.key} onClick={() => setSelectedCategory(c.key)} className="shrink-0 px-4 py-2 rounded-xl text-sm transition-all duration-150" style={{ backgroundColor: active ? C.lime : "rgba(255,255,222,0.06)", color: active ? C.black : `${C.cream}70`, fontWeight: active ? 700 : 400, ...heading, fontSize: 13 }}>
+                {c.name}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Topic list */}
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: C.lime }}></div>
+            <p style={{ ...heading, fontSize: 18, fontWeight: 700, color: `${C.cream}40` }}>Carregando fórum...</p>
+          </div>
+        ) : sortedTopics.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-4">
+            <MessageSquare size={36} style={{ color: `${C.cream}20` }} />
+            <p style={{ ...heading, fontSize: 18, fontWeight: 700, color: `${C.cream}40` }}>Nenhum tópico nesta categoria.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {sortedTopics.map((topic) => {
+              const isPinned = Boolean(topic.is_pinned);
+              return (
+                <div key={topic.id} onClick={() => navigate(createPageUrl(`ForumTopic?id=${topic.id}`))} className="p-5 rounded-2xl transition-all hover:brightness-110 cursor-pointer" style={{ backgroundColor: C.card, border: `1px solid ${isPinned ? `${C.lime}22` : "rgba(255,255,222,0.06)"}` }}>
+                  {isPinned && (
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: C.lime }} />
+                      <span style={{ fontSize: 10, color: C.lime, fontWeight: 700, letterSpacing: "0.1em" }}>FIXADO</span>
+                    </div>
+                  )}
+                  <div className="flex items-start gap-4">
+                    {/* Avatar */}
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold text-sm" style={{ backgroundColor: C.orange, color: C.cream }}>
+                      {(topic.author_name || 'E').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-3 mb-1">
+                        <h3 style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream, letterSpacing: "-0.01em" }}>{topic.title}</h3>
+                        <span className="shrink-0 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap" style={{ backgroundColor: `${CATEGORY_INFO[topic.category]?.colorHex || C.lime}18`, color: CATEGORY_INFO[topic.category]?.colorHex || C.lime }}>
+                          {CATEGORY_INFO[topic.category]?.name || topic.category}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: 13, color: `${C.cream}50`, lineHeight: 1.5, marginBottom: 10 }} className="line-clamp-2">{topic.description}</p>
+                      <div className="flex items-center flex-wrap gap-4">
+                        <span style={{ fontSize: 11, color: `${C.cream}40` }}>{topic.author_name || 'Comunidade'}</span>
+                        <span style={{ fontSize: 11, color: `${C.cream}25` }}>·</span>
+                        <span style={{ fontSize: 11, color: `${C.cream}35` }}>{format(new Date(topic.created_at || new Date()), "dd MMM yyyy", { locale: ptBR })}</span>
+                        <div className="ml-auto flex items-center gap-4">
+                          <span className="flex items-center gap-1.5 transition-opacity hover:opacity-100 opacity-55" style={{ fontSize: 12, color: C.cream }}>
+                            <Eye size={12} /> {topic.views || 0}
+                          </span>
+                          <span className="flex items-center gap-1.5 transition-opacity hover:opacity-100 opacity-55" style={{ fontSize: 12, color: C.cream }}>
+                            <MessageCircle size={12} /> {topic.total_posts || 0}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Modal / Dialog */}
+      <Dialog open={showNewTopicDialog} onOpenChange={setShowNewTopicDialog}>
+        <DialogContent className="sm:max-w-lg p-0 border-0 bg-transparent overflow-hidden shadow-none">
+          <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.1)` }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+              <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream }}>Novo Tópico</span>
+              <button onClick={() => setShowNewTopicDialog(false)} style={{ color: `${C.cream}50` }} className="hover:opacity-100 transition-opacity"><XCircle size={18} /></button>
+            </div>
+            <form onSubmit={handleCreateTopic} className="p-6 flex flex-col gap-4">
+              <div>
+                <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>TÍTULO</label>
+                <input className="mt-2 w-full px-4 py-3 rounded-xl outline-none" style={{ backgroundColor: "#2E2E2C", border: `1px solid rgba(255,255,222,0.1)`, color: C.cream, ...body, fontSize: 14 }} placeholder="O que você quer discutir?" value={newTopic.title} onChange={(e) => setNewTopic({ ...newTopic, title: e.target.value })} required />
+              </div>
+              <div>
+                <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>CATEGORIA</label>
+                <div className="relative mt-2">
+                  <select className="w-full px-4 py-3 rounded-xl outline-none appearance-none" style={{ backgroundColor: "#2E2E2C", border: `1px solid rgba(255,255,222,0.1)`, color: newTopic.category ? C.cream : `${C.cream}40`, ...body, fontSize: 14 }} value={newTopic.category} onChange={(e) => setNewTopic({ ...newTopic, category: e.target.value })}>
+                    {Object.entries(CATEGORY_INFO).map(([key, info]) => (
+                      <option key={key} value={key} style={{ backgroundColor: C.card, color: C.cream }}>{info.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>MENSAGEM</label>
+                <textarea className="mt-2 w-full px-4 py-3 rounded-xl outline-none resize-none" rows={4} style={{ backgroundColor: "#2E2E2C", border: `1px solid rgba(255,255,222,0.1)`, color: C.cream, ...body, fontSize: 14 }} placeholder="Compartilhe seus pensamentos..." value={newTopic.description} onChange={(e) => setNewTopic({ ...newTopic, description: e.target.value })} required />
+              </div>
+              <button type="submit" disabled={createTopicMutation.isPending} className="flex items-center justify-center gap-2 w-full h-12 rounded-xl transition-all hover:brightness-110 mt-2 disabled:opacity-50" style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}>
+                <Send size={15} /> {createTopicMutation.isPending ? 'Publicando...' : 'Publicar'}
+              </button>
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

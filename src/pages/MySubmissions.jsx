@@ -1,16 +1,17 @@
 // @ts-nocheck
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { useMySubmissions } from "@/hooks/useSubmissions";
 import { useMyMetricsSubmissions } from "@/hooks/useMetrics";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Clock, CheckCircle, XCircle, Star, ExternalLink, CircleDollarSign } from "lucide-react";
+import { useUserScore } from "@/hooks/useScores";
+import { Clock, CheckCircle, XCircle, Star, ExternalLink, CircleDollarSign, FileCheck, Plus, AlertCircle, Upload, Check } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import TaskDetailsModal from "../components/tasks/TaskDetailsModal";
 import { getProofApprovalMetricsWindow, getMetricsResubmissionDeadline } from '@/lib/metrics-window';
+import { C, heading, body } from '@/lib/theme';
+import { createPageUrl } from "@/utils";
 
 const normalizeSubmissionStatus = (status) => {
   if (status === 'pendente') return 'pending';
@@ -63,11 +64,13 @@ function ProofPreview({ proofUrl }) {
 }
 
 export default function MySubmissions() {
+  const navigate = useNavigate();
   const [selectedSubmission, setSelectedSubmission] = useState(null);
-  const [activeTab, setActiveTab] = useState('pending');
+  const [activeTab, setActiveTab] = useState('todas');
   const { user } = useAuth();
   const { data: submissions = [], isLoading, error } = useMySubmissions(user?.id);
   const { data: myMetricsSubmissions = [] } = useMyMetricsSubmissions(user?.id);
+  const { data: userScore } = useUserScore(user?.id);
 
   const getSubmissionTaskId = (submission) => {
     return submission?.task_id || submission?.task?.id || null;
@@ -148,175 +151,55 @@ export default function MySubmissions() {
   });
   const expiredSubmissions = submissions.filter((s) => isExpiredSubmission(s));
 
-  const renderSubmissionCard = (submission, isExpired = false) => (
-    (() => {
-      const status = normalizeSubmissionStatus(submission.status);
-      const explicitExpiresAt = toDateOrNull(submission?.task?.expires_at) || toDateOrNull(submission?.task?.delivery_deadline) || toDateOrNull(submission?.task?.posting_deadline);
-      const explicitDeadlinePassed = explicitExpiresAt ? explicitExpiresAt.getTime() < Date.now() : false;
-      const effectiveExpired = isExpired || isExpiredSubmission(submission) || explicitDeadlinePassed;
-      const proofDeadline = submission?.task?.delivery_deadline
-        ? new Date(submission.task.delivery_deadline)
-        : null;
-      const hasProofDeadline = proofDeadline && !Number.isNaN(proofDeadline.getTime());
-      const postingDeadline = submission?.task?.posting_deadline
-        ? new Date(submission.task.posting_deadline)
-        : null;
-      const hasPostingDeadline = postingDeadline && !Number.isNaN(postingDeadline.getTime());
-      const isApprovedCampaign = status === 'approved' && submission?.task?.category === 'campanha';
-      const metricsStatus = isApprovedCampaign ? getCampaignMetricsStatus(submission) : null;
-      const category = submission?.task?.category;
-      const categoryLabel = CATEGORY_NAMES[category] || category || 'Tarefa';
-      const categoryColorClass = CATEGORY_COLORS[category] || 'bg-gray-100 text-gray-700 border-gray-200';
-      const offeredValue = Number(submission?.task?.offered_value || 0);
-      const pointsValue = Number(submission?.points_awarded || submission?.task?.points || 0);
-      const hasMoneyReward = offeredValue > 0;
-      return (
-    <Card
-      key={submission.id}
-      className="shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border-emerald-200 bg-white overflow-hidden"
-      onClick={() => setSelectedSubmission(submission)}
-    >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <Badge className={`${categoryColorClass} border`}>
-                {categoryLabel}
-              </Badge>
-            </div>
-            <CardTitle className="text-lg leading-tight break-words">
-              {submission.task?.title || 'Tarefa'}
-            </CardTitle>
-          </div>
-          <div className="flex items-center gap-1 px-3 py-1 bg-amber-50 rounded-full border border-amber-200 shrink-0">
-            {hasMoneyReward ? (
-              <CircleDollarSign className="w-4 h-4 text-amber-600" />
-            ) : (
-              <Star className="w-4 h-4 text-amber-600 fill-amber-600" />
-            )}
-            <span className="font-bold text-amber-700">
-              {hasMoneyReward
-                ? `R$ ${offeredValue.toLocaleString('pt-BR')}`
-                : pointsValue.toLocaleString('pt-BR')}
-            </span>
-          </div>
-        </div>
-      </CardHeader>
+  let visibleSubmissions = submissions;
+  if (activeTab === 'aprovadas') visibleSubmissions = approvedSubmissions;
+  if (activeTab === 'andamento') visibleSubmissions = pendingSubmissions;
+  if (activeTab === 'rejeitadas') visibleSubmissions = rejectedSubmissions;
+  if (activeTab === 'expiradas') visibleSubmissions = expiredSubmissions;
 
-      <CardContent className="pt-0">
-        <p className="text-sm text-gray-600 line-clamp-2 mb-4 break-words break-all whitespace-normal">
-          {submission.task?.description || 'Sem descrição da tarefa.'}
-        </p>
+  visibleSubmissions = [...visibleSubmissions].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-        {submission.description && (
-          <p className="text-xs text-gray-500 mb-4 break-words whitespace-normal">
-            <span className="font-medium">Sua observação:</span> {submission.description}
-          </p>
-        )}
+  const totalPts = approvedSubmissions.reduce((a, s) => a + (Number(s.points_awarded || s.task?.points) || 0), 0);
 
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between text-sm mb-2">
-          <div className="flex items-center gap-2 text-gray-500 flex-wrap">
-            {status === 'application_approved' && hasProofDeadline && (
-              <div className="flex items-center gap-1 px-2 py-1 rounded-md border bg-purple-100 text-purple-700 border-purple-200">
-                <Clock className="w-4 h-4" />
-                <span>{format(proofDeadline, "dd/MM")}</span>
-              </div>
-            )}
+  const getStatusDisplay = (submission) => {
+    const isExpired = isExpiredSubmission(submission);
+    if (isExpired) return { bg: `rgba(255,255,216,0.07)`, color: `${C.cream}80`, label: 'Expirada', icon: Clock };
+    
+    const status = normalizeSubmissionStatus(submission.status);
+    const isApprovedCampaign = status === 'approved' && submission?.task?.category === 'campanha';
+    const metricsStatus = isApprovedCampaign ? getCampaignMetricsStatus(submission) : null;
 
-            {isApprovedCampaign && metricsStatus !== 'approved' && hasPostingDeadline && (
-              <div className="flex items-center gap-1 px-2 py-1 rounded-md border bg-emerald-100 text-emerald-700 border-emerald-200">
-                <Clock className="w-4 h-4" />
-                <span>{format(postingDeadline, "dd/MM")}</span>
-              </div>
-            )}
-          </div>
+    if (status === 'approved') {
+        if (isApprovedCampaign) {
+            if (metricsStatus === 'approved') return { bg: `${C.lime}1A`, color: C.lime, label: 'Concluída', icon: Check };
+            if (metricsStatus === 'pending') return { bg: `rgba(68,102,255,0.12)`, color: "#8899FF", label: 'Métricas em análise', icon: Clock };
+            if (metricsStatus === 'rejected') return { bg: `${C.orange}1A`, color: C.orange, label: 'Reenviar métricas', icon: AlertCircle };
+            return { bg: `rgba(170,102,255,0.12)`, color: "#AA66FF", label: 'Pendente métricas', icon: Clock };
+        }
+        return { bg: `${C.lime}1A`, color: C.lime, label: 'Aprovada', icon: Check };
+    }
+    
+    if (['application_rejected', 'rejected'].includes(status)) {
+        return { bg: "rgba(255,34,85,0.14)", color: "#FF2255", label: 'Rejeitada', icon: XCircle };
+    }
 
-          <div className="shrink-0">
-            {effectiveExpired ? (
-              <Badge className="bg-red-100 text-red-700 border-red-200">
-                <XCircle className="w-3 h-3 mr-1" />
-                Prazo expirado
-              </Badge>
-            ) : (
-              <>
-                {['pending', 'application_pending'].includes(status) && submission?.task?.category !== 'sidequest_teste' && (
-                  <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
-                    <Clock className="w-3 h-3 mr-1" />
-                    Inscrição em análise
-                  </Badge>
-                )}
-                {['pending', 'application_pending'].includes(status) && submission?.task?.category === 'sidequest_teste' && (
-                  <Badge className="bg-blue-100 text-blue-700 border-blue-200">
-                    <Clock className="w-3 h-3 mr-1" />
-                    Aguardando prova
-                  </Badge>
-                )}
-                {status === 'application_approved' && (
-                  <Badge className="bg-purple-100 text-purple-700 border-purple-200">
-                    <Clock className="w-3 h-3 mr-1" />
-                    Aprovado p/ fazer
-                  </Badge>
-                )}
-                {status === 'proof_pending' && (
-                  <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
-                    <Clock className="w-3 h-3 mr-1" />
-                    Prova em análise
-                  </Badge>
-                )}
-                {status === 'approved' && (
-                  isApprovedCampaign ? (
-                    metricsStatus === 'approved' ? (
-                      <Badge className="bg-green-100 text-green-700 border-green-200">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Concluída
-                      </Badge>
-                    ) : metricsStatus === 'pending' ? (
-                      <Badge className="bg-blue-100 text-blue-700 border-blue-200">
-                        <Clock className="w-3 h-3 mr-1" />
-                        Métricas em análise
-                      </Badge>
-                    ) : metricsStatus === 'rejected' ? (
-                      <Badge className="bg-orange-100 text-orange-700 border-orange-200">
-                        <Clock className="w-3 h-3 mr-1" />
-                        Reenviar métricas
-                      </Badge>
-                    ) : (
-                      <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
-                        <Clock className="w-3 h-3 mr-1" />
-                        Pendente métricas
-                      </Badge>
-                    )
-                  ) : (
-                    <Badge className="bg-green-100 text-green-700 border-green-200">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Concluída
-                    </Badge>
-                  )
-                )}
-                {['application_rejected', 'rejected'].includes(status) && (
-                  <Badge className="bg-red-100 text-red-700 border-red-200">
-                    <XCircle className="w-3 h-3 mr-1" />
-                    {status === 'application_rejected' ? 'Inscrição rejeitada' : 'Prova rejeitada'}
-                  </Badge>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-
-        <ProofPreview proofUrl={submission.proof_url} />
-      </CardContent>
-    </Card>
-      )
-    })()
-  );
+    if (status === 'proof_pending') return { bg: `rgba(68,102,255,0.12)`, color: "#8899FF", label: 'Prova em análise', icon: Clock };
+    if (status === 'application_approved') return { bg: `rgba(170,102,255,0.12)`, color: "#AA66FF", label: 'Aprovado p/ fazer', icon: Clock };
+    
+    return { bg: `${C.orange}1A`, color: C.orange, label: 'Em análise', icon: Clock };
+  }
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando submissões...</p>
+      <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyItems: "center" }}>
+        <div style={{ textAlign: "center", margin: "auto" }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: "50%",
+            border: `2px solid ${C.lime}`, borderTopColor: "transparent",
+            margin: "0 auto 16px", animation: "spin 0.8s linear infinite",
+          }} />
+          <p style={{ color: `${C.cream}45`, fontSize: 14 }}>Carregando submissões...</p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       </div>
     );
@@ -324,123 +207,130 @@ export default function MySubmissions() {
 
   if (error) {
     return (
-      <div className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-emerald-50 via-white to-green-50">
+      <div style={{ minHeight: "100vh", background: C.black, ...body, padding: "32px" }}>
         <div className="max-w-6xl mx-auto">
-          <Card className="border-red-200 bg-red-50">
-            <CardContent className="py-8">
-              <h3 className="text-lg font-semibold text-red-700 mb-2">Erro ao carregar submissões</h3>
-              <p className="text-sm text-red-600">{error?.message || 'Não foi possível carregar seu histórico agora.'}</p>
-            </CardContent>
-          </Card>
+          <div className="p-8 rounded-2xl" style={{ backgroundColor: "rgba(255,34,85,0.08)", border: "1px solid rgba(255,34,85,0.2)" }}>
+            <h3 style={{ ...heading, fontSize: 18, color: "#FF2255", marginBottom: 8 }}>Erro ao carregar submissões</h3>
+            <p style={{ color: "rgba(255,34,85,0.8)", fontSize: 14 }}>{error?.message || 'Não foi possível carregar seu histórico agora.'}</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-emerald-50 via-white to-green-50">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Minhas Submissões</h1>
-          <p className="text-gray-600">Acompanhe o status das suas tarefas enviadas</p>
+    <div style={{ minHeight: "100vh", background: C.black, ...body }}>
+      {/* Header Fixo */}
+      <div className="flex items-center justify-between px-8 py-4 sticky top-0 z-10" style={{ backgroundColor: `${C.black}F5`, backdropFilter: "blur(16px)", borderBottom: `1px solid rgba(255,255,222,0.05)` }}>
+        <div className="flex items-center gap-3">
+          <FileCheck size={16} style={{ color: C.lime }} />
+          <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", textTransform: "uppercase" }}>Minhas Submissões</span>
+        </div>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.black }}>
+          <Star size={11} fill={C.black} />
+          <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>{userScore?.total_points || 0} pts</span>
+        </div>
+      </div>
+
+      <div className="px-8 pt-7 pb-10 max-w-6xl mx-auto">
+        {/* Hero */}
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <h1 style={{ ...heading, fontSize: 40, fontWeight: 900, color: C.cream, letterSpacing: "-0.03em", lineHeight: 1 }}>Minhas Submissões</h1>
+            <p style={{ fontSize: 14, color: `${C.cream}50`, marginTop: 6 }}>Acompanhe o status de cada envio.</p>
+          </div>
+          <button
+            onClick={() => navigate(createPageUrl("Tasks"))}
+            className="flex items-center gap-2 px-5 py-3 rounded-xl transition-all hover:brightness-110"
+            style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 13 }}
+          >
+            <Plus size={15} /> Nova Submissão
+          </button>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full grid grid-cols-2 md:grid-cols-4 mb-8">
-            <TabsTrigger value="pending" className="data-[state=active]:bg-yellow-600 data-[state=active]:text-white">
-              Em andamento ({pendingSubmissions.length})
-            </TabsTrigger>
-            <TabsTrigger value="approved" className="data-[state=active]:bg-green-600 data-[state=active]:text-white">
-              Aprovadas ({approvedSubmissions.length})
-            </TabsTrigger>
-            <TabsTrigger value="rejected" className="data-[state=active]:bg-red-600 data-[state=active]:text-white">
-              Rejeitadas ({rejectedSubmissions.length})
-            </TabsTrigger>
-            <TabsTrigger value="expired" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">
-              Expiradas ({expiredSubmissions.length})
-            </TabsTrigger>
-          </TabsList>
+        {/* Stats row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-7">
+          {[
+            { label: "Total enviadas",   value: submissions.length, color: C.cream  },
+            { label: "Aprovadas",        value: approvedSubmissions.length, color: C.lime   },
+            { label: "Em andamento",     value: pendingSubmissions.length, color: `${C.cream}80` },
+            { label: "Pontos ganhos",    value: `${totalPts} pts`, color: C.lime   },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="p-5 rounded-2xl" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
+              <div style={{ ...heading, fontSize: 28, fontWeight: 900, color, lineHeight: 1, letterSpacing: "-0.02em" }}>{value}</div>
+              <div style={{ fontSize: 11, color: `${C.cream}45`, marginTop: 6 }}>{label}</div>
+            </div>
+          ))}
+        </div>
 
-          <TabsContent value="pending" className="mt-0">
-            {pendingSubmissions.length === 0 ? (
-              <Card className="text-center py-12">
-                <CardContent>
-                  <Clock className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                    Nenhuma submissão em andamento
-                  </h3>
-                  <p className="text-gray-500">
-                    Suas inscrições e provas em andamento aparecerão aqui.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {pendingSubmissions.map((submission) => renderSubmissionCard(submission))}
-              </div>
-            )}
-          </TabsContent>
+        {/* Filter tabs */}
+        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+          {["todas", "aprovadas", "andamento", "rejeitadas", "expiradas"].map((f) => {
+            const active = f === activeTab;
+            const label = f.charAt(0).toUpperCase() + f.slice(1);
+            return (
+              <button key={f} onClick={() => setActiveTab(f)} className="shrink-0 px-4 py-2 rounded-xl text-sm transition-all duration-150" style={{ backgroundColor: active ? C.lime : "rgba(255,255,222,0.06)", color: active ? C.black : `${C.cream}70`, fontWeight: active ? 700 : 400, ...heading, fontSize: 13 }}>
+                {label === "Andamento" ? "Em andamento" : label}
+              </button>
+            );
+          })}
+        </div>
 
-          <TabsContent value="approved" className="mt-0">
-            {approvedSubmissions.length === 0 ? (
-              <Card className="text-center py-12">
-                <CardContent>
-                  <CheckCircle className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                    Nenhuma submissão aprovada ainda
-                  </h3>
-                  <p className="text-gray-500">
-                    Continue completando tarefas para ganhar pontos!
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {approvedSubmissions.map((submission) => renderSubmissionCard(submission))}
-              </div>
-            )}
-          </TabsContent>
+        {/* List */}
+        <div className="flex flex-col gap-3">
+          {visibleSubmissions.map((sub) => {
+            const { bg, color, label, icon: Icon } = getStatusDisplay(sub);
+            const isPaid = sub.task?.category === 'campanha' || Number(sub.task?.offered_value || 0) > 0;
+            const pointsOrValue = isPaid ? `R$ ${Number(sub.task?.offered_value || 0).toLocaleString('pt-BR')}` : `+${Number(sub.points_awarded || sub.task?.points || 0)}`;
 
-          <TabsContent value="rejected" className="mt-0">
-            {rejectedSubmissions.length === 0 ? (
-              <Card className="text-center py-12">
-                <CardContent>
-                  <XCircle className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                    Nenhuma submissão rejeitada
-                  </h3>
-                  <p className="text-gray-500">
-                    Ótimo trabalho! Continue assim.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {rejectedSubmissions.map((submission) => renderSubmissionCard(submission))}
-              </div>
-            )}
-          </TabsContent>
+            return (
+              <div key={sub.id} onClick={() => setSelectedSubmission(sub)} className="flex items-center gap-5 p-5 rounded-2xl transition-all hover:brightness-110 cursor-pointer" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
+                {/* Status dot */}
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: bg, color }}>
+                  <Icon size={16} />
+                </div>
 
-          <TabsContent value="expired" className="mt-0">
-            {expiredSubmissions.length === 0 ? (
-              <Card className="text-center py-12">
-                <CardContent>
-                  <Clock className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                    Nenhuma submissão expirada
-                  </h3>
-                  <p className="text-gray-500">
-                    As tarefas que já passaram do prazo aparecerão aqui.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {expiredSubmissions.map((submission) => renderSubmissionCard(submission, true))}
+                <div className="flex-1 min-w-0">
+                  <div style={{ fontSize: 14, fontWeight: 600, color: C.cream, marginBottom: 3 }} className="truncate">{sub.task?.title || 'Tarefa'}</div>
+                  <div className="flex items-center gap-3">
+                    <span style={{ fontSize: 11, color: `${C.cream}40` }}>{format(new Date(sub.created_at), "dd MMM yyyy", { locale: ptBR })}</span>
+                    <span className="px-2 py-0.5 rounded-full text-xs" style={{ backgroundColor: "rgba(255,255,222,0.06)", color: `${C.cream}55` }}>{CATEGORY_NAMES[sub.task?.category] || sub.task?.category}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className="text-right">
+                    <div style={{ ...heading, fontSize: 18, fontWeight: 800, color: label === "Aprovada" || label === "Concluída" ? C.lime : `${C.cream}30`, lineHeight: 1 }}>{pointsOrValue}</div>
+                    <div style={{ fontSize: 10, color: `${C.cream}30`, marginTop: 2 }}>{isPaid ? 'previstos' : 'pts'}</div>
+                  </div>
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap" style={{ backgroundColor: bg, color }}>
+                    <Icon size={12} />
+                    {label}
+                  </span>
+                  {sub.proof_url && (
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(sub.proof_url, '_blank', 'noopener,noreferrer');
+                        }}
+                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-opacity hover:opacity-100 opacity-40" 
+                        style={{ backgroundColor: "rgba(255,255,222,0.06)", color: C.cream }}
+                    >
+                      <ExternalLink size={13} />
+                    </button>
+                  )}
+                </div>
               </div>
-            )}
-          </TabsContent>
-        </Tabs>
+            );
+          })}
+        </div>
+
+        {visibleSubmissions.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-24 gap-4">
+            <Upload size={36} style={{ color: `${C.cream}20` }} />
+            <p style={{ ...heading, fontSize: 18, fontWeight: 700, color: `${C.cream}40` }}>Nenhuma submissão encontrada.</p>
+          </div>
+        )}
       </div>
 
       {selectedSubmission && (

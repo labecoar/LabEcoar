@@ -4,60 +4,64 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTasks } from "@/hooks/useTasks";
 import { useMySubmissions } from "@/hooks/useSubmissions";
 import { useMyMetricsSubmissions } from "@/hooks/useMetrics";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useUserScore } from "@/hooks/useScores";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Target, Users, Calendar, Clock, CheckCircle2,
-  Star, CircleDollarSign, Megaphone, Zap, BookOpen, Share2 
+  Star, CircleDollarSign, Megaphone, Zap, BookOpen, Share2,
+  Sparkles, SlidersHorizontal,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import TaskDetailsModal from "../components/tasks/TaskDetailsModal";
 import { getProofApprovalMetricsWindow, getMetricsResubmissionDeadline } from '@/lib/metrics-window';
+import { C, heading, body } from '@/lib/theme';
 
+const BORDER_COLOR = "rgba(255,255,222,0.07)";
+const MUTED_COLOR  = "rgba(255,255,222,0.45)";
+const GHOST_BG     = "rgba(255,255,222,0.06)";
+
+// ─── Mapeamentos de categoria ────────────────────────────────────────────────
 const CATEGORY_ICONS = {
-  campanha: Megaphone,
-  resposta_rapida: Zap,
-  oficina: BookOpen,
-  folhetim: Share2,
+  campanha:             Megaphone,
+  resposta_rapida:      Zap,
+  oficina:              BookOpen,
+  folhetim:             Share2,
   compartilhar_ecoante: Users,
-  sidequest_teste: Target,
+  sidequest_teste:      Target,
 };
 
-const CATEGORY_COLORS = {
-  campanha: "bg-green-100 text-green-700 border-green-200",
-  resposta_rapida: "bg-orange-100 text-orange-700 border-orange-200",
-  oficina: "bg-purple-100 text-purple-700 border-purple-200",
-  folhetim: "bg-blue-100 text-blue-700 border-blue-200",
-  compartilhar_ecoante: "bg-pink-100 text-pink-700 border-pink-200",
-  sidequest_teste: "bg-cyan-100 text-cyan-700 border-cyan-200",
+const CATEGORY_ACCENT = {
+  campanha:             C.lime,
+  resposta_rapida:      C.orange,
+  oficina:              C.purple,
+  folhetim:             C.blue,
+  compartilhar_ecoante: C.pink,
+  sidequest_teste:      C.cyan,
 };
 
 const CATEGORY_NAMES = {
-  campanha: "Campanha",
-  resposta_rapida: "Resposta Rápida",
-  oficina: "Oficina",
-  folhetim: "Folhetim",
-  compartilhar_ecoante: "Compartilhar Ecoante",
-  sidequest_teste: "Sidequest",
+  campanha:             "Campanha",
+  resposta_rapida:      "Resposta Rápida",
+  oficina:              "Oficina",
+  folhetim:             "Folhetim",
+  compartilhar_ecoante: "Compartilhar",
+  sidequest_teste:      "Sidequest",
 };
 
+// ─── Helpers de lógica (inalterados) ────────────────────────────────────────
 const normalizeSubmissionStatus = (status) => {
   if (!status) return null;
   const normalized = String(status).trim().toLowerCase();
-
   if (normalized === 'pendente') return 'pending';
   if (normalized === 'aprovada' || normalized === 'aprovado' || normalized === 'concluida' || normalized === 'concluído') return 'approved';
   if (normalized === 'rejeitada' || normalized === 'rejeitado') return 'rejected';
   if (normalized === 'em_analise' || normalized === 'em análise') return 'proof_pending';
-
   return normalized;
 };
 
-const getSubmissionTaskId = (submission) => {
-  return submission?.task_id || submission?.task?.id || submission?.taskId || null;
-}
+const getSubmissionTaskId = (submission) =>
+  submission?.task_id || submission?.task?.id || submission?.taskId || null;
 
 const toDateOrNull = (value) => {
   if (!value) return null;
@@ -74,11 +78,7 @@ const isBusinessDay = (date) => {
 const firstBusinessDayOnOrAfter = (baseDate) => {
   if (!baseDate) return null;
   const result = new Date(baseDate);
-
-  while (!isBusinessDay(result)) {
-    result.setDate(result.getDate() + 1);
-  }
-
+  while (!isBusinessDay(result)) result.setDate(result.getDate() + 1);
   return result;
 };
 
@@ -87,7 +87,6 @@ const resolveProofDeadline = (task) => {
     const postingDeadline = toDateOrNull(task?.posting_deadline);
     if (postingDeadline) return postingDeadline;
   }
-
   return toDateOrNull(task?.expires_at)
     || toDateOrNull(task?.posting_deadline)
     || toDateOrNull(task?.delivery_deadline)
@@ -96,59 +95,27 @@ const resolveProofDeadline = (task) => {
 
 const isAutoExpiredSubmissionRejection = (submission) => {
   if (!submission) return false;
-
   const status = normalizeSubmissionStatus(submission.status);
   if (!['application_rejected', 'rejected'].includes(status)) return false;
-
   const reason = String(submission.rejection_reason || '').trim().toLowerCase();
   if (!reason) return false;
-
   return reason.includes('prazo de envio da prova expirou')
     || reason.includes('vaga cancelada por inatividade')
     || reason.includes('primeira tentativa de envio da prova');
 };
 
 const getDeadlineState = (expiresAtValue) => {
-  if (!expiresAtValue) {
-    return {
-      expiresAt: null,
-      isExpired: false,
-      isCritical: false,
-      isWarning: false,
-      timeLabel: 'Sem data',
-    };
-  }
-
+  if (!expiresAtValue) return { expiresAt: null, isExpired: false, isCritical: false, isWarning: false, timeLabel: 'Sem data' };
   const expiresAt = new Date(expiresAtValue);
-  if (Number.isNaN(expiresAt.getTime())) {
-    return {
-      expiresAt: null,
-      isExpired: false,
-      isCritical: false,
-      isWarning: false,
-      timeLabel: 'Data inválida',
-    };
-  }
-
+  if (Number.isNaN(expiresAt.getTime())) return { expiresAt: null, isExpired: false, isCritical: false, isWarning: false, timeLabel: 'Data inválida' };
   const diffMs = expiresAt.getTime() - Date.now();
   const isExpired = diffMs <= 0;
   const oneDayMs = 24 * 60 * 60 * 1000;
   const threeDaysMs = 3 * oneDayMs;
-
-  if (isExpired) {
-    return {
-      expiresAt,
-      isExpired: true,
-      isCritical: false,
-      isWarning: false,
-      timeLabel: 'Expirada',
-    };
-  }
-
+  if (isExpired) return { expiresAt, isExpired: true, isCritical: false, isWarning: false, timeLabel: 'Expirada' };
   const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
   const days = Math.floor(totalHours / 24);
   const hours = totalHours % 24;
-
   return {
     expiresAt,
     isExpired: false,
@@ -158,6 +125,7 @@ const getDeadlineState = (expiresAtValue) => {
   };
 };
 
+// ─── Componente principal ────────────────────────────────────────────────────
 export default function Tasks() {
   const [selectedCategory, setSelectedCategory] = useState("todas");
   const [selectedTask, setSelectedTask] = useState(null);
@@ -165,75 +133,60 @@ export default function Tasks() {
   const { data: allTasks = [], isLoading } = useTasks();
   const { data: mySubmissions = [] } = useMySubmissions(user?.id);
   const { data: myMetricsSubmissions = [] } = useMyMetricsSubmissions(user?.id);
+  const { data: userScore } = useUserScore(user?.id);
+  const currentPoints = userScore?.total_points || 0;
 
-  const getTaskSubmission = (taskId) => {
-    return mySubmissions.find((sub) => String(getSubmissionTaskId(sub)) === String(taskId)) || null;
-  };
+  const getTaskSubmission = (taskId) =>
+    mySubmissions.find((sub) => String(getSubmissionTaskId(sub)) === String(taskId)) || null;
 
-  const getTaskMetricsSubmission = (taskId) => {
-    return myMetricsSubmissions.find((item) => String(item.task_id) === String(taskId)) || null;
-  };
+  const getTaskMetricsSubmission = (taskId) =>
+    myMetricsSubmissions.find((item) => String(item.task_id) === String(taskId)) || null;
 
   const shouldHideTaskFromAvailable = (task) => {
     const submission = getTaskSubmission(task.id);
     const submissionStatus = normalizeSubmissionStatus(submission?.status);
-
-    // Após o usuário se candidatar a uma tarefa (em qualquer status que não seja final),
-    // ela sai de "Disponíveis" e segue o fluxo apenas em "Minhas Submissões".
-    return ['application_pending', 'pending', 'application_approved', 'application_rejected', 'proof_pending', 'approved', 'rejected'].includes(submissionStatus);
+    return ['application_pending','pending','application_approved','application_rejected','proof_pending','approved','rejected'].includes(submissionStatus);
   };
 
   const shouldKeepCampaignVisibleForMetrics = (task) => {
     if (task?.category !== 'campanha') return false;
-
     const submission = getTaskSubmission(task.id);
     const submissionStatus = normalizeSubmissionStatus(submission?.status);
     if (submissionStatus !== 'approved') return false;
-
     const metricsSubmission = getTaskMetricsSubmission(task.id);
     const metricsStatus = String(metricsSubmission?.status || '').trim().toLowerCase();
-
-    // Enquanto a etapa de métricas não foi concluída, mantém a campanha visível
-    // mesmo após o fechamento da campanha principal.
     if (!metricsSubmission) return true;
     if (metricsStatus === 'pending') return true;
     if (metricsStatus === 'approved') return false;
-
     const now = new Date();
     const metricsWindowEnd = getProofApprovalMetricsWindow(submission?.validated_at || submission?.updated_at).end;
     if (!metricsWindowEnd) return false;
     if (now <= metricsWindowEnd) return true;
     if (metricsStatus !== 'rejected') return false;
-
     const resubmissionDeadline = getMetricsResubmissionDeadline(metricsSubmission?.reviewed_at);
     if (!resubmissionDeadline) return false;
     return now <= resubmissionDeadline;
   };
 
-  // Filtra tarefas que não expiraram e respeita o mínimo de seguidores
   const tasks = allTasks.filter(task => {
     if (shouldHideTaskFromAvailable(task)) return false;
-
     if (task.expires_at && new Date(task.expires_at) < new Date() && !shouldKeepCampaignVisibleForMetrics(task)) return false;
-    
-    // Filtro de seguidores para qualquer tarefa que exija mínimo
     if (task.min_followers) {
       const userFollowers = profile?.followers_count || 0;
       if (userFollowers < task.min_followers) return false;
     }
-    
     return true;
   });
 
-  const filteredTasks = selectedCategory === "todas" ?
-    tasks :
-    tasks.filter((task) => task.category === selectedCategory);
+  const filteredTasks = selectedCategory === "todas"
+    ? tasks
+    : tasks.filter((task) => task.category === selectedCategory);
 
   const isTaskClaimed = (taskId) => {
     const submission = getTaskSubmission(taskId);
     const status = normalizeSubmissionStatus(submission?.status);
     if (!submission) return false;
-    return ['application_pending', 'application_approved', 'proof_pending', 'pending'].includes(status);
+    return ['application_pending','application_approved','proof_pending','pending'].includes(status);
   };
 
   const isTaskApproved = (taskId) => {
@@ -243,30 +196,28 @@ export default function Tasks() {
 
   const isTaskRejected = (taskId) => {
     const submission = getTaskSubmission(taskId);
-    return ['application_rejected', 'rejected'].includes(normalizeSubmissionStatus(submission?.status));
+    return ['application_rejected','rejected'].includes(normalizeSubmissionStatus(submission?.status));
   };
 
   const shouldShowExpiredStatus = (task, submission) => {
     if (!isAutoExpiredSubmissionRejection(submission)) return false;
-
     const proofDeadline = resolveProofDeadline(task);
     if (!proofDeadline) return false;
-
     return Date.now() > proofDeadline.getTime();
   };
 
   const isSubmissionReopenedByDateChange = (task, submission) => {
     if (!isAutoExpiredSubmissionRejection(submission)) return false;
-
     const proofDeadline = resolveProofDeadline(task);
     if (!proofDeadline) return false;
-
     return Date.now() <= proofDeadline.getTime();
   };
 
+  // ─── TaskCard ──────────────────────────────────────────────────────────────
   const TaskCard = ({ task }) => {
     const Icon = CATEGORY_ICONS[task.category] || Target;
-    const colorClass = CATEGORY_COLORS[task.category] || "bg-gray-100 text-gray-700 border-gray-200";
+    const accent = CATEGORY_ACCENT[task.category] || C.lime;
+    const accentText = accent === C.lime || accent === C.cyan ? C.black : C.cream;
     const isCampaignTask = task.category === 'campanha';
     const isPaidTask = task.category === 'campanha' || Number(task.offered_value || 0) > 0;
     const submission = getTaskSubmission(task.id);
@@ -280,203 +231,235 @@ export default function Tasks() {
     const isExpiredByRule = shouldShowExpiredStatus(task, submission);
     const reopenedByDateChange = isSubmissionReopenedByDateChange(task, submission);
 
+    // ── Badge de status ──────────────────────────────────────────────────────
+    const StatusBadge = () => {
+      const base = {
+        display: "inline-flex", alignItems: "center", gap: 4,
+        padding: "3px 10px", borderRadius: 6, fontSize: 11, fontWeight: 500, flexShrink: 0,
+      };
+
+      if (approved) {
+        if (isCampaignTask) {
+          if (metricsStatus === 'approved')
+            return <span style={{ ...base, background: "rgba(204,255,68,0.12)", color: C.lime }}><CheckCircle2 size={11} /> Concluída</span>;
+          if (metricsStatus === 'pending')
+            return <span style={{ ...base, background: "rgba(68,102,255,0.12)", color: "#8899FF" }}><Clock size={11} /> Métricas em análise</span>;
+          if (metricsStatus === 'rejected')
+            return <span style={{ ...base, background: "rgba(255,136,51,0.12)", color: C.orange }}><Clock size={11} /> Reenviar métricas</span>;
+          return <span style={{ ...base, background: "rgba(170,102,255,0.12)", color: C.purple }}><Clock size={11} /> Pendente métricas</span>;
+        }
+        return <span style={{ ...base, background: "rgba(204,255,68,0.12)", color: C.lime }}><CheckCircle2 size={11} /> Concluída</span>;
+      }
+      if (isExpiredByRule)
+        return <span style={{ ...base, background: "rgba(255,255,216,0.07)", color: MUTED_COLOR }}>Expirada</span>;
+      if (submissionStatus === 'proof_pending')
+        return <span style={{ ...base, background: "rgba(68,102,255,0.12)", color: "#8899FF" }}><Clock size={11} /> Prova em Análise</span>;
+      if (submissionStatus === 'application_approved')
+        return <span style={{ ...base, background: "rgba(170,102,255,0.12)", color: C.purple }}><Clock size={11} /> Aprovado p/ Fazer</span>;
+      if (claimed)
+        return (
+          <span style={{ ...base, background: "rgba(255,136,51,0.12)", color: C.orange }}>
+            <Clock size={11} />
+            {task.category === 'sidequest_teste' && submissionStatus === 'application_pending'
+              ? 'Aguardando prova' : 'Inscrição em Análise'}
+          </span>
+        );
+      if (rejected && !reopenedByDateChange)
+        return <span style={{ ...base, background: "rgba(255,34,85,0.12)", color: "#FF2255" }}>Rejeitada</span>;
+      if (submission && !reopenedByDateChange)
+        return <span style={{ ...base, background: "rgba(255,255,216,0.07)", color: MUTED_COLOR }}>Em andamento</span>;
+      return <span style={{ ...base, background: "rgba(204,255,68,0.12)", color: C.lime }}>Disponível</span>;
+    };
+
     return (
-      <Card
-        className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 border-gray-200 bg-white hover:border-emerald-300"
+      <div
         onClick={() => setSelectedTask(task)}
+        style={{
+          background: C.card,
+          borderRadius: 16,
+          border: `1px solid ${BORDER_COLOR}`,
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          cursor: "pointer",
+          transition: "all 0.2s",
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.borderColor = "rgba(204,255,68,0.25)";
+          e.currentTarget.style.transform = "translateY(-2px)";
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.borderColor = BORDER_COLOR;
+          e.currentTarget.style.transform = "translateY(0)";
+        }}
       >
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-2">
-                <Badge className={`${colorClass} border`}>
-                  <Icon className="w-3 h-3 mr-1" />
-                  {CATEGORY_NAMES[task.category]}
-                </Badge>
-                {task.min_followers && (
-                  <Badge variant="outline" className="text-xs">
-                    {task.min_followers}+ seguidores
-                  </Badge>
-                )}
-              </div>
-              <CardTitle className="text-lg leading-tight break-words">{task.title}</CardTitle>
-            </div>
-            <div className="flex items-center gap-1 px-3 py-1 bg-amber-50 rounded-full border border-amber-200">
-              {isPaidTask ? (
-                <CircleDollarSign className="w-4 h-4 text-amber-600" />
-              ) : (
-                <Star className="w-4 h-4 text-amber-600 fill-amber-600" />
+        {/* Faixa de acento */}
+        <div style={{ height: 3, background: accent, flexShrink: 0 }} />
+
+        <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
+          {/* Topo: emoji + destaque + pts */}
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <Icon size={20} color={accent} />
+              {task.min_followers && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, background: "rgba(255,255,216,0.06)", color: MUTED_COLOR, fontSize: 11 }}>
+                  <Users size={9} /> {task.min_followers}+ seguidores
+                </span>
               )}
-              <span className="font-bold text-amber-700">
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 999, background: "rgba(255,136,51,0.15)", color: C.orange, flexShrink: 0 }}>
+              {isPaidTask
+                ? <CircleDollarSign size={11} />
+                : <Star size={10} style={{ fill: C.orange }} />
+              }
+              <span style={{ fontSize: 12, fontWeight: 700 }}>
                 {isPaidTask
                   ? `R$ ${Number(task.offered_value || 0).toLocaleString('pt-BR')}`
                   : Number(task.points || 0).toLocaleString('pt-BR')}
               </span>
             </div>
           </div>
-        </CardHeader>
 
-        <CardContent className="pt-0">
-          <p className="text-sm text-gray-600 line-clamp-2 mb-4 break-words break-all whitespace-normal">
-            {task.description}
-          </p>
-
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between text-sm mb-2">
-            <div className="flex items-center gap-4 text-gray-500 flex-wrap">
-              {task.expires_at && (
-                <div className={`flex items-center gap-1 px-2 py-1 rounded-md border ${
-                  deadline.isCritical
-                    ? 'bg-red-100 text-red-700 border-red-200'
-                    : deadline.isWarning
-                      ? 'bg-amber-100 text-amber-700 border-amber-200'
-                      : 'bg-gray-100 text-gray-600 border-gray-200'
-                }`}>
-                  <Calendar className="w-4 h-4" />
-                  <span>{format(new Date(task.expires_at), "dd/MM")}</span>
-                </div>
-              )}
-              {task.max_participants && (
-                <div className="flex items-center gap-1">
-                  <Users className="w-4 h-4" />
-                  <span>{task.current_participants || 0}/{task.max_participants}</span>
-                </div>
-              )}
+          {/* Título + descrição */}
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 500, color: C.cream, letterSpacing: "-0.01em", lineHeight: 1.3, marginBottom: 6 }}>
+              {task.title}
             </div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,216,0.45)", lineHeight: 1.55, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+              {task.description}
+            </div>
+          </div>
 
-            {approved ? (
-              isCampaignTask ? (
-                metricsStatus === 'approved' ? (
-                  <Badge className="bg-green-100 text-green-700 border-green-200 shrink-0">
-                    <CheckCircle2 className="w-3 h-3 mr-1" />
-                    Concluída
-                  </Badge>
-                ) : metricsStatus === 'pending' ? (
-                  <Badge className="bg-blue-100 text-blue-700 border-blue-200 shrink-0">
-                    <Clock className="w-3 h-3 mr-1" />
-                    Métricas em análise
-                  </Badge>
-                ) : metricsStatus === 'rejected' ? (
-                  <Badge className="bg-orange-100 text-orange-700 border-orange-200 shrink-0">
-                    <Clock className="w-3 h-3 mr-1" />
-                    Reenviar métricas
-                  </Badge>
-                ) : (
-                  <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200 shrink-0">
-                    <Clock className="w-3 h-3 mr-1" />
-                    Pendente métricas
-                  </Badge>
-                )
-              ) : (
-                <Badge className="bg-green-100 text-green-700 border-green-200 shrink-0">
-                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                  Concluída
-                </Badge>
-              )
-            ) : isExpiredByRule ? (
-              <Badge className="bg-gray-200 text-gray-700 border-gray-300 shrink-0">
-                Expirada
-              </Badge>
-            ) : submissionStatus === 'proof_pending' ? (
-              <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200 shrink-0">
-                <Clock className="w-3 h-3 mr-1" />
-                Prova em Análise
-              </Badge>
-            ) : submissionStatus === 'application_approved' ? (
-              <Badge className="bg-purple-100 text-purple-700 border-purple-200 shrink-0">
-                <Clock className="w-3 h-3 mr-1" />
-                Aprovado p/ Fazer
-              </Badge>
-            ) : claimed ? (
-              <Badge className="bg-blue-100 text-blue-700 border-blue-200 shrink-0">
-                <Clock className="w-3 h-3 mr-1" />
-                {task.category === 'sidequest_teste' && submissionStatus === 'application_pending'
-                  ? 'Aguardando prova'
-                  : 'Inscrição em Análise'}
-              </Badge>
-            ) : rejected && !reopenedByDateChange ? (
-              <Badge className="bg-red-100 text-red-700 border-red-200 shrink-0">
-                Rejeitada
-              </Badge>
-            ) : submission && !reopenedByDateChange ? (
-              <Badge className="bg-slate-100 text-slate-700 border-slate-200 shrink-0">
-                Em andamento
-              </Badge>
-            ) : (
-              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 shrink-0">
-                Disponível
-              </Badge>
+          {/* Meta: data + vagas */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            {task.expires_at && (
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                padding: "3px 8px", borderRadius: 6, fontSize: 11,
+                background: deadline.isCritical ? "rgba(255,34,85,0.12)" : deadline.isWarning ? "rgba(255,136,51,0.12)" : "rgba(255,255,216,0.06)",
+                color: deadline.isCritical ? "#FF2255" : deadline.isWarning ? C.orange : MUTED_COLOR,
+              }}>
+                <Calendar size={10} />
+                {format(new Date(task.expires_at), "dd/MM")}
+              </span>
+            )}
+            {task.max_participants && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "rgba(255,255,216,0.3)" }}>
+                <Users size={10} />
+                {task.current_participants || 0}/{task.max_participants}
+              </span>
             )}
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Footer: status */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 10, borderTop: `1px solid ${BORDER_COLOR}` }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, background: "rgba(255,255,216,0.06)", color: MUTED_COLOR, fontSize: 11 }}>
+              <Icon size={9} /> {CATEGORY_NAMES[task.category] || task.category}
+            </span>
+            <StatusBadge />
+          </div>
+        </div>
+      </div>
     );
   };
 
+  // ─── Loading ───────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando tarefas...</p>
+      <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: "50%",
+            border: `2px solid ${C.lime}`, borderTopColor: "transparent",
+            margin: "0 auto 16px", animation: "spin 0.8s linear infinite",
+          }} />
+          <p style={{ color: MUTED_COLOR, fontSize: 14 }}>Carregando tarefas...</p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       </div>
     );
   }
 
+  // ─── Render ────────────────────────────────────────────────────────────────
+  const FILTER_TABS = [
+    { value: "todas",               label: "Todas" },
+    { value: "campanha",            label: "Campanhas" },
+    { value: "resposta_rapida",     label: "Respostas Rápidas" },
+    { value: "oficina",             label: "Oficinas" },
+    { value: "folhetim",            label: "Folhetins" },
+    { value: "compartilhar_ecoante",label: "Compartilhar" },
+    { value: "sidequest_teste",     label: "Sidequest" },
+  ];
+
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-emerald-50 via-white to-green-50">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Tarefas Disponíveis</h1>
-          <p className="text-gray-600">Escolha uma tarefa e ganhe pontos!</p>
+    <div style={{ minHeight: "100vh", background: C.black, ...body }}>
+      {/* Header fixo */}
+      <div className="flex items-center justify-between px-8 py-4 sticky top-0 z-10" style={{ backgroundColor: `${C.black}F5`, backdropFilter: "blur(16px)", borderBottom: `1px solid rgba(255,255,222,0.05)` }}>
+        <div className="flex items-center gap-3">
+          <Target size={16} style={{ color: C.lime }} />
+          <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            Tarefas Disponíveis
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: "rgba(255,255,222,0.06)", color: `${C.cream}70` }}>
+            <SlidersHorizontal size={11} />
+            <span style={{ fontSize: 12 }}>{filteredTasks.length} {filteredTasks.length === 1 ? 'tarefa' : 'tarefas'}</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.black }}>
+            <Star size={11} fill={C.black} />
+            <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>{currentPoints} pts</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-8 pt-7 pb-10 max-w-6xl mx-auto">
+        {/* Título */}
+        <div className="mb-6">
+          <h1 style={{ ...heading, fontSize: 40, fontWeight: 900, color: C.cream, letterSpacing: "-0.03em", lineHeight: 1 }}>
+            Tarefas Disponíveis
+          </h1>
+          <p style={{ fontSize: 14, color: `${C.cream}50`, marginTop: 6 }} className="flex items-center gap-2">
+            Escolha uma tarefa e ganhe pontos!
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ backgroundColor: `${C.lime}18`, color: C.lime }}>
+              +{filteredTasks.reduce((a, t) => a + (Number(t.points) || 0), 0)} pts disponíveis
+            </span>
+          </p>
         </div>
 
-        {/* Filtro de Categorias */}
-        <div className="mb-8">
-          <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
-            <TabsList className="w-full flex flex-wrap h-auto gap-2 bg-transparent">
-              <TabsTrigger value="todas" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
-                Todas
-              </TabsTrigger>
-              <TabsTrigger value="campanha" className="data-[state=active]:bg-green-600 data-[state=active]:text-white">
-                Campanhas
-              </TabsTrigger>
-              <TabsTrigger value="resposta_rapida" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white">
-                Respostas Rápidas
-              </TabsTrigger>
-              <TabsTrigger value="oficina" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
-                Oficinas
-              </TabsTrigger>
-              <TabsTrigger value="folhetim" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-                Folhetins
-              </TabsTrigger>
-              <TabsTrigger value="compartilhar_ecoante" className="data-[state=active]:bg-pink-600 data-[state=active]:text-white">
-                Compartilhar
-              </TabsTrigger>
-              <TabsTrigger value="sidequest_teste" className="data-[state=active]:bg-amber-600 data-[state=active]:text-white">
-                Sidequest 
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+        {/* Filtros */}
+        <div className="flex items-center gap-2 mb-7 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+          {FILTER_TABS.map(tab => {
+            const active = selectedCategory === tab.value;
+            return (
+              <button
+                key={tab.value}
+                onClick={() => setSelectedCategory(tab.value)}
+                className="shrink-0 px-4 py-2 rounded-xl transition-all duration-150"
+                style={{
+                  backgroundColor: active ? C.lime : "rgba(255,255,222,0.06)",
+                  color: active ? C.black : `${C.cream}70`,
+                  fontWeight: active ? 700 : 400,
+                  ...heading,
+                  fontSize: 13,
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Lista de Tarefas */}
+        {/* Grid ou empty state */}
         {filteredTasks.length === 0 ? (
-          <Card className="text-center py-12">
-            <CardContent>
-              <Target className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                Nenhuma tarefa disponível
-              </h3>
-              <p className="text-gray-500">
-                {selectedCategory === "todas" 
-                  ? "Não há tarefas disponíveis no momento."
-                  : "Não há tarefas nesta categoria."}
-              </p>
-            </CardContent>
-          </Card>
+          <div className="flex flex-col items-center justify-center py-24 gap-4">
+            <Target size={56} color="rgba(255,255,216,0.2)" />
+            <p style={{ ...heading, fontSize: 18, fontWeight: 700, color: `${C.cream}40` }}>
+              {selectedCategory === "todas" ? "Nenhuma tarefa disponível no momento." : "Nenhuma tarefa nessa categoria."}
+            </p>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredTasks.map((task) => (
               <TaskCard key={task.id} task={task} />
             ))}
@@ -484,7 +467,7 @@ export default function Tasks() {
         )}
       </div>
 
-      {/* Modal de Detalhes */}
+      {/* Modal */}
       {selectedTask && (
         <TaskDetailsModal
           task={selectedTask}

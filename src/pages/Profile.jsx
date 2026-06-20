@@ -7,14 +7,10 @@ import { useUserScore } from '@/hooks/useScores'
 import { useMySubmissions } from '@/hooks/useSubmissions'
 import { useMyPayments } from '@/hooks/usePayments'
 import { storageService } from '@/services/storage.service'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { User, Instagram, Save, Trophy, Award, Star, Camera, Pencil, Users } from 'lucide-react'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { User, Instagram, Trophy, Award, Star, Users, Upload, Check, XCircle, Edit3 } from 'lucide-react'
 import { notifyError, notifySuccess } from '@/lib/toast'
+import { C, heading, body } from '@/lib/theme'
 
 const CATEGORY_LABELS = {
   voz_e_violao: 'Voz e Violão',
@@ -362,110 +358,116 @@ export default function Profile() {
   }, [totalEarningsFromProfile, campaignPotentialEarnings, paymentsPipelineTotal])
 
   return (
-    <div className="p-4 md:p-8">
+    <main className="flex-1 overflow-y-auto" style={{ backgroundColor: C.black, ...body }}>
       <Dialog open={avatarCropOpen} onOpenChange={(open) => { if (!open) closeAvatarCropDialog() }}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Ajustar foto de perfil</DialogTitle>
-            <DialogDescription>
-              Arraste para posicionar e use o zoom para enquadrar no circulo.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
+        <DialogContent className="sm:max-w-xl p-0 border-0 bg-transparent overflow-hidden shadow-none">
+          <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.1)` }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+              <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream }}>Ajustar foto de perfil</span>
+              <button onClick={closeAvatarCropDialog} style={{ color: `${C.cream}50` }} className="hover:opacity-100 transition-opacity"><XCircle size={18} /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p style={{ fontSize: 13, color: `${C.cream}60` }}>Arraste para posicionar e use o zoom para enquadrar no círculo.</p>
+              
             <div className="flex justify-center">
               <div
-                className="relative overflow-hidden rounded-lg border border-emerald-200 bg-black/90 select-none touch-none"
-                style={{ width: `${AVATAR_CROP_FRAME_SIZE}px`, height: `${AVATAR_CROP_FRAME_SIZE}px` }}
-                onMouseDown={handleAvatarDragStart}
-                onMouseMove={handleAvatarDragMove}
-                onMouseUp={handleAvatarDragEnd}
-                onMouseLeave={handleAvatarDragEnd}
-                onTouchStart={handleAvatarDragStart}
-                onTouchMove={handleAvatarDragMove}
-                onTouchEnd={handleAvatarDragEnd}
-              >
-                {avatarCropSourceUrl && (
-                  <img
-                    src={avatarCropSourceUrl}
-                    alt="Prévia do recorte"
-                    className="absolute left-1/2 top-1/2 max-w-none pointer-events-none"
-                    onLoad={(event) => {
-                      setAvatarCropSourceSize({
-                        width: event.currentTarget.naturalWidth || 0,
-                        height: event.currentTarget.naturalHeight || 0,
-                      })
-                    }}
-                    style={{
-                      transform: `translate(calc(-50% + ${avatarCropOffset.x}px), calc(-50% + ${avatarCropOffset.y}px)) scale(${avatarPreviewScale})`,
-                      transformOrigin: 'center center',
-                    }}
-                  />
-                )}
+                  className="relative overflow-hidden rounded-lg bg-black/90 select-none touch-none"
+                  style={{ width: `${AVATAR_CROP_FRAME_SIZE}px`, height: `${AVATAR_CROP_FRAME_SIZE}px`, border: `1px solid ${C.lime}44` }}
+                  onMouseDown={handleAvatarDragStart}
+                  onMouseMove={handleAvatarDragMove}
+                  onMouseUp={handleAvatarDragEnd}
+                  onMouseLeave={handleAvatarDragEnd}
+                  onTouchStart={handleAvatarDragStart}
+                  onTouchMove={handleAvatarDragMove}
+                  onTouchEnd={handleAvatarDragEnd}
+                >
+                  {avatarCropSourceUrl && (
+                    <img
+                      src={avatarCropSourceUrl}
+                      alt="Prévia do recorte"
+                      className="absolute left-1/2 top-1/2 max-w-none pointer-events-none"
+                      onLoad={(event) => {
+                        setAvatarCropSourceSize({
+                          width: event.currentTarget.naturalWidth || 0,
+                          height: event.currentTarget.naturalHeight || 0,
+                        })
+                      }}
+                      style={{
+                        transform: `translate(calc(-50% + ${avatarCropOffset.x}px), calc(-50% + ${avatarCropOffset.y}px)) scale(${avatarPreviewScale})`,
+                        transformOrigin: 'center center',
+                      }}
+                    />
+                  )}
 
-                <div className="absolute inset-0 pointer-events-none bg-black/30" />
-                <div
-                  className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]"
-                  style={{ width: `${AVATAR_CROP_CIRCLE_RATIO * 100}%`, height: `${AVATAR_CROP_CIRCLE_RATIO * 100}%` }}
+                  <div className="absolute inset-0 pointer-events-none bg-black/30" />
+                  <div
+                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]"
+                    style={{ width: `${AVATAR_CROP_CIRCLE_RATIO * 100}%`, height: `${AVATAR_CROP_CIRCLE_RATIO * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>ZOOM</label>
+                <input
+                  type="range"
+                  min={String(AVATAR_CROP_MIN_ZOOM)}
+                  max={String(AVATAR_CROP_MAX_ZOOM)}
+                  step="0.01"
+                  value={avatarCropZoom}
+                  onChange={(event) => setAvatarCropZoom(clampAvatarZoom(event.target.value))}
+                  className="w-full accent-lime-400"
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="avatar-zoom">Zoom</Label>
-              <input
-                id="avatar-zoom"
-                type="range"
-                min={String(AVATAR_CROP_MIN_ZOOM)}
-                max={String(AVATAR_CROP_MAX_ZOOM)}
-                step="0.01"
-                value={avatarCropZoom}
-                onChange={(event) => setAvatarCropZoom(clampAvatarZoom(event.target.value))}
-                className="w-full"
-              />
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={closeAvatarCropDialog} disabled={uploadFileMutation.isPending}>
-                Cancelar
-              </Button>
-              <Button type="button" onClick={handleConfirmAvatarCrop} disabled={uploadFileMutation.isPending}>
-                {uploadFileMutation.isPending ? 'Salvando foto...' : 'Usar esta foto'}
-              </Button>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={closeAvatarCropDialog} disabled={uploadFileMutation.isPending} className="flex-1 h-12 rounded-xl transition-all hover:bg-[rgba(255,255,222,0.05)]" style={{ color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}>
+                  Cancelar
+                </button>
+                <button type="button" onClick={handleConfirmAvatarCrop} disabled={uploadFileMutation.isPending} className="flex-1 h-12 rounded-xl transition-all hover:brightness-110 disabled:opacity-50" style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}>
+                  {uploadFileMutation.isPending ? 'Salvando foto...' : 'Usar esta foto'}
+                </button>
+              </div>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-            Meu Perfil
-          </h1>
-          <p className="text-gray-600 mt-2">Gerencie suas informações como Ecoante</p>
+      {/* Topbar */}
+      <div className="flex items-center justify-between px-8 py-4 sticky top-0 z-10" style={{ backgroundColor: `${C.black}F5`, backdropFilter: "blur(16px)", borderBottom: `1px solid rgba(255,255,222,0.05)` }}>
+        <div className="flex items-center gap-3">
+          <User size={16} style={{ color: C.lime }} />
+          <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", textTransform: "uppercase" }}>Perfil</span>
         </div>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.black }}>
+          <Star size={11} fill={C.black} />
+          <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>{totalPoints} pts</span>
+        </div>
+      </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          <Card className="shadow-lg border-emerald-100 bg-white/80 backdrop-blur-sm">
-            <CardHeader className="text-center border-b border-emerald-100">
-              <div className="relative w-24 h-24 mx-auto mb-4">
+      <div className="flex flex-col md:flex-row gap-6 px-8 pt-7 pb-10 max-w-6xl mx-auto" style={{ minHeight: 0 }}>
+        {/* ── LEFT: sidebar card ── */}
+        <div className="shrink-0 flex flex-col gap-4 w-full md:w-[280px]">
+          {/* Avatar + identity */}
+          <div className="p-6 rounded-2xl flex flex-col items-center text-center gap-4" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
+            <div className="relative">
                 {formData.avatar_url ? (
                   <img
                     src={formData.avatar_url}
                     alt={profile?.full_name || 'Avatar'}
-                    className="w-24 h-24 rounded-full object-cover object-center shadow-lg border-4 border-white"
+                    className="w-20 h-20 rounded-full object-cover object-center shadow-lg"
                   />
                 ) : (
-                  <div className="w-24 h-24 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center shadow-lg">
-                    <User className="w-10 h-10 text-white" />
+                  <div className="w-20 h-20 rounded-full flex items-center justify-center font-bold text-3xl shadow-lg" style={{ backgroundColor: C.orange, color: C.cream }}>
+                    {(displayName || 'E').charAt(0).toUpperCase()}
                   </div>
                 )}
-
                 <label
                   htmlFor="avatar-upload"
-                  className="absolute bottom-0 right-0 bg-emerald-600 hover:bg-emerald-700 text-white p-2 rounded-full cursor-pointer shadow-lg transition-all duration-200"
+                  className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all hover:brightness-110"
+                  style={{ backgroundColor: C.surface, border: `2px solid ${C.card}`, color: `${C.cream}70` }}
                 >
-                  <Camera className="w-4 h-4" />
+                  <Upload size={14} />
                   <input
                     id="avatar-upload"
                     type="file"
@@ -475,173 +477,223 @@ export default function Profile() {
                   />
                 </label>
               </div>
-
               {isUploadingAvatar && (
-                <p className="text-sm text-emerald-600 mb-2">Enviando imagem...</p>
+                <p style={{ fontSize: 11, color: C.lime }}>Enviando imagem...</p>
               )}
-
-              <CardTitle className="text-xl">{displayName}</CardTitle>
-              <p className="text-sm text-gray-500">{user?.email}</p>
-            </CardHeader>
-
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-yellow-600" />
-                    <span className="text-sm font-medium">Categoria</span>
-                  </div>
-                  <span className="font-bold text-yellow-700">{categoryLabel}</span>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Star className="w-5 h-5 text-purple-600" />
-                    <span className="text-sm font-medium">Pontos</span>
-                  </div>
-                  <span className="font-bold text-purple-700">{totalPoints}</span>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Award className="w-5 h-5 text-green-600" />
-                    <span className="text-sm font-medium whitespace-nowrap">Ganhos</span>
-                  </div>
-                  <span className="font-bold text-green-700 whitespace-nowrap">R$ {totalEarnings.toFixed(2)}</span>
-                </div>
+              <div>
+                <div style={{ ...heading, fontSize: 18, fontWeight: 800, color: C.cream, lineHeight: 1.2 }}>{displayName}</div>
+                <div style={{ fontSize: 12, color: `${C.cream}45`, marginTop: 4 }}>{user?.email}</div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          <Card className="lg:col-span-2 shadow-lg border-emerald-100 bg-white/80 backdrop-blur-sm">
-            <CardHeader className="border-b border-emerald-100">
-              <div className="flex items-center justify-between gap-3">
-                <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5 text-emerald-600" />
-                  Informações do Ecoante
-                </CardTitle>
-                <Button
+          {/* Stats panel */}
+          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
+            {[
+              { icon: Trophy,  label: "Categoria", value: categoryLabel, valueColor: C.orange },
+              { icon: Star,    label: "Pontos",    value: totalPoints, valueColor: C.lime   },
+              { icon: Award,   label: "Ganhos",    value: `R$ ${totalEarnings.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, valueColor: C.lime },
+            ].map(({ icon: IconComponent, label, value, valueColor }, i, arr) => (
+              <div key={label} className="flex items-center justify-between px-5 py-4" style={{ borderBottom: i < arr.length - 1 ? `1px solid rgba(255,255,222,0.06)` : "none" }}>
+                <div className="flex items-center gap-2.5">
+                  <IconComponent size={14} style={{ color: `${C.cream}40` }} />
+                  <span style={{ fontSize: 13, color: `${C.cream}60` }}>{label}</span>
+                </div>
+                <span style={{ ...heading, fontSize: 14, fontWeight: 800, color: valueColor }}>{value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── RIGHT: form + social ── */}
+        <div className="flex-1 min-w-0 flex flex-col gap-5">
+          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
+            {/* Card header */}
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+              <div className="flex items-center gap-2.5">
+                <User size={15} style={{ color: C.lime }} />
+                <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>Informações do Ecoante</span>
+              </div>
+              {!isEditing ? (
+                <button
                   type="button"
-                  variant={isEditing ? 'outline' : 'default'}
+                  onClick={() => setIsEditing(true)}
+                  disabled={updateProfileMutation.isPending || isUploadingAvatar}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all hover:brightness-110 disabled:opacity-50"
+                  style={{ backgroundColor: C.darkGreen, color: C.lime, ...heading, fontWeight: 700, fontSize: 12 }}
+                >
+                  <Edit3 size={12} /> Editar perfil
+                </button>
+              ) : (
+                <button
+                  type="button"
                   onClick={() => {
-                    if (isEditing) {
-                      setFormData(initialFormData)
-                      setIsEditing(false)
-                      return
-                    }
-                    setIsEditing(true)
+                    setFormData(initialFormData);
+                    setIsEditing(false);
                   }}
                   disabled={updateProfileMutation.isPending || isUploadingAvatar}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all hover:brightness-110 disabled:opacity-50"
+                  style={{ backgroundColor: "rgba(255,255,222,0.07)", color: `${C.cream}70`, ...body, fontSize: 12 }}
                 >
-                  <Pencil className="w-4 h-4 mr-2" />
-                  {isEditing ? 'Cancelar edição' : 'Editar perfil'}
-                </Button>
-              </div>
-            </CardHeader>
+                  <XCircle size={12} /> Cancelar
+                </button>
+              )}
+            </div>
 
-            <CardContent className="pt-6">
+            <div className="p-6">
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="display_name">Nome de Exibição</Label>
-                    <Input
-                      id="display_name"
-                      placeholder="Seu nome ou apelido"
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}55`, letterSpacing: "0.06em", display: "block", marginBottom: 7 }}>NOME DE EXIBIÇÃO</label>
+                    <input
+                      type="text"
                       value={formData.display_name}
-                      disabled={!isEditing}
-                      className={!isEditing ? 'bg-gray-50' : ''}
-                      onChange={(event) => setFormData((previous) => ({ ...previous, display_name: event.target.value }))}
+                      onChange={e => setFormData({ ...formData, display_name: e.target.value })}
+                      readOnly={!isEditing}
+                      className="w-full px-4 py-3 rounded-xl outline-none"
+                      style={{
+                        backgroundColor: isEditing ? C.surface : "rgba(255,255,222,0.04)",
+                        border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`,
+                        color: isEditing ? C.cream : `${C.cream}80`,
+                        ...body, fontSize: 13
+                      }}
+                      placeholder="Seu nome de exibição"
                     />
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="cpf">CPF</Label>
-                    <Input
-                      id="cpf"
-                      placeholder="000.000.000-00"
+                  <div>
+                    <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}55`, letterSpacing: "0.06em", display: "block", marginBottom: 7 }}>CPF</label>
+                    <input
+                      type="text"
                       value={formData.cpf}
-                      disabled
-                      className="bg-gray-50"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={user?.email || ''}
-                      disabled
-                      className="bg-gray-50"
+                      readOnly
+                      className="w-full px-4 py-3 rounded-xl outline-none"
+                      style={{ backgroundColor: "rgba(255,255,222,0.04)", border: "1px solid rgba(255,255,222,0.07)", color: `${C.cream}60`, ...body, fontSize: 13 }}
+                      placeholder="000.000.000-00"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="bio">Biografia</Label>
-                  <Textarea
-                    id="bio"
-                    placeholder="Conte um pouco sobre você e seu trabalho com sustentabilidade..."
-                    value={formData.bio}
-                    disabled={!isEditing}
-                    className={`h-24 ${!isEditing ? 'bg-gray-50' : ''}`}
-                    onChange={(event) => setFormData((previous) => ({ ...previous, bio: event.target.value }))}
+                <div>
+                  <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}55`, letterSpacing: "0.06em", display: "block", marginBottom: 7 }}>EMAIL</label>
+                  <input
+                    type="email"
+                    value={user?.email || ''}
+                    readOnly
+                    className="w-full px-4 py-3 rounded-xl outline-none"
+                    style={{ backgroundColor: "rgba(255,255,222,0.04)", border: "1px solid rgba(255,255,222,0.07)", color: `${C.cream}60`, ...body, fontSize: 13 }}
                   />
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="instagram_handle" className="flex items-center gap-2">
-                      <Instagram className="w-4 h-4 text-pink-500" />
-                      Instagram
-                    </Label>
-                    <Input
-                      id="instagram_handle"
-                      placeholder="@seuusuario"
-                      value={formData.instagram_handle}
-                      disabled={!isEditing}
-                      className={!isEditing ? 'bg-gray-50' : ''}
-                      onChange={(event) => setFormData((previous) => ({ ...previous, instagram_handle: event.target.value }))}
-                    />
-                  </div>
+                <div>
+                  <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}55`, letterSpacing: "0.06em", display: "block", marginBottom: 7 }}>BIOGRAFIA</label>
+                  <textarea
+                    placeholder="Conte um pouco sobre você e seu trabalho com sustentabilidade..."
+                    value={formData.bio}
+                    onChange={e => setFormData({ ...formData, bio: e.target.value })}
+                    readOnly={!isEditing}
+                    rows={4}
+                    className="w-full px-4 py-3 rounded-xl outline-none"
+                    style={{
+                      backgroundColor: isEditing ? C.surface : "rgba(255,255,222,0.04)",
+                      border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`,
+                      color: isEditing ? C.cream : `${C.cream}80`,
+                      resize: isEditing ? "vertical" : "none",
+                      ...body, fontSize: 13
+                    }}
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="followers_count" className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-emerald-600" />
-                      Número de Seguidores
-                    </Label>
-                    <Input
-                      id="followers_count"
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                      value={formData.followers_count}
-                      disabled={!isEditing}
-                      className={!isEditing ? 'bg-gray-50' : ''}
-                      onChange={(event) => {
-                        const parsedValue = parseInt(event.target.value, 10)
-                        setFormData((previous) => ({
-                          ...previous,
-                          followers_count: Number.isNaN(parsedValue) ? 0 : parsedValue,
-                        }))
-                      }}
-                    />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}55`, letterSpacing: "0.06em", display: "block", marginBottom: 7 }}>INSTAGRAM</label>
+                    <div className="relative flex items-center">
+                      <Instagram size={13} style={{ position: "absolute", left: 14, color: isEditing ? "#E1306C" : `${C.cream}35`, pointerEvents: "none" }} />
+                      <input
+                        type="text"
+                        value={formData.instagram_handle}
+                        onChange={e => setFormData({ ...formData, instagram_handle: e.target.value })}
+                        readOnly={!isEditing}
+                        className="w-full py-3 pr-4 rounded-xl outline-none"
+                        style={{
+                          paddingLeft: 36,
+                          backgroundColor: isEditing ? C.surface : "rgba(255,255,222,0.04)",
+                          border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`,
+                          color: isEditing ? C.cream : `${C.cream}80`,
+                          ...body, fontSize: 13
+                        }}
+                        placeholder="@seuperfil"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}55`, letterSpacing: "0.06em", display: "block", marginBottom: 7 }}>NÚMERO DE SEGUIDORES</label>
+                    <div className="relative flex items-center">
+                      <Users size={13} style={{ position: "absolute", left: 14, color: isEditing ? C.lime : `${C.cream}35`, pointerEvents: "none" }} />
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.followers_count}
+                        onChange={(e) => {
+                          const parsedValue = parseInt(e.target.value, 10);
+                          setFormData((prev) => ({
+                            ...prev,
+                            followers_count: Number.isNaN(parsedValue) ? 0 : parsedValue,
+                          }));
+                        }}
+                        readOnly={!isEditing}
+                        className="w-full py-3 pr-4 rounded-xl outline-none"
+                        style={{
+                          paddingLeft: 36,
+                          backgroundColor: isEditing ? C.surface : "rgba(255,255,222,0.04)",
+                          border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`,
+                          color: isEditing ? C.cream : `${C.cream}80`,
+                          ...body, fontSize: 13
+                        }}
+                        placeholder="0"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <Button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
-                  disabled={!isEditing || !hasChanges || updateProfileMutation.isPending || isUploadingAvatar}
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {updateProfileMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
-                </Button>
+                {isEditing && (
+                  <button
+                    type="submit"
+                    disabled={!hasChanges || updateProfileMutation.isPending || isUploadingAvatar}
+                    className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl transition-all hover:brightness-110 disabled:opacity-50 mt-2"
+                    style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}
+                  >
+                    <Check size={15} /> {updateProfileMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
+                  </button>
+                )}
               </form>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+
+          {/* Redes Sociais */}
+          <div className="p-5 rounded-2xl" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
+            <span style={{ ...heading, fontSize: 13, fontWeight: 700, color: C.cream, display: "block", marginBottom: 14 }}>Redes Sociais</span>
+            <div className="flex flex-col gap-3">
+              {[
+                { Icon: Instagram, label: formData.instagram_handle || 'Não informado', platform: "Instagram", color: "#E1306C" },
+              ].map(({ Icon: SocialIcon, label, platform, color }) => (
+                <div key={platform} className="flex items-center gap-3 px-4 py-3 rounded-xl" style={{ backgroundColor: C.surface, border: `1px solid rgba(255,255,222,0.07)` }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}18`, color }}>
+                    <SocialIcon size={14} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div style={{ fontSize: 10, color: `${C.cream}40`, marginBottom: 1 }}>{platform}</div>
+                    <div style={{ fontSize: 13, color: C.cream, fontWeight: 500 }} className="truncate">{label}</div>
+                  </div>
+                  {isEditing && platform === "Instagram" && (
+                    <div style={{ color: `${C.cream}30` }}>
+                      <Edit3 size={13} />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </main>
   )
 }

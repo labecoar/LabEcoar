@@ -4,12 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserScore } from "@/hooks/useScores";
 import { useClaimReward, useMyRewardClaims, useRewards } from "@/hooks/useRewards";
 import { useCepLookup } from "@/hooks/useCepLookup";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Gift,
   Star,
@@ -22,23 +16,24 @@ import {
   Package,
   MapPin,
   Loader2,
+  Lock,
+  Award,
+  XCircle,
 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
+import { C, heading, body } from '@/lib/theme';
 
 const CATEGORY_INFO = {
-  alimentacao: { name: "Alimentacao", icon: Apple, color: "bg-green-100 text-green-700 border-green-200" },
-  educacao: { name: "Educacao", icon: GraduationCap, color: "bg-blue-100 text-blue-700 border-blue-200" },
-  cultura: { name: "Cultura", icon: Music, color: "bg-purple-100 text-purple-700 border-purple-200" },
-  bem_estar: { name: "Bem-Estar", icon: Heart, color: "bg-pink-100 text-pink-700 border-pink-200" },
-  tecnologia: { name: "Tecnologia", icon: Smartphone, color: "bg-gray-100 text-gray-700 border-gray-200" },
-  outros: { name: "Outros", icon: Package, color: "bg-orange-100 text-orange-700 border-orange-200" },
+  alimentacao: { name: "Alimentação", icon: Apple, colorHex: C.lime },
+  educacao: { name: "Educação", icon: GraduationCap, colorHex: C.blue },
+  cultura: { name: "Cultura", icon: Music, colorHex: "#AA66FF" },
+  bem_estar: { name: "Bem-Estar", icon: Heart, colorHex: "#FF66B2" },
+  tecnologia: { name: "Tecnologia", icon: Smartphone, colorHex: C.orange },
+  outros: { name: "Outros", icon: Package, colorHex: `${C.cream}80` },
 };
 
 export default function Rewards() {
@@ -143,291 +138,231 @@ export default function Rewards() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando recompensas...</p>
+      <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyItems: "center" }}>
+        <div style={{ textAlign: "center", margin: "auto" }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: "50%",
+            border: `2px solid ${C.lime}`, borderTopColor: "transparent",
+            margin: "0 auto 16px", animation: "spin 0.8s linear infinite",
+          }} />
+          <p style={{ color: `${C.cream}45`, fontSize: 14 }}>Carregando recompensas...</p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       </div>
     );
   }
 
+  const inputStyle = { backgroundColor: "#2E2E2C", border: `1px solid rgba(255,255,222,0.1)`, color: C.cream, ...body, fontSize: 14 };
+  const labelStyle = { ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", display: "block", marginBottom: 6 };
+
   return (
-    <div className="p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
+    <div style={{ minHeight: "100vh", background: C.black, ...body }}>
+      {/* Header Fixo */}
+      <div className="flex items-center justify-between px-8 py-4 sticky top-0 z-10" style={{ backgroundColor: `${C.black}F5`, backdropFilter: "blur(16px)", borderBottom: `1px solid rgba(255,255,222,0.05)` }}>
+        <div className="flex items-center gap-3">
+          <Gift size={16} style={{ color: C.lime }} />
+          <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", textTransform: "uppercase" }}>Recompensas</span>
+        </div>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.black }}>
+          <Star size={11} fill={C.black} />
+          <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>{currentPoints} pts</span>
+        </div>
+      </div>
+
+      <div className="px-8 pt-7 pb-10 max-w-6xl mx-auto">
+        {/* Hero */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                Loja de Recompensas
-              </h1>
-              <p className="text-gray-600 mt-2">Troque seus pontos por beneficios incriveis</p>
+          <h1 style={{ ...heading, fontSize: 40, fontWeight: 900, color: C.cream, letterSpacing: "-0.03em", lineHeight: 1 }}>Recompensas</h1>
+          <p style={{ fontSize: 14, color: `${C.cream}50`, marginTop: 6 }}>Converta seus pontos em prêmios reais.</p>
+        </div>
+
+        {/* Balance Card */}
+        <div className="p-6 rounded-2xl mb-8 flex flex-col md:flex-row md:items-center gap-8" style={{ background: `linear-gradient(135deg, ${C.darkGreen} 0%, ${C.black} 100%)`, border: `1px solid ${C.lime}22` }}>
+          <div>
+            <div style={{ fontSize: 11, color: `${C.cream}50`, marginBottom: 4 }}>Saldo disponível</div>
+            <div style={{ ...heading, fontSize: 56, fontWeight: 900, color: C.lime, lineHeight: 1, letterSpacing: "-0.04em" }}>{currentPoints}</div>
+            <div style={{ fontSize: 13, color: `${C.cream}40`, marginTop: 2 }}>pontos</div>
+          </div>
+          <div className="flex-1 w-full max-w-md ml-auto">
+            <div style={{ fontSize: 12, color: `${C.cream}50`, marginBottom: 10 }}>Seu saldo em conta</div>
+            <div className="relative h-2 rounded-full w-full" style={{ backgroundColor: "rgba(255,255,222,0.07)" }}>
+              <div className="absolute left-0 top-0 h-full rounded-full" style={{ width: `${Math.min(100, (currentPoints / (currentPoints + 500)) * 100)}%`, background: `linear-gradient(90deg, ${C.lime} 0%, ${C.blue} 100%)` }} />
             </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-500">Seus pontos (trimestre atual)</p>
-              <div className="flex items-center gap-2">
-                <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
-                <span className="text-3xl font-bold text-gray-900">{currentPoints}</span>
-              </div>
+            <div className="flex justify-between mt-2">
+              <span style={{ fontSize: 11, color: `${C.cream}40` }}>0</span>
+              <span style={{ fontSize: 11, color: C.lime, fontWeight: 700 }}>Continue acumulando!</span>
             </div>
           </div>
         </div>
 
         {myClaims.length > 0 && (
-          <Card className="mb-8 shadow-lg border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ShoppingCart className="w-5 h-5 text-emerald-600" />
-                Meus Resgates Recentes
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 gap-4">
-                {myClaims.slice(0, 4).map((claim) => (
-                  <div key={claim.id} className="flex items-center justify-between p-4 bg-white rounded-lg border border-emerald-200">
-                    <div>
-                      <p className="font-medium text-gray-900">{claim.reward_title}</p>
-                      <p className="text-sm text-gray-500">{claim.points_spent} pontos</p>
+          <div className="mb-8">
+            <h2 style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream, marginBottom: 16 }}>Meus Resgates Recentes</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {myClaims.slice(0, 4).map((claim) => (
+                <div key={claim.id} className="p-4 rounded-2xl flex items-center justify-between" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(255,255,222,0.04)", color: C.cream }}>
+                      <ShoppingCart size={16} />
                     </div>
-                    <Badge className={
-                      claim.status === "entregue"
-                        ? "bg-green-100 text-green-700"
-                        : claim.status === "processando"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-yellow-100 text-yellow-700"
-                    }>
-                      {claim.status === "entregue" ? "Entregue" : claim.status === "processando" ? "Processando" : "Pendente"}
-                    </Badge>
+                    <div>
+                      <p style={{ ...heading, fontSize: 14, fontWeight: 700, color: C.cream }}>{claim.reward_title}</p>
+                      <p style={{ fontSize: 12, color: `${C.cream}50`, marginTop: 2 }}>{claim.points_spent} pts</p>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{
+                      backgroundColor: claim.status === "entregue" ? `${C.lime}1A` : claim.status === "processando" ? "rgba(68,102,255,0.12)" : `${C.orange}1A`,
+                      color: claim.status === "entregue" ? C.lime : claim.status === "processando" ? "#8899FF" : C.orange
+                    }}>
+                    {claim.status === "entregue" ? "Entregue" : claim.status === "processando" ? "Processando" : "Pendente"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
-        <Card className="mb-6 shadow-lg border-emerald-100 bg-white/80 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-lg">Categorias</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
-              <TabsList className="flex flex-wrap h-auto gap-2 bg-emerald-50 p-2">
-                <TabsTrigger value="todas" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
-                  Todas
-                </TabsTrigger>
-                {Object.entries(CATEGORY_INFO).map(([key, info]) => (
-                  <TabsTrigger
-                    key={key}
-                    value={key}
-                    className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
-                  >
-                    <info.icon className="w-4 h-4 mr-1" />
-                    {info.name}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          </CardContent>
-        </Card>
+        {/* Filter tabs */}
+        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+          {[{ key: "todas", name: "Todas" }, ...Object.entries(CATEGORY_INFO).map(([k, v]) => ({ key: k, name: v.name }))].map((c) => {
+            const active = c.key === selectedCategory;
+            return (
+              <button key={c.key} onClick={() => setSelectedCategory(c.key)} className="shrink-0 px-4 py-2 rounded-xl text-sm transition-all duration-150" style={{ backgroundColor: active ? C.lime : "rgba(255,255,222,0.06)", color: active ? C.black : `${C.cream}70`, fontWeight: active ? 700 : 400, ...heading, fontSize: 13 }}>
+                {c.name}
+              </button>
+            );
+          })}
+        </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredRewards.map((reward) => {
             const categoryInfo = CATEGORY_INFO[reward.category] || CATEGORY_INFO.outros;
             const CategoryIcon = categoryInfo.icon;
             const canClaim = hasEnoughPoints(reward) && isAvailable(reward);
 
             return (
-              <Card
-                key={reward.id}
-                className="shadow-lg hover:shadow-xl transition-all duration-300 border-emerald-100 bg-white overflow-hidden group cursor-pointer"
-                onClick={() => setSelectedReward(reward)}
-              >
+              <div key={reward.id} className="flex flex-col rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:brightness-110 cursor-pointer" onClick={() => setSelectedReward(reward)} style={{ backgroundColor: C.card, border: `1px solid ${canClaim ? `${C.lime}18` : "rgba(255,255,222,0.06)"}`, opacity: canClaim ? 1 : 0.7 }}>
+                <div className="h-1 w-full" style={{ backgroundColor: canClaim ? C.lime : "rgba(255,255,222,0.1)" }} />
+                
                 {reward.image_url && (
-                  <div className="h-48 w-full bg-gradient-to-br from-emerald-100 to-teal-100 overflow-hidden block text-left">
+                  <div className="h-40 w-full bg-black/40 overflow-hidden">
                     <img
                       src={reward.image_url}
                       alt={reward.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      className="w-full h-full object-cover"
                     />
                   </div>
                 )}
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between mb-2">
-                    <Badge className={`${categoryInfo.color} border font-medium`}>
-                      <CategoryIcon className="w-3 h-3 mr-1" />
-                      {categoryInfo.name}
-                    </Badge>
-                    {!isAvailable(reward) && (
-                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                        Esgotado
-                      </Badge>
-                    )}
+
+                <div className="p-5 flex flex-col gap-4 flex-1">
+                  <div className="flex items-start justify-between">
+                    <CategoryIcon size={24} style={{ color: canClaim ? C.lime : `${C.cream}40` }} />
+                    {!canClaim && <Lock size={14} style={{ color: `${C.cream}30` }} />}
+                    {canClaim && <Award size={14} style={{ color: C.lime }} />}
                   </div>
-                  <CardTitle className="text-xl group-hover:text-emerald-600 transition-colors">
-                    {reward.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-gray-600 text-sm line-clamp-2">{reward.description}</p>
-
-                  {reward.partner_name && (
-                    <p className="text-xs text-gray-500">Parceiro: {reward.partner_name}</p>
-                  )}
-
-                  <div className="flex items-center justify-between pt-4 border-t border-emerald-100">
-                    <div className="flex items-center gap-2">
-                      <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                      <span className="text-2xl font-bold text-gray-900">{reward.points_required}</span>
-                      <span className="text-sm text-gray-500">pts</span>
-                    </div>
-                    {canClaim ? (
-                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
-                        Disponivel
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-gray-50 text-gray-500">
-                        {!hasEnoughPoints(reward) ? "Pontos insuficientes" : "Indisponivel"}
-                      </Badge>
-                    )}
+                  <div className="flex-1">
+                    <h3 style={{ ...heading, fontSize: 16, fontWeight: 800, color: canClaim ? C.cream : `${C.cream}70`, marginBottom: 6 }}>{reward.title}</h3>
+                    <p style={{ fontSize: 12, color: `${C.cream}45`, lineHeight: 1.5 }} className="line-clamp-2">{reward.description}</p>
                   </div>
-
-                  {reward.quantity_available != null && (
-                    <div className="text-xs text-gray-500">
-                      {Math.max(0, Number(reward.quantity_available || 0) - Number(reward.quantity_claimed || 0))} de {reward.quantity_available} disponiveis
+                  <div className="flex items-center justify-between pt-4 mt-2" style={{ borderTop: `1px solid rgba(255,255,222,0.06)` }}>
+                    <div>
+                      <div style={{ ...heading, fontSize: 20, fontWeight: 900, color: canClaim ? C.lime : `${C.cream}35`, lineHeight: 1 }}>{reward.points_required} pts</div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+                    <button
+                      className="px-4 py-2 rounded-xl text-xs font-bold transition-all"
+                      style={{ backgroundColor: canClaim ? C.lime : "rgba(255,255,222,0.06)", color: canClaim ? C.black : `${C.cream}30`, ...heading, cursor: canClaim ? "pointer" : "not-allowed" }}
+                      disabled={!canClaim}
+                      onClick={(e) => { e.stopPropagation(); if (canClaim) handleClaim(reward); }}
+                    >
+                      {canClaim ? "Resgatar" : `Faltam ${reward.points_required - currentPoints}`}
+                    </button>
+                  </div>
+                </div>
+              </div>
             );
           })}
         </div>
 
         {filteredRewards.length === 0 && (
-          <div className="text-center py-12">
-            <Gift className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-            <p className="text-gray-500 text-lg">Nenhuma recompensa disponivel nesta categoria</p>
+          <div className="flex flex-col items-center justify-center py-24 gap-4">
+            <Gift size={36} style={{ color: `${C.cream}20` }} />
+            <p style={{ ...heading, fontSize: 18, fontWeight: 700, color: `${C.cream}40` }}>Nenhuma recompensa disponível.</p>
           </div>
         )}
 
+        {/* Modal de Detalhes da Recompensa */}
         {selectedReward && (
-          <Dialog open={!!selectedReward} onOpenChange={() => setSelectedReward(null)}>
-            <DialogContent className="sm:max-w-2xl">
-              <DialogHeader>
-                <DialogTitle className="text-2xl">{selectedReward.title}</DialogTitle>
-                <DialogDescription>
-                  Informações sobre a recompensa
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-6">
-                {selectedReward.image_url && (
-                  <button
-                    type="button"
-                    className="w-full h-64 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-xl overflow-hidden block text-left"
-                    onClick={() => openOriginalImage(selectedReward.image_url)}
-                    title="Abrir imagem original"
-                  >
-                    <img
-                      src={selectedReward.image_url}
-                      alt={selectedReward.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
+          <Dialog open={!!selectedReward && !showAddressModal} onOpenChange={() => setSelectedReward(null)}>
+            <DialogContent className="sm:max-w-xl p-0 border-0 bg-transparent overflow-hidden shadow-none">
+            <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.1)` }}>
+              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+                <span style={{ ...heading, fontSize: 18, fontWeight: 700, color: C.cream }}>{selectedReward?.title}</span>
+                <button onClick={() => setSelectedReward(null)} style={{ color: `${C.cream}50` }} className="hover:opacity-100 transition-opacity"><XCircle size={18} /></button>
+              </div>
+              
+              <div className="p-6 flex flex-col gap-5 max-h-[70vh] overflow-y-auto">
+                {selectedReward?.image_url && (
+                  <img src={selectedReward.image_url} alt={selectedReward.title} className="w-full h-48 object-cover rounded-xl border border-[rgba(255,255,222,0.1)]" />
                 )}
-
+                
                 <div>
-                  <h3 className="font-semibold mb-2">Descricao</h3>
-                  <p className="text-gray-600">{selectedReward.description}</p>
+                  <h3 style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream, marginBottom: 8 }}>Descrição</h3>
+                  <p style={{ fontSize: 13, color: `${C.cream}60`, lineHeight: 1.65 }}>{selectedReward?.description}</p>
                 </div>
 
-                {selectedReward.partner_name && (
+                {selectedReward?.terms && (
                   <div>
-                    <h3 className="font-semibold mb-2">Parceiro</h3>
-                    <p className="text-gray-600">{selectedReward.partner_name}</p>
+                    <h3 style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream, marginBottom: 8 }}>Termos e Condições</h3>
+                    <p style={{ fontSize: 13, color: `${C.cream}60`, lineHeight: 1.65 }}>{selectedReward.terms}</p>
                   </div>
                 )}
 
-                {selectedReward.validity_months && (
-                  <div>
-                    <h3 className="font-semibold mb-2">Validade</h3>
-                    <p className="text-gray-600">{selectedReward.validity_months} meses apos o resgate</p>
-                  </div>
-                )}
-
-                {selectedReward.terms && (
-                  <div>
-                    <h3 className="font-semibold mb-2">Termos e Condicoes</h3>
-                    <p className="text-sm text-gray-600">{selectedReward.terms}</p>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between p-4 bg-emerald-50 rounded-lg">
-                  <div>
-                    <p className="text-sm text-gray-600">Custo</p>
-                    <div className="flex items-center gap-2">
-                      <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
-                      <span className="text-3xl font-bold text-gray-900">{selectedReward.points_required}</span>
-                      <span className="text-gray-500">pontos</span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600">Voce tem</p>
-                    <div className="flex items-center gap-2">
-                      <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
-                      <span className="text-3xl font-bold text-gray-900">{currentPoints}</span>
-                    </div>
-                  </div>
+                <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: "rgba(255,255,222,0.04)", border: `1px solid rgba(255,255,222,0.08)` }}>
+                   <div>
+                     <span style={{ fontSize: 11, color: `${C.cream}50`, block: "block", marginBottom: 2 }}>Custo da Recompensa</span>
+                     <div style={{ ...heading, fontSize: 24, fontWeight: 900, color: C.lime }}>{selectedReward?.points_required} pts</div>
+                   </div>
+                   <div className="text-right">
+                     <span style={{ fontSize: 11, color: `${C.cream}50`, block: "block", marginBottom: 2 }}>Seu Saldo Atual</span>
+                     <div style={{ ...heading, fontSize: 24, fontWeight: 900, color: C.cream }}>{currentPoints} pts</div>
+                   </div>
                 </div>
 
-                <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => setSelectedReward(null)}
-                    className="flex-1"
+                <div className="flex gap-3 pt-2">
+                  <button onClick={() => setSelectedReward(null)} className="flex-1 h-12 rounded-xl transition-all hover:bg-[rgba(255,255,222,0.05)]" style={{ color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}>
+                    Voltar
+                  </button>
+                  <button 
+                    disabled={!hasEnoughPoints(selectedReward) || !isAvailable(selectedReward)}
+                    onClick={() => handleClaim(selectedReward)} 
+                    className="flex-1 h-12 rounded-xl transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed" 
+                    style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}
                   >
-                    Cancelar
-                  </Button>
-                  <Button
-                    onClick={() => handleClaim(selectedReward)}
-                    disabled={!hasEnoughPoints(selectedReward) || !isAvailable(selectedReward) || claimRewardMutation.isPending}
-                    className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
-                  >
-                    {claimRewardMutation.isPending ? "Resgatando..." : "Resgatar Agora"}
-                  </Button>
+                    {claimRewardMutation.isPending ? "Processando..." : "Resgatar Agora"}
+                  </button>
                 </div>
               </div>
+            </div>
             </DialogContent>
           </Dialog>
-        )}
+      )}
 
         {/* MODAL DE ENDEREÇO */}
-        {showAddressModal && selectedReward && (
-          <Dialog open={showAddressModal} onOpenChange={() => setShowAddressModal(false)}>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-emerald-600" />
-                  Endereço de Entrega
-                </DialogTitle>
-                <DialogDescription>
-                  Para concluir seu resgate, adicione seu endereço de entrega
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-6">
-                <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-                  <p className="text-sm text-emerald-900">
-                    Para concluir seu resgate, adicione seu endereço de entrega
-                  </p>
-                </div>
-
-                <div className="space-y-4">
+        <Dialog open={showAddressModal} onOpenChange={() => setShowAddressModal(false)}>
+          <DialogContent className="sm:max-w-md p-0 border-0 bg-transparent overflow-hidden shadow-none">
+            <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.1)` }}>
+              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+                <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream }}>Endereço de Entrega</span>
+                <button onClick={() => setShowAddressModal(false)} style={{ color: `${C.cream}50` }} className="hover:opacity-100 transition-opacity"><XCircle size={18} /></button>
+              </div>
+              
+              <div className="p-6 flex flex-col gap-4 max-h-[75vh] overflow-y-auto">
                   {/* CEP */}
                   <div>
-                    <Label htmlFor="modal-cep" className="text-sm font-medium">CEP *</Label>
+                    <label style={labelStyle}>CEP *</label>
                     <div className="relative">
-                      <Input
-                        id="modal-cep"
+                      <input
+                        style={inputStyle}
                         placeholder="12345-678"
                         value={address.cep}
                         onChange={(e) => {
@@ -442,110 +377,106 @@ export default function Rewards() {
                             handleCepBlur(value);
                           }
                         }}
-                        className="mt-1"
+                        className="w-full px-4 py-3 rounded-xl outline-none"
                         disabled={isCepLoading}
                         maxLength="9"
                       />
                       {isCepLoading && (
-                        <Loader2 className="absolute right-3 top-3 w-5 h-5 text-emerald-600 animate-spin" />
+                        <Loader2 className="absolute right-3 top-3 w-5 h-5 text-[rgba(255,255,222,0.5)] animate-spin" />
                       )}
                     </div>
                   </div>
 
                   {/* Endereço */}
                   <div>
-                    <Label htmlFor="modal-endereco" className="text-sm font-medium">Rua *</Label>
-                    <Input
-                      id="modal-endereco"
+                    <label style={labelStyle}>RUA *</label>
+                    <input
+                      style={inputStyle}
+                      className="w-full px-4 py-3 rounded-xl outline-none"
                       placeholder="Rua Principal"
                       value={address.endereco}
                       onChange={(e) => setAddress({ ...address, endereco: e.target.value })}
-                      className="mt-1"
                     />
                   </div>
 
                   {/* Número e Complemento */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label htmlFor="modal-numero" className="text-sm font-medium">Número *</Label>
-                      <Input
-                        id="modal-numero"
+                      <label style={labelStyle}>NÚMERO *</label>
+                      <input
+                        style={inputStyle}
+                        className="w-full px-4 py-3 rounded-xl outline-none"
                         placeholder="123"
                         value={address.numero}
                         onChange={(e) => setAddress({ ...address, numero: e.target.value })}
-                        className="mt-1"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="modal-complemento" className="text-sm font-medium">Complemento</Label>
-                      <Input
-                        id="modal-complemento"
+                      <label style={labelStyle}>COMPLEMENTO</label>
+                      <input
+                        style={inputStyle}
+                        className="w-full px-4 py-3 rounded-xl outline-none"
                         placeholder="Apto 45"
                         value={address.complemento}
                         onChange={(e) => setAddress({ ...address, complemento: e.target.value })}
-                        className="mt-1"
                       />
                     </div>
                   </div>
 
                   {/* Bairro */}
                   <div>
-                    <Label htmlFor="modal-bairro" className="text-sm font-medium">Bairro *</Label>
-                    <Input
-                      id="modal-bairro"
+                    <label style={labelStyle}>BAIRRO *</label>
+                    <input
+                      style={inputStyle}
+                      className="w-full px-4 py-3 rounded-xl outline-none"
                       placeholder="Centro"
                       value={address.bairro}
                       onChange={(e) => setAddress({ ...address, bairro: e.target.value })}
-                      className="mt-1"
                     />
                   </div>
 
                   {/* Cidade e Estado */}
                   <div className="grid grid-cols-3 gap-3">
                     <div className="col-span-2">
-                      <Label htmlFor="modal-cidade" className="text-sm font-medium">Cidade *</Label>
-                      <Input
-                        id="modal-cidade"
+                      <label style={labelStyle}>CIDADE *</label>
+                      <input
+                        style={inputStyle}
+                        className="w-full px-4 py-3 rounded-xl outline-none"
                         placeholder="São Paulo"
                         value={address.cidade}
                         onChange={(e) => setAddress({ ...address, cidade: e.target.value })}
-                        className="mt-1"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="modal-estado" className="text-sm font-medium">UF *</Label>
-                      <Input
-                        id="modal-estado"
+                      <label style={labelStyle}>UF *</label>
+                      <input
+                        style={inputStyle}
+                        className="w-full px-4 py-3 rounded-xl outline-none uppercase"
                         placeholder="SP"
                         value={address.estado.toUpperCase()}
                         onChange={(e) => setAddress({ ...address, estado: e.target.value })}
-                        className="mt-1 uppercase"
                         maxLength="2"
                       />
                     </div>
                   </div>
-                </div>
 
                 <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowAddressModal(false)}
-                    className="flex-1"
-                  >
+                  <button onClick={() => setShowAddressModal(false)} className="flex-1 h-12 rounded-xl transition-all hover:bg-[rgba(255,255,222,0.05)]" style={{ color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}>
                     Voltar
-                  </Button>
-                  <Button
+                  </button>
+                  <button
                     onClick={handleConfirmClaim}
                     disabled={claimRewardMutation.isPending}
-                    className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+                    className="flex-1 h-12 rounded-xl transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed" 
+                    style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}
                   >
                     {claimRewardMutation.isPending ? "Confirmando..." : "Confirmar Resgate"}
-                  </Button>
+                  </button>
                 </div>
               </div>
-            </DialogContent>
-          </Dialog>
-        )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

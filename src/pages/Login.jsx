@@ -274,13 +274,12 @@ export default function Login() {
             <img
               src={imageLogin}
               alt="CuícaLab"
-              className="absolute inset-0 w-full h-full object-cover"
-              style={{ filter: "grayscale(100%) brightness(0.55)" }}
+              className="absolute inset-0 h-full w-full object-cover grayscale brightness-[.55]"
             />
-            <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, ${C.darkGreen}55 0%, ${C.black}CC 100%)` }} />
+            <div className="absolute inset-0 bg-gradient-to-b from-[rgba(7,38,23,0.333)] to-[#1D1D1B]/80" />
             <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: `linear-gradient(180deg, ${C.blue} 0%, ${C.blue}00 100%)` }} />
             <div className="absolute inset-0 flex items-center justify-center pb-16">
-              <img src={cuicaLogin} alt="CuícaLab logo" className="w-64 object-contain drop-shadow-2xl" />
+              <img src={cuicaLogin} alt="CuícaLab logo" className="w-80 aspect-[288/312] object-contain drop-shadow-2xl" />
             </div>
             <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center" style={{ backgroundColor: C.lime, height: 72 }}>
               <span style={{ ...heading, fontSize: 26, fontWeight: 800, color: C.black, letterSpacing: "-0.01em" }}>

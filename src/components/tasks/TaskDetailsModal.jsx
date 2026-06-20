@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar, Users, Star, CircleDollarSign, UserRoundCheck, Send, Upload, BarChart3, CheckCircle2 } from "lucide-react";
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
+import { C, heading, body } from '@/lib/theme';
 
 const CATEGORY_NAMES = {
   campanha: "Campanha",
@@ -446,21 +447,21 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
   return (
     <Dialog open={!!task} onOpenChange={onClose}>
-      <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto sm:rounded-3xl !bg-[#161616] !border-white/10" style={{ color: C.cream }}>
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-[#3c0b14]">{task.title}</DialogTitle>
+          <DialogTitle style={{ ...heading, fontSize: 24, fontWeight: 800, color: C.cream }}>{task.title}</DialogTitle>
           <DialogDescription>
             <div className="flex flex-wrap items-center gap-1.5 mt-2">
-              <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300 border text-xs">
+              <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: 'rgba(255,255,222,0.06)', color: C.cream, ...heading }}>
                 {displayCategory}
-              </Badge>
-              <Badge className="bg-orange-100 text-orange-700 border-orange-300 border text-xs">
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: `${C.orange}18`, color: C.orange, ...heading }}>
                 {task.campaign_type === 'resposta_rapida' ? 'Resposta Rápida' : 'Comum'}
-              </Badge>
+              </span>
               {task.requires_application && !isSidequestTask && (
-                <Badge className="bg-purple-100 text-purple-700 border-purple-300 border text-xs">
+                <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: `${C.blue}18`, color: '#7799FF', ...heading }}>
                   Requer Inscrição e Seleção
-                </Badge>
+                </span>
               )}
             </div>
           </DialogDescription>
@@ -468,20 +469,20 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
         <div className="space-y-4 py-2">
           <div className={`grid grid-cols-1 ${task.max_participants ? 'md:grid-cols-2' : ''} gap-3`}>
-            <div className="rounded-xl bg-amber-50 border border-amber-100 p-3">
-              <p className="text-xs text-gray-500 mb-1">Pagamento</p>
+            <div className="rounded-2xl p-4" style={{ backgroundColor: 'rgba(255,255,222,0.03)', border: '1px solid rgba(255,255,222,0.06)' }}>
+              <p className="text-xs mb-1" style={{ color: `${C.cream}60` }}>Pagamento / Pontuação</p>
               <div className="flex items-center gap-2">
-                <CircleDollarSign className="w-4 h-4 text-amber-600" />
-                <p className="text-xl font-bold text-amber-600">R$ {offeredValue.toLocaleString('pt-BR')}</p>
+                <CircleDollarSign className="w-4 h-4" style={{ color: C.lime }} />
+                <p className="text-xl font-bold" style={{ color: C.lime, ...heading }}>{isCampaignTask ? `R$ ${offeredValue.toLocaleString('pt-BR')}` : `${offeredValue.toLocaleString('pt-BR')} pts`}</p>
               </div>
             </div>
 
             {task.max_participants && (
-              <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
-                <p className="text-xs text-gray-500 mb-1">Vagas</p>
+              <div className="rounded-2xl p-4" style={{ backgroundColor: 'rgba(255,255,222,0.03)', border: '1px solid rgba(255,255,222,0.06)' }}>
+                <p className="text-xs mb-1" style={{ color: `${C.cream}60` }}>Vagas Preenchidas</p>
                 <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-blue-600" />
-                  <p className="text-xl font-bold text-blue-600">
+                  <Users className="w-4 h-4" style={{ color: C.blue }} />
+                  <p className="text-xl font-bold" style={{ color: C.blue, ...heading }}>
                     {task.current_participants || 0} / {task.max_participants}
                   </p>
                 </div>
@@ -489,35 +490,36 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
             )}
           </div>
 
-          <div className="rounded-xl border border-fuchsia-200 p-3 space-y-1.5">
-            <h3 className="font-semibold text-[#3c0b14] inline-flex items-center gap-2">
-              <UserRoundCheck className="w-4 h-4 text-fuchsia-600" />
+          <div className="rounded-2xl p-4 space-y-1.5" style={{ backgroundColor: 'rgba(255,255,222,0.03)', border: '1px solid rgba(255,255,222,0.06)' }}>
+            <h3 className="inline-flex items-center gap-2" style={{ ...heading, fontSize: 14, fontWeight: 700, color: C.cream }}>
+              <UserRoundCheck className="w-4 h-4" style={{ color: C.blue }} />
               Perfil Desejado
             </h3>
-            <p className="text-xs text-gray-700">Experiência com sustentabilidade</p>
-              <ul className="text-xs text-gray-500 list-disc pl-5 space-y-0.5">
+            {task.profile_requirements && <p className="text-xs" style={{ color: `${C.cream}80` }}>{task.profile_requirements}</p>}
+            <ul className="text-xs list-disc pl-5 space-y-0.5 mt-2" style={{ color: `${C.cream}60` }}>
               <li>Mínimo de {task.min_followers || 0} seguidores</li>
-              <li>Formato de conteúdo: {displayProofType}</li>
+              <li>Formato de entrega: {displayProofType}</li>
               {Array.isArray(task.content_formats) && task.content_formats.length > 0 && (
-                <li>Conteúdo: {task.content_formats.join(', ')}</li>
+                <li>Conteúdos esperados: {task.content_formats.join(', ')}</li>
               )}
             </ul>
           </div>
 
           <div className="min-w-0">
-            <h3 className="font-semibold mb-1 text-[#3c0b14]">Descrição</h3>
+            <h3 className="mb-2" style={{ ...heading, fontSize: 14, fontWeight: 700, color: C.cream }}>Descrição da Tarefa</h3>
             {task.description ? (
               (() => {
                 const shouldShowToggle = String(task.description || '').length > 240 || String(task.description || '').includes('\n\n');
                 if (showFullDescription) {
                   return (
                     <>
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap break-words break-all">{task.description}</p>
+                      <p className="text-sm whitespace-pre-wrap break-words break-all" style={{ color: `${C.cream}80`, lineHeight: 1.6 }}>{task.description}</p>
                       {shouldShowToggle && (
                         <button
                           type="button"
                           onClick={() => setShowFullDescription(false)}
-                          className="text-xs text-emerald-700 hover:underline mt-2 block"
+                          className="text-xs hover:underline mt-2 block"
+                          style={{ color: C.lime }}
                         >
                           Ver menos
                         </button>
@@ -528,12 +530,13 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
                 return (
                   <>
-                    <p className="text-sm text-gray-700 line-clamp-2 break-words break-all whitespace-pre-wrap">{task.description}</p>
+                    <p className="text-sm line-clamp-3 break-words break-all whitespace-pre-wrap" style={{ color: `${C.cream}80`, lineHeight: 1.6 }}>{task.description}</p>
                     {shouldShowToggle && (
                       <button
                         type="button"
                         onClick={() => setShowFullDescription(true)}
-                        className="text-xs text-emerald-700 hover:underline mt-2 block"
+                        className="text-xs hover:underline mt-2 block"
+                        style={{ color: C.lime }}
                       >
                         Ver mais
                       </button>
@@ -542,37 +545,37 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                 );
               })()
             ) : (
-              <p className="text-sm text-gray-700">-</p>
+              <p className="text-sm" style={{ color: `${C.cream}60` }}>-</p>
             )}
             {hasValidSubmittedAt && (
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs mt-3" style={{ color: `${C.cream}40` }}>
                 Submissão enviada em: {submittedAt.toLocaleDateString('pt-BR')} às {submittedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </p>
             )}
             {task.posting_deadline && (
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs mt-1" style={{ color: `${C.cream}40` }}>
                 Data limite de postagem: {new Date(task.posting_deadline).toLocaleDateString('pt-BR')} {new Date(task.posting_deadline).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </p>
             )}
           </div>
 
-          <div className="pt-3 border-t space-y-3">
+          <div className="pt-5 mt-5 space-y-4" style={{ borderTop: '1px solid rgba(255,255,222,0.06)' }}>
           {hasPassedStep1 ? (
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-3">
-              <p className="font-semibold text-emerald-700 inline-flex items-center gap-2">
+            <div className="rounded-xl p-3" style={{ backgroundColor: 'rgba(204,255,68,0.08)', border: '1px solid rgba(204,255,68,0.2)' }}>
+              <p className="font-semibold inline-flex items-center gap-2" style={{ color: C.lime, fontSize: 13 }}>
                 <CheckCircle2 className="w-4 h-4" />
                 {isSidequestTask ? 'Sidequest iniciada: prova enviada ou em andamento' : 'Etapa 1 concluída: candidatura aprovada'}
               </p>
             </div>
           ) : submissionStatus !== 'approved' && (
-            <div className="rounded-xl border border-fuchsia-300 p-3">
-              <div className="flex items-center gap-2.5 mb-3">
-                <div className="w-8 h-8 rounded-full bg-fuchsia-500 text-white flex items-center justify-center font-bold text-sm">
+            <div className="rounded-2xl p-5" style={{ backgroundColor: 'rgba(255,255,222,0.02)', border: '1px solid rgba(255,255,222,0.06)' }}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm" style={{ backgroundColor: `${C.blue}20`, color: '#7799FF', ...heading }}>
                   1
                 </div>
                 <div>
-                  <p className="font-bold text-[#3c0b14]">Etapa 1: Candidatar-se</p>
-                  <p className="text-xs text-gray-500">
+                  <p style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>Etapa 1: Candidatar-se</p>
+                  <p className="text-xs" style={{ color: `${C.cream}50` }}>
                     {isSidequestTask
                       ? 'Ao se candidatar, você já fica inscrito para enviar a prova.'
                       : 'Envie sua candidatura para análise'}
@@ -582,19 +585,20 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
               <form onSubmit={handleApply}>
                 {!meetsFollowersRequirement && minFollowersRequired > 0 && (
-                  <div className="mb-3 text-xs rounded-lg p-3 border bg-red-50 border-red-200 text-red-800">
-                    Esta tarefa exige no minimo {minFollowersRequired} seguidores para inscricao. Voce possui {userFollowers}.
+                  <div className="mb-3 text-xs rounded-xl p-3" style={{ backgroundColor: 'rgba(255,34,85,0.12)', color: '#FF2255', border: '1px solid rgba(255,34,85,0.2)' }}>
+                    Esta tarefa exige no mínimo {minFollowersRequired} seguidores. Você possui {userFollowers}.
                   </div>
                 )}
                 {isFull && (
-                  <div className="mb-3 text-xs rounded-lg p-3 border bg-red-50 border-red-200 text-red-800">
+                  <div className="mb-3 text-xs rounded-xl p-3" style={{ backgroundColor: 'rgba(255,34,85,0.12)', color: '#FF2255', border: '1px solid rgba(255,34,85,0.2)' }}>
                     ❌ Esta tarefa já atingiu o limite de {task.max_participants} participantes. Não há mais vagas disponíveis.
                   </div>
                 )}
-                <Button
+                <button
                   type="submit"
                   disabled={isSubmitting || !canApply}
-                  className="w-full bg-fuchsia-600 hover:bg-fuchsia-700"
+                  className="w-full flex justify-center items-center h-[46px] rounded-xl transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                  style={{ backgroundColor: C.blue, color: C.cream, ...heading, fontSize: 14, fontWeight: 700 }}
                 >
                   <Send className="w-4 h-4 mr-2" />
                   {isTaskApproved || submissionStatus === 'approved'
@@ -624,75 +628,87 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                         : isSubmitting
                           ? 'Enviando candidatura...'
                           : 'Candidatar-se para esta Vaga'}
-                </Button>
+                </button>
               </form>
             </div>
           )}
 
           {hasPassedStep2 ? (
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-3">
-              <p className="font-semibold text-emerald-700 inline-flex items-center gap-2">
+            <div className="rounded-xl p-3" style={{ backgroundColor: 'rgba(204,255,68,0.08)', border: '1px solid rgba(204,255,68,0.2)' }}>
+              <p className="font-semibold inline-flex items-center gap-2" style={{ color: C.lime, fontSize: 13 }}>
                 <CheckCircle2 className="w-4 h-4" />
                 Etapa 2 concluída: prova aprovada
               </p>
             </div>
           ) : isStep2Current ? (
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-3 space-y-3">
-              <p className="font-semibold text-emerald-700">Etapa 2: Enviar prova de conclusão</p>
-              {hasProofDeadline && (
-                <p className="text-xs text-emerald-800">
-                  Prazo para envio da prova: até {proofDeadline.toLocaleDateString('pt-BR')} às {proofDeadline.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}.
-                </p>
-              )}
+            <div className="rounded-2xl p-5 space-y-4" style={{ backgroundColor: 'rgba(255,255,222,0.02)', border: '1px solid rgba(255,255,222,0.06)' }}>
+              <div className="flex items-center gap-3 mb-1">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm" style={{ backgroundColor: `${C.blue}20`, color: '#7799FF', ...heading }}>
+                  2
+                </div>
+                <div>
+                  <p style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>Etapa 2: Enviar prova</p>
+                  {hasProofDeadline && (
+                    <p className="text-xs" style={{ color: `${C.cream}50` }}>
+                      Prazo: até {proofDeadline.toLocaleDateString('pt-BR')} às {proofDeadline.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}.
+                    </p>
+                  )}
+                </div>
+              </div>
+
               {submissionStatus === 'proof_pending' ? (
-                <div className="text-xs rounded-lg p-3 border bg-blue-50 border-blue-200 text-blue-800">
+                <div className="text-xs rounded-xl p-3" style={{ backgroundColor: 'rgba(68,102,255,0.12)', color: '#8899FF', border: '1px solid rgba(68,102,255,0.2)' }}>
                   Prova enviada com sucesso. Aguarde a validação final do administrador.
                 </div>
               ) : (
-              <form onSubmit={handleSendProof} className="space-y-3">
+              <form onSubmit={handleSendProof} className="space-y-4">
                 <div>
-                  <Label htmlFor="proof-description">Descrição da prova (opcional)</Label>
+                  <Label htmlFor="proof-description" style={{ color: `${C.cream}70` }}>Descrição da prova (opcional)</Label>
                   <Textarea
                     id="proof-description"
                     value={proofDescription}
                     onChange={(e) => setProofDescription(e.target.value)}
                     placeholder="Explique como você concluiu a tarefa..."
                     rows={3}
+                    className="mt-1.5 !bg-black !border-white/10 text-white placeholder:text-white/30 rounded-xl resize-none focus-visible:ring-1 focus-visible:ring-white/20"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="proof-link">Link da prova</Label>
+                  <Label htmlFor="proof-link" style={{ color: `${C.cream}70` }}>Link da prova</Label>
                   <Input
                     id="proof-link"
                     type="url"
                     value={proofLink}
                     onChange={(e) => setProofLink(e.target.value)}
                     placeholder="Cole o link da prova (ex.: Instagram, Drive, YouTube)"
+                    className="mt-1.5 h-[46px] !bg-black !border-white/10 text-white placeholder:text-white/30 rounded-xl focus-visible:ring-1 focus-visible:ring-white/20"
                   />
                   {String(proofLink || '').trim() && (
-                    <p className="text-xs text-amber-700 mt-1">
-                      Se for link do Drive, confirme se o arquivo/pasta está com acesso liberado para visualização.
+                    <p className="text-xs mt-1.5" style={{ color: C.orange }}>
+                      Se for link do Drive, confirme se o arquivo/pasta está com acesso liberado.
                     </p>
                   )}
                 </div>
                 <div>
-                  <Label htmlFor="proof-file">Arquivo da prova</Label>
+                  <Label htmlFor="proof-file" style={{ color: `${C.cream}70` }}>Arquivo da prova</Label>
                   <input
                     id="proof-file"
                     type="file"
                     onChange={(e) => setProofFile(e.target.files?.[0] || null)}
-                    className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200"
+                    className="block w-full mt-1.5 text-sm file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold transition-all file:bg-white/10 file:text-white hover:file:bg-white/20 file:cursor-pointer cursor-pointer text-white/50"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Máximo: 5MB</p>
+                  <p className="text-xs mt-1.5" style={{ color: `${C.cream}40` }}>Máximo: 5MB</p>
                 </div>
-                <p className="text-xs text-gray-600 rounded-md bg-emerald-50 border border-emerald-100 px-2.5 py-2">
-                  Envie a prova com link e/ou arquivo.
+                
+                <p className="text-xs rounded-xl px-3 py-2.5" style={{ backgroundColor: 'rgba(255,255,222,0.03)', border: '1px solid rgba(255,255,222,0.06)', color: `${C.cream}60` }}>
+                  Envie a prova utilizando link, arquivo, ou os dois.
                 </p>
 
-                <Button
+                <button
                   type="submit"
                   disabled={isSubmitting || uploadFile.isPending || submitProof.isPending}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700"
+                  className="w-full flex justify-center items-center h-[46px] rounded-xl transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                  style={{ backgroundColor: C.lime, color: C.black, ...heading, fontSize: 14, fontWeight: 700 }}
                 >
                   <Upload className="w-4 h-4 mr-2" />
                   {isSubmitting || uploadFile.isPending || submitProof.isPending
@@ -700,7 +716,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                     : submissionStatus === 'rejected'
                       ? 'Reenviar prova para nova análise'
                       : 'Enviar prova para aprovação final'}
-                </Button>
+                </button>
               </form>
               )}
             </div>
@@ -708,25 +724,29 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
           {isCampaignTask && hasPassedStep2 && (
             isMetricsCompleted ? (
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-3">
-                <p className="font-semibold text-emerald-700 inline-flex items-center gap-2">
+              <div className="rounded-xl p-3" style={{ backgroundColor: 'rgba(204,255,68,0.08)', border: '1px solid rgba(204,255,68,0.2)' }}>
+                <p className="font-semibold inline-flex items-center gap-2" style={{ color: C.lime, fontSize: 13 }}>
                   <CheckCircle2 className="w-4 h-4" />
                   Etapa 3 concluída: métricas aprovadas
                 </p>
               </div>
             ) : (
-            <div className="rounded-xl border border-sky-200 bg-sky-50/50 p-3 space-y-3">
-              <p className="font-semibold text-sky-700 inline-flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" />
-                Etapa 3: Postar e enviar métricas
-              </p>
-              <p className="text-xs text-gray-600">
-                Você está autorizado a postar. Lembre-se de enviar um arquivo com comprovação da data da postagem.
-              </p>
+            <div className="rounded-2xl p-5 space-y-4" style={{ backgroundColor: 'rgba(255,255,222,0.02)', border: '1px solid rgba(255,255,222,0.06)' }}>
+              <div className="flex items-center gap-3 mb-1">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm" style={{ backgroundColor: `${C.orange}20`, color: C.orange, ...heading }}>
+                  3
+                </div>
+                <div>
+                  <p style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>Etapa 3: Postar e enviar métricas</p>
+                  <p className="text-xs" style={{ color: `${C.cream}50` }}>
+                    Você está autorizado a postar o conteúdo aprovado.
+                  </p>
+                </div>
+              </div>
 
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-                <p className="text-xs font-semibold text-emerald-800 mb-2">Checklist para receber o pagamento</p>
-                <ul className="text-xs text-emerald-900 list-disc pl-5 space-y-1">
+              <div className="rounded-xl p-4" style={{ backgroundColor: 'rgba(255,255,222,0.03)', border: '1px solid rgba(255,255,222,0.06)' }}>
+                <p className="text-xs font-semibold mb-2" style={{ color: C.cream }}>Checklist para receber o pagamento</p>
+                <ul className="text-xs list-disc pl-5 space-y-1.5" style={{ color: `${C.cream}70` }}>
                   <li>
                     Publique no dia e horário combinados
                     {hasProofDeadline
@@ -736,45 +756,45 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                   </li>
                   <li>Use as hashtags e requisitos definidos na campanha.</li>
                   <li>Envie as métricas com comprovante dentro da janela informada abaixo.</li>
-                  <li>Mantenha seus dados bancários atualizados para pagamento manual fora da plataforma.</li>
+                  <li>Mantenha seus dados bancários atualizados no menu "Meus Pagamentos".</li>
                 </ul>
               </div>
 
               {metricsStatus === 'rejected' && metricsResubmissionDeadline && (
-                <div className={`text-xs rounded-lg p-3 border ${hasResubmissionWindowExpired ? 'bg-red-50 border-red-200 text-red-800' : 'bg-orange-50 border-orange-200 text-orange-800'}`}>
+                <div className="text-xs rounded-xl p-3" style={{ backgroundColor: hasResubmissionWindowExpired ? 'rgba(255,34,85,0.12)' : 'rgba(255,136,51,0.12)', color: hasResubmissionWindowExpired ? '#FF2255' : C.orange, border: `1px solid ${hasResubmissionWindowExpired ? 'rgba(255,34,85,0.2)' : 'rgba(255,136,51,0.2)'}` }}>
                   Reenvio após rejeição: até {metricsResubmissionDeadline.toLocaleDateString('pt-BR')} às {metricsResubmissionDeadline.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}.
                 </div>
               )}
 
               {shouldShowMetricsReminder && (
-                <div className="text-xs rounded-lg p-3 border bg-emerald-50 border-emerald-200 text-emerald-800">
-                  Hora de começar a organizar as métricas. Confira abaixo os itens obrigatórios para evitar retrabalho.
+                <div className="text-xs rounded-xl p-3" style={{ backgroundColor: 'rgba(204,255,68,0.12)', color: C.lime, border: '1px solid rgba(204,255,68,0.2)' }}>
+                  A janela de envio está aberta. Separe prints do alcance, impressões e interações.
                 </div>
               )}
 
               {!isInsideMetricsWindow && !hasMetricsWindowPassed && (
-                <div className="text-xs rounded-lg p-3 border bg-blue-50 border-blue-200 text-blue-800">
-                  O envio ainda não está disponível. Aguarde 24 horas após a aprovação da prova para que a janela seja aberta.
+                <div className="text-xs rounded-xl p-3" style={{ backgroundColor: 'rgba(68,102,255,0.12)', color: '#8899FF', border: '1px solid rgba(68,102,255,0.2)' }}>
+                  O envio das métricas abrirá apenas 24 horas após a aprovação da sua prova.
                 </div>
               )}
 
               {hasMetricsWindowPassed && (
-                <div className="text-xs rounded-lg p-3 border bg-red-50 border-red-200 text-red-800">
+                <div className="text-xs rounded-xl p-3" style={{ backgroundColor: 'rgba(255,34,85,0.12)', color: '#FF2255', border: '1px solid rgba(255,34,85,0.2)' }}>
                   A janela para envio de métricas foi encerrada (2 dias úteis após 24 horas da aprovação da prova).
                 </div>
               )}
 
               {hasResubmissionWindowExpired && (
-                <div className="text-xs rounded-lg p-3 border bg-red-50 border-red-200 text-red-800">
+                <div className="text-xs rounded-xl p-3" style={{ backgroundColor: 'rgba(255,34,85,0.12)', color: '#FF2255', border: '1px solid rgba(255,34,85,0.2)' }}>
                   Prazo de reenvio encerrado (2 dias após rejeição). Fluxo concluído sem pontos e sem pagamento.
                 </div>
               )}
 
               {!currentMetricsSubmission || metricsStatus === 'rejected' ? (
-                <form onSubmit={handleSendMetrics} className="space-y-3">
-                  <div className="rounded-lg border border-sky-200 bg-sky-50 p-3">
-                    <p className="text-xs font-semibold text-sky-800 mb-2">Checklist obrigatório no print/arquivo de métricas</p>
-                    <ul className="text-xs text-sky-700 list-disc pl-4 space-y-1">
+                <form onSubmit={handleSendMetrics} className="space-y-4">
+                  <div className="rounded-xl p-4" style={{ backgroundColor: 'rgba(255,255,222,0.03)', border: '1px solid rgba(255,255,222,0.06)' }}>
+                    <p className="text-xs font-semibold mb-2" style={{ color: C.cream }}>Checklist obrigatório no arquivo</p>
+                    <ul className="text-xs list-disc pl-4 space-y-1.5" style={{ color: `${C.cream}70` }}>
                       <li>Data da postagem visível (principal para validação de prazo).</li>
                       <li>Alcance e impressões do conteúdo.</li>
                       <li>Interações (curtidas, comentários, compartilhamentos/salvamentos).</li>
@@ -782,50 +802,53 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                   </div>
 
                   <div>
-                    <Label htmlFor="metrics-link">Link do post</Label>
+                    <Label htmlFor="metrics-link" style={{ color: `${C.cream}70` }}>Link do post (Opcional)</Label>
                     <Input
                       id="metrics-link"
                       type="url"
                       value={metricsLink}
                       onChange={(e) => setMetricsLink(e.target.value)}
                       placeholder="https://..."
+                      className="mt-1.5 h-[46px] !bg-black !border-white/10 text-white placeholder:text-white/30 rounded-xl focus-visible:ring-1 focus-visible:ring-white/20"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="metrics-description">Descrição das métricas (opcional)</Label>
+                    <Label htmlFor="metrics-description" style={{ color: `${C.cream}70` }}>Descrição das métricas (opcional)</Label>
                     <Textarea
                       id="metrics-description"
                       value={metricsDescription}
                       onChange={(e) => setMetricsDescription(e.target.value)}
                       placeholder="Explique os dados enviados..."
                       rows={3}
+                      className="mt-1.5 !bg-black !border-white/10 text-white placeholder:text-white/30 rounded-xl resize-none focus-visible:ring-1 focus-visible:ring-white/20"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="metrics-file">Arquivo de métricas</Label>
+                    <Label htmlFor="metrics-file" style={{ color: `${C.cream}70` }}>Arquivo de métricas (Obrigatório)</Label>
                     <input
                       id="metrics-file"
                       type="file"
                       multiple
                       onChange={(e) => setMetricsFiles(Array.from(e.target.files || []))}
-                      className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200"
+                      className="block w-full mt-1.5 text-sm file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold transition-all file:bg-white/10 file:text-white hover:file:bg-white/20 file:cursor-pointer cursor-pointer text-white/50"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Máximo: 5MB por arquivo</p>
+                    <p className="text-xs mt-1.5" style={{ color: `${C.cream}40` }}>Máximo: 5MB por arquivo. Inclua prints da data, alcance e impressões.</p>
                   </div>
 
                   {metricsWindowStart && metricsWindowEnd && (
-                    <div className="text-xs rounded-lg p-3 border bg-amber-50 border-amber-200 text-amber-800">
-                      Janela de envio de métricas: de {metricsWindowStart.toLocaleDateString('pt-BR')} até {metricsWindowEnd.toLocaleDateString('pt-BR')}.
+                    <div className="text-xs rounded-xl p-3" style={{ backgroundColor: 'rgba(255,255,222,0.03)', border: '1px solid rgba(255,255,222,0.06)', color: `${C.cream}60` }}>
+                      Janela de envio: de {metricsWindowStart.toLocaleDateString('pt-BR')} até {metricsWindowEnd.toLocaleDateString('pt-BR')}.
                     </div>
                   )}
 
                   <div title={metricsButtonTitle || undefined}>
-                    <Button
+                    <button
                       type="submit"
                       disabled={isSubmitting || uploadFile.isPending || submitMetrics.isPending || !metricsFiles || metricsFiles.length === 0 || !isInsideMetricsWindow || hasResubmissionWindowExpired}
-                      className="w-full bg-sky-600 hover:bg-sky-700"
+                      className="w-full flex justify-center items-center h-[46px] rounded-xl transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                      style={{ backgroundColor: C.orange, color: C.black, ...heading, fontSize: 14, fontWeight: 700 }}
                     >
                       <Upload className="w-4 h-4 mr-2" />
                       {isSubmitting || uploadFile.isPending || submitMetrics.isPending
@@ -833,34 +856,34 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                         : currentMetricsSubmission?.status === 'rejected'
                           ? 'Reenviar métricas'
                           : 'Enviar métricas para aprovação'}
-                    </Button>
+                    </button>
                   </div>
 
                   {metricsInlineHint && (
-                    <p className="text-[11px] text-gray-500 leading-snug">
+                    <p className="text-[11px] leading-snug" style={{ color: `${C.cream}40` }}>
                       {metricsInlineHint}
                     </p>
                   )}
                 </form>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2 mt-2">
                   {metricsStatus === 'pending' && (
-                    <Badge className="bg-blue-100 text-blue-700 border-blue-200">
-                      Métricas em análise
-                    </Badge>
+                    <div className="text-xs rounded-xl p-3" style={{ backgroundColor: 'rgba(68,102,255,0.12)', color: '#8899FF', border: '1px solid rgba(68,102,255,0.2)' }}>
+                      Métricas enviadas. Em análise.
+                    </div>
                   )}
                   {metricsStatus === 'approved' && (
-                    <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+                    <div className="text-xs rounded-xl p-3" style={{ backgroundColor: 'rgba(204,255,68,0.12)', color: C.lime, border: '1px solid rgba(204,255,68,0.2)' }}>
                       Métricas aprovadas - pagamento a caminho
-                    </Badge>
+                    </div>
                   )}
                 </div>
               )}
 
               {currentMetricsSubmission?.status === 'rejected' && currentMetricsSubmission?.rejection_reason && (
-                <div className="rounded-lg bg-red-50 border border-red-200 p-3">
-                  <p className="text-xs font-semibold text-red-700 mb-1">Motivo da rejeição das métricas</p>
-                  <p className="text-sm text-red-600">{currentMetricsSubmission.rejection_reason}</p>
+                <div className="rounded-xl p-3 mt-4" style={{ backgroundColor: 'rgba(255,34,85,0.12)', border: '1px solid rgba(255,34,85,0.2)' }}>
+                  <p className="text-xs font-semibold mb-1" style={{ color: '#FF2255' }}>Motivo da rejeição das métricas</p>
+                  <p className="text-sm" style={{ color: '#FF2255' }}>{currentMetricsSubmission.rejection_reason}</p>
                 </div>
               )}
             </div>
@@ -869,14 +892,14 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
           </div>
 
           {shouldShowSubmissionRejectionReason && (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-3">
-              <p className="text-xs font-semibold text-red-700 mb-1">Motivo da rejeição</p>
-              <p className="text-sm text-red-600">{currentSubmission.rejection_reason}</p>
+            <div className="rounded-xl p-3 mt-4" style={{ backgroundColor: 'rgba(255,34,85,0.12)', border: '1px solid rgba(255,34,85,0.2)' }}>
+              <p className="text-xs font-semibold mb-1" style={{ color: '#FF2255' }}>Motivo da rejeição</p>
+              <p className="text-sm" style={{ color: '#FF2255' }}>{currentSubmission.rejection_reason}</p>
             </div>
           )}
 
           {footerStageDeadline?.date && (
-            <div className="flex items-center justify-end text-xs text-gray-500 gap-1">
+            <div className="flex items-center justify-end text-xs gap-1" style={{ color: `${C.cream}50` }}>
               <Calendar className="w-3.5 h-3.5" />
               <span>
                 {footerStageDeadline.label} <strong>{footerStageDeadline.date.toLocaleString('pt-BR')}</strong>
