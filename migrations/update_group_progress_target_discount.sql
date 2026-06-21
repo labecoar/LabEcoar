@@ -1,21 +1,5 @@
--- Progresso grupal: contagem e pontos ignoram RLS (SECURITY DEFINER)
--- Rode este arquivo no SQL Editor do Supabase (Dashboard → SQL → New query)
-
-CREATE OR REPLACE FUNCTION public.get_active_ecoantes_count()
-RETURNS INTEGER
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT COUNT(*)::INTEGER
-  FROM profiles
-  WHERE is_active IS NOT FALSE
-    AND COALESCE(role, 'user') <> 'admin'
-    AND deleted_at IS NULL;
-$$;
-
-GRANT EXECUTE ON FUNCTION public.get_active_ecoantes_count() TO authenticated;
+-- Barra de progresso grupal: meta com 15% de folga (1500 × ecoantes × 0,85)
+-- collective_points continua sendo a soma bruta de submissões aprovadas (resgates não descontam)
 
 CREATE OR REPLACE FUNCTION public.get_group_progress_stats(p_quarter_key TEXT DEFAULT NULL)
 RETURNS JSON
@@ -68,7 +52,6 @@ BEGIN
     AND COALESCE(p.role, 'user') <> 'admin'
     AND p.deleted_at IS NULL;
 
-  -- Meta: 1500 pts × ecoantes ativos, com 15% de folga (85% do máximo teórico)
   v_target := ROUND(v_active_ecoantes * 1500 * 0.85)::BIGINT;
   v_pct := CASE
     WHEN v_target > 0 THEN LEAST(v_collective::NUMERIC / v_target * 100, 100)

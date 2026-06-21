@@ -98,7 +98,8 @@ BEGIN
     AND COALESCE(p.role, 'user') <> 'admin'
     AND p.deleted_at IS NULL;
 
-  v_target := v_active_ecoantes * 1500;
+  -- Meta: 1500 pts × ecoantes ativos, com 15% de folga (85% do máximo teórico)
+  v_target := ROUND(v_active_ecoantes * 1500 * 0.85)::BIGINT;
   v_pct := CASE
     WHEN v_target > 0 THEN LEAST(v_collective::NUMERIC / v_target * 100, 100)
     ELSE 0

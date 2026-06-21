@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { tasksService } from '@/services/tasks.service'
 import { submissionsService } from '@/services/submissions.service'
 import { metricsService } from '@/services/metrics.service'
-import { buildTaskNotifications } from '@/lib/task-notifications'
+import { buildAllNotifications } from '@/lib/task-notifications'
 import { notificationsService } from '@/services/notifications.service'
 
 const STORAGE_PREFIX = 'labecoar-task-notifications-seen'
@@ -28,6 +28,7 @@ const writeSeenIds = (storageKey, ids) => {
 
 export function useTaskNotifications() {
   const { user, profile } = useAuth()
+  const isAdmin = profile?.role === 'admin'
   const storageKey = useMemo(() => (user?.id ? `${STORAGE_PREFIX}:${user.id}` : null), [user?.id])
   const [seenIds, setSeenIds] = useState([])
   const [loadingSeen, setLoadingSeen] = useState(false)
@@ -56,11 +57,26 @@ export function useTaskNotifications() {
     refetchInterval: 15000,
   })
 
+  const { data: pendingSubmissions = [], isLoading: pendingSubmissionsLoading } = useQuery({
+    queryKey: ['submissions', 'pending'],
+    queryFn: () => submissionsService.getPendingSubmissions(),
+    enabled: isAdmin,
+    refetchOnWindowFocus: true,
+    refetchInterval: 15000,
+  })
+
+  const { data: pendingMetricsSubmissions = [], isLoading: pendingMetricsLoading } = useQuery({
+    queryKey: ['metrics-submissions', 'admin', 'pending'],
+    queryFn: () => metricsService.getAdminMetricsByStatus('pending'),
+    enabled: isAdmin,
+    refetchOnWindowFocus: true,
+    refetchInterval: 15000,
+  })
+
   useEffect(() => {
     let mounted = true
     const load = async () => {
       if (!storageKey) return
-      // If user is logged in, read from DB; otherwise fallback to localStorage
       if (user?.id) {
         try {
           setLoadingSeen(true)
@@ -83,26 +99,32 @@ export function useTaskNotifications() {
   }, [storageKey, user?.id])
 
   const notifications = useMemo(
-    () => buildTaskNotifications({ tasks, submissions, metricsSubmissions, profile }),
-    [metricsSubmissions, profile, submissions, tasks]
+    () => buildAllNotifications({
+      tasks,
+      submissions,
+      metricsSubmissions,
+      pendingSubmissions,
+      pendingMetricsSubmissions,
+      profile,
+      isAdmin,
+    }),
+    [isAdmin, metricsSubmissions, pendingMetricsSubmissions, pendingSubmissions, profile, submissions, tasks]
   )
 
   useEffect(() => {
     if (!storageKey) return
 
     const validIds = new Set(notifications.map((notification) => notification.id))
-    
-    // Only update if the set of valid IDs actually changed
     const validIdsArray = Array.from(validIds).sort()
     const lastValidIdsArray = Array.from(lastValidIdsRef.current).sort()
-    
-    if (validIdsArray.length === lastValidIdsArray.length && 
-        validIdsArray.every((id, i) => id === lastValidIdsArray[i])) {
-      return // No change in valid IDs, skip update
+
+    if (validIdsArray.length === lastValidIdsArray.length
+      && validIdsArray.every((id, i) => id === lastValidIdsArray[i])) {
+      return
     }
-    
+
     lastValidIdsRef.current = validIds
-    
+
     setSeenIds((current) => {
       const next = current.filter((id) => validIds.has(id))
       writeSeenIds(storageKey, next)
@@ -122,7 +144,6 @@ export function useTaskNotifications() {
       const next = [...current, notificationId]
       writeSeenIds(storageKey, next)
 
-      // persist to DB for authenticated users (fire-and-forget)
       if (user?.id) {
         notificationsService.markAsRead(user.id, notificationId).catch((err) => {
           console.error('Erro ao marcar notificação como lida no DB:', err)
@@ -153,6 +174,10 @@ export function useTaskNotifications() {
     unreadCount,
     markAsRead,
     markAllAsRead,
-    loading: tasksLoading || submissionsLoading || metricsLoading || loadingSeen,
+    loading: tasksLoading
+      || submissionsLoading
+      || metricsLoading
+      || loadingSeen
+      || (isAdmin && (pendingSubmissionsLoading || pendingMetricsLoading)),
   }
 }

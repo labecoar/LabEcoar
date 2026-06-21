@@ -33,6 +33,18 @@ const toScoreModel = (userId, quarterKey, points = 0, tasks = 0) => ({
 })
 
 export const MAX_JOURNEY_POINTS = 1500
+/** Meta grupal = 1500 pts × ecoantes ativos, com 15% de folga (100% da barra). */
+export const GROUP_TARGET_DISCOUNT = 0.15
+export const GROUP_TARGET_FACTOR = 1 - GROUP_TARGET_DISCOUNT
+
+export const computeGroupTargetPoints = (activeEcoantes = 0) =>
+  Math.round(Math.max(Number(activeEcoantes) || 0, 0) * MAX_JOURNEY_POINTS * GROUP_TARGET_FACTOR)
+
+export const computeGroupProgressPercentage = (collectivePoints = 0, activeEcoantes = 0) => {
+  const target = computeGroupTargetPoints(activeEcoantes)
+  if (target <= 0) return 0
+  return Math.min((Number(collectivePoints) / target) * 100, 100)
+}
 
 /**
  * Serviço de Pontuação
@@ -216,7 +228,8 @@ export const scoresService = {
   },
 
   /**
-   * Progresso grupal do trimestre: ecoantes ativos e pontos coletivos
+   * Progresso grupal do trimestre: ecoantes ativos e pontos coletivos.
+   * collective_points = soma bruta de submissões aprovadas; resgates de recompensa não reduzem.
    */
   async getGroupProgress(quarterKey = getCurrentQuarterKey()) {
     const { data, error } = await supabase.rpc('get_group_progress_stats', {
@@ -224,13 +237,18 @@ export const scoresService = {
     })
 
     if (!error && data) {
+      const activeEcoantes = Number(data.active_ecoantes ?? 0)
+      const collectivePoints = Number(data.collective_points ?? 0)
+      const targetPoints = computeGroupTargetPoints(activeEcoantes)
+      const progressPercentage = computeGroupProgressPercentage(collectivePoints, activeEcoantes)
+
       return {
         quarter_key: data.quarter_key ?? quarterKey,
-        active_ecoantes: Number(data.active_ecoantes ?? 0),
+        active_ecoantes: activeEcoantes,
         active_in_quarter: Number(data.active_in_quarter ?? 0),
-        collective_points: Number(data.collective_points ?? 0),
-        target_points: Number(data.target_points ?? 0),
-        progress_percentage: Number(data.progress_percentage ?? 0),
+        collective_points: collectivePoints,
+        target_points: targetPoints,
+        progress_percentage: progressPercentage,
       }
     }
 
@@ -250,10 +268,8 @@ export const scoresService = {
     )
     const activeInQuarter = quarterEntries.length
 
-    const targetPoints = activeEcoantes * MAX_JOURNEY_POINTS
-    const progressPercentage = targetPoints > 0
-      ? Math.min((collectivePoints / targetPoints) * 100, 100)
-      : 0
+    const targetPoints = computeGroupTargetPoints(activeEcoantes)
+    const progressPercentage = computeGroupProgressPercentage(collectivePoints, activeEcoantes)
 
     return {
       quarter_key: quarterKey,

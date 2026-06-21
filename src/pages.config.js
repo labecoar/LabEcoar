@@ -57,6 +57,7 @@ import AdminRewardClaims from './pages/AdminRewardClaims';
 import AdminUsers from './pages/AdminUsers';
 import CompleteProfile from './pages/CompleteProfile';
 import Dashboard from './pages/Dashboard';
+import FAQ from './pages/FAQ';
 import Forum from './pages/Forum';
 import ForumTopic from './pages/ForumTopic';
 import Leaderboard from './pages/Leaderboard';
@@ -80,6 +81,7 @@ export const PAGES = {
     "AdminUsers": AdminUsers,
     "CompleteProfile": CompleteProfile,
     "Dashboard": Dashboard,
+    "FAQ": FAQ,
     "Forum": Forum,
     "ForumTopic": ForumTopic,
     "Leaderboard": Leaderboard,

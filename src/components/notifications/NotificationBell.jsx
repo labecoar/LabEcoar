@@ -56,7 +56,7 @@ export default function NotificationBell() {
   const handleNotificationClick = (notification) => {
     markAsRead(notification.id)
 
-    navigate('/Tasks')
+    navigate(notification.link_path || '/Tasks')
 
     setIsOpen(false)
   }

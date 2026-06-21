@@ -2,6 +2,7 @@
 import React from "react";
 import { Music2, Mic, Users, PartyPopper } from "lucide-react";
 import { useGroupProgress } from "@/hooks/useScores";
+import { GROUP_TARGET_FACTOR, MAX_JOURNEY_POINTS } from "@/services/scores.service";
 import { C, heading, body } from "@/lib/theme";
 
 export const LEVEL_THRESHOLDS = [
@@ -20,7 +21,7 @@ export const LEVELS = LEVEL_THRESHOLDS.map(({ name, max, icon }) => ({
 }));
 
 export function groupThreshold(pts, activeEcoantes = 1) {
-  return pts * Math.max(activeEcoantes, 1);
+  return Math.round(pts * Math.max(activeEcoantes, 1) * GROUP_TARGET_FACTOR);
 }
 
 export function getGroupLevelIndex(collectivePoints = 0, activeEcoantes = 1) {
@@ -184,7 +185,7 @@ export default function GroupProgress({ selectedQuarter }) {
                 marginTop: 10,
               }}
             >
-              Oie! Essa é a sua barra de progressão em equipe. Toda vez que você fizer missões, essa barra aumenta e você pode ver a progressão de todos os Ecoantes ativos da plataforma. Não se preocupe, os pontos convertidos em recompensas não são tirados daqui!
+              Oie! Essa é a barra de progressão em equipe — um medidor visual do sucesso grupal. Ela sobe conforme todos ganham pontos ao concluir tarefas e missões. A meta é {Math.round(GROUP_TARGET_FACTOR * 100)}% do máximo teórico ({MAX_JOURNEY_POINTS.toLocaleString("pt-BR")} pts × Ecoantes ativos). Pontos trocados por recompensas não saem daqui; eles só valem para a Loja de Recompensas, nunca para remuneração.
             </p>
           </div>
 

@@ -223,7 +223,8 @@ export const submissionsService = {
           current_participants,
           expires_at,
           posting_deadline,
-          delivery_deadline
+          delivery_deadline,
+          requires_application
         ),
         profile:profiles (
           id,

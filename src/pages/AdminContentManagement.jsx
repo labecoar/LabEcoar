@@ -558,12 +558,31 @@ export default function AdminContentManagement() {
         }
       `}</style>
 
-      {/* <div className="flex items-center gap-3">
+      <div
+        className="flex items-center justify-between px-8 py-4 sticky top-0 z-10"
+        style={{
+          backgroundColor: `${C.black}F5`,
+          backdropFilter: 'blur(16px)',
+          borderBottom: `1px solid rgba(255,255,222,0.05)`,
+        }}
+      >
+        <div className="flex items-center gap-3">
           <LayoutGrid size={16} style={{ color: C.lime }} />
-          <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          <span
+            style={{
+              ...heading,
+              fontSize: 12,
+              fontWeight: 700,
+              color: `${C.cream}60`,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+            }}
+          >
             Gerenciar Conteúdo
           </span>
-        </div> */}
+        </div>
+      </div>
+      
       <div
         className="flex items-center justify-between px-8 py-0 sticky top-0 z-10"
         style={{
@@ -574,7 +593,7 @@ export default function AdminContentManagement() {
       >
       </div>
 
-      <div className="px-8 pt-7 pb-10 max-w-7xl mx-auto space-y-8">
+      <div className="px-4 md:px-8 pt-7 pb-10 max-w-6xl mx-auto space-y-8">
 
         {/* ── Hero ── */}
         <div>
@@ -587,7 +606,7 @@ export default function AdminContentManagement() {
         </div>
 
         {/* ── Stats ── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ maxWidth: 560 }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
           {[
             { icon: Target, label: 'Tarefas Ativas', value: activeTasks.length, color: C.lime, iconBg: "rgba(200, 255, 0, 0.08)" },
             { icon: Megaphone, label: 'Campanhas Ativas', value: campaignCount, color: C.orange, iconBg: "rgba(255, 69, 0, 0.08)" },
@@ -658,7 +677,7 @@ export default function AdminContentManagement() {
 
         {/*  TAB: CRIAR TAREFA */}
         {activeTab === 'create' && (
-          <div className="flex flex-col gap-5" style={{ maxWidth: 860 }}>
+          <div className="flex flex-col gap-5 w-full">
             <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.black_back, border: `1px solid rgba(255,255,222,0.07)` }}>
 
               {/* Card header */}
@@ -1074,7 +1093,7 @@ export default function AdminContentManagement() {
             TAB: FÓRUM
         ══════════════════════════════════════════ */}
         {activeTab === 'forum' && (
-          <div className="flex flex-col gap-5" style={{ maxWidth: 860 }}>
+          <div className="flex flex-col gap-5 w-full">
             <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.07)` }}>
               <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: C.lime }} />

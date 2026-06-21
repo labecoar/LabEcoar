@@ -1,18 +1,23 @@
 import React from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle2, XCircle, AlertCircle, Info, Bell, Clock3, CalendarClock } from "lucide-react";
+import { CheckCircle2, XCircle, AlertCircle, Info, Bell, Clock3, CalendarClock, PartyPopper, Send, ShieldAlert } from "lucide-react";
 import { C } from "@/lib/theme";
 
 const NOTIFICATION_ICONS = {
   task_available: Bell,
   task_due_soon: Clock3,
   task_metrics_due_soon: CalendarClock,
+  metrics_send_reminder: Send,
+  task_completed: PartyPopper,
   candidatura_aprovada: CheckCircle2,
   candidatura_rejeitada: XCircle,
   submissao_aprovada: CheckCircle2,
   submissao_rejeitada: XCircle,
   tarefa_expirando: AlertCircle,
+  admin_application_review_due: ShieldAlert,
+  admin_proof_review_due: ShieldAlert,
+  admin_metrics_review_due: ShieldAlert,
   info: Info
 };
 
@@ -20,11 +25,16 @@ const NOTIFICATION_COLORS = {
   task_available: { color: C.lime, bg: C.lime_back },
   task_due_soon: { color: C.orange, bg: C.orange_back },
   task_metrics_due_soon: { color: C.orange, bg: C.orange_back },
+  metrics_send_reminder: { color: C.blue, bg: C.blue_back },
+  task_completed: { color: C.lime, bg: C.lime_back },
   candidatura_aprovada: { color: C.lime, bg: C.lime_back },
   candidatura_rejeitada: { color: C.red, bg: C.red_back },
   submissao_aprovada: { color: C.lime, bg: C.lime_back },
   submissao_rejeitada: { color: C.red, bg: C.red_back },
   tarefa_expirando: { color: C.orange, bg: C.orange_back },
+  admin_application_review_due: { color: C.orange, bg: C.orange_back },
+  admin_proof_review_due: { color: C.orange, bg: C.orange_back },
+  admin_metrics_review_due: { color: C.orange, bg: C.orange_back },
   info: { color: C.lime, bg: C.lime_back }
 };
 

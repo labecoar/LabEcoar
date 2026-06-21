@@ -2,7 +2,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { LayoutDashboard, Target, FileCheck, Trophy, LogOut, Shield, User, Users, MessageSquare, Gift, CreditCard, DollarSign, BarChart3, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Target, FileCheck, Trophy, LogOut, Shield, User, Users, MessageSquare, Gift, CreditCard, DollarSign, BarChart3, ShieldCheck, HelpCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserScore, useGroupProgress } from "@/hooks/useScores";
 import logoCuica from "@/assets/images/cuica_lab.png";
@@ -70,6 +70,11 @@ const navigationItems = [
     url: createPageUrl("Profile"),
     icon: User,
   },
+  {
+    title: "FAQ",
+    url: createPageUrl("FAQ"),
+    icon: HelpCircle,
+  },
 ];
 
 const adminNavigationItems = [
@@ -123,6 +128,11 @@ const adminNavigationItems = [
     title: "Ranking",
     url: createPageUrl("Leaderboard"),
     icon: Trophy,
+  },
+  {
+    title: "FAQ",
+    url: createPageUrl("FAQ"),
+    icon: HelpCircle,
   },
 ];
 
@@ -412,7 +422,7 @@ export default function Layout({ children, currentPageName }) {
 
                     <div className="mt-4 space-y-1">
                       <div className="flex justify-between items-center">
-                        <span className="text-white/60">Progresso grupal</span>
+                        <span className="text-white/60 text-sm">Progresso grupal</span>
                         <span className="text-lime-300 font-bold">
                           {groupProgressPct}%
                         </span>
@@ -428,7 +438,7 @@ export default function Layout({ children, currentPageName }) {
                       </div>
 
                       <div className="flex justify-between">
-                        <span className="text-white/60">Seus pontos</span>
+                        <span className="text-white/60 text-sm">Seus pontos</span>
                         <span className="font-bold text-white">
                           {currentPoints}
                         </span>
