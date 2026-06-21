@@ -34,6 +34,17 @@ export function useLeaderboard(limit = 100, quarterKey) {
 }
 
 /**
+ * Hook para progresso grupal do trimestre
+ */
+export function useGroupProgress(quarterKey) {
+  return useQuery({
+    queryKey: ['group-progress', quarterKey],
+    queryFn: () => scoresService.getGroupProgress(quarterKey),
+    enabled: !!quarterKey,
+  })
+}
+
+/**
  * Hook para adicionar pontos
  */
 export function useAddPoints() {
@@ -44,6 +55,7 @@ export function useAddPoints() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scores'] })
       queryClient.invalidateQueries({ queryKey: ['leaderboard'] })
+      queryClient.invalidateQueries({ queryKey: ['group-progress'] })
     },
   })
 }

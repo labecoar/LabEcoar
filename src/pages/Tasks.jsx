@@ -18,35 +18,35 @@ import { getProofApprovalMetricsWindow, getMetricsResubmissionDeadline } from '@
 import { C, heading, body } from '@/lib/theme';
 
 const BORDER_COLOR = "rgba(255,255,222,0.07)";
-const MUTED_COLOR  = "rgba(255,255,222,0.45)";
-const GHOST_BG     = "rgba(255,255,222,0.06)";
+const MUTED_COLOR = "rgba(255,255,222,0.45)";
+const GHOST_BG = "rgba(255,255,222,0.06)";
 
 // ─── Mapeamentos de categoria ────────────────────────────────────────────────
 const CATEGORY_ICONS = {
-  campanha:             Megaphone,
-  resposta_rapida:      Zap,
-  oficina:              BookOpen,
-  folhetim:             Share2,
+  campanha: Megaphone,
+  resposta_rapida: Zap,
+  oficina: BookOpen,
+  folhetim: Share2,
   compartilhar_ecoante: Users,
-  sidequest_teste:      Target,
+  sidequest_teste: Target,
 };
 
-const CATEGORY_ACCENT = {
-  campanha:             C.lime,
-  resposta_rapida:      C.orange,
-  oficina:              C.purple,
-  folhetim:             C.blue,
+export const CATEGORY_ACCENT = {
+  campanha: C.lime,
+  resposta_rapida: C.orange,
+  oficina: C.purple,
+  folhetim: C.blue,
   compartilhar_ecoante: C.pink,
-  sidequest_teste:      C.cyan,
+  sidequest_teste: C.cyan,
 };
 
 const CATEGORY_NAMES = {
-  campanha:             "Campanha",
-  resposta_rapida:      "Resposta Rápida",
-  oficina:              "Oficina",
-  folhetim:             "Folhetim",
+  campanha: "Campanha",
+  resposta_rapida: "Resposta Rápida",
+  oficina: "Oficina",
+  folhetim: "Folhetim",
   compartilhar_ecoante: "Compartilhar",
-  sidequest_teste:      "Sidequest",
+  sidequest_teste: "Missão",
 };
 
 // ─── Helpers de lógica (inalterados) ────────────────────────────────────────
@@ -145,7 +145,7 @@ export default function Tasks() {
   const shouldHideTaskFromAvailable = (task) => {
     const submission = getTaskSubmission(task.id);
     const submissionStatus = normalizeSubmissionStatus(submission?.status);
-    return ['application_pending','pending','application_approved','application_rejected','proof_pending','approved','rejected'].includes(submissionStatus);
+    return ['application_pending', 'pending', 'application_approved', 'application_rejected', 'proof_pending', 'approved', 'rejected'].includes(submissionStatus);
   };
 
   const shouldKeepCampaignVisibleForMetrics = (task) => {
@@ -186,7 +186,7 @@ export default function Tasks() {
     const submission = getTaskSubmission(taskId);
     const status = normalizeSubmissionStatus(submission?.status);
     if (!submission) return false;
-    return ['application_pending','application_approved','proof_pending','pending'].includes(status);
+    return ['application_pending', 'application_approved', 'proof_pending', 'pending'].includes(status);
   };
 
   const isTaskApproved = (taskId) => {
@@ -196,7 +196,7 @@ export default function Tasks() {
 
   const isTaskRejected = (taskId) => {
     const submission = getTaskSubmission(taskId);
-    return ['application_rejected','rejected'].includes(normalizeSubmissionStatus(submission?.status));
+    return ['application_rejected', 'rejected'].includes(normalizeSubmissionStatus(submission?.status));
   };
 
   const shouldShowExpiredStatus = (task, submission) => {
@@ -213,15 +213,70 @@ export default function Tasks() {
     return Date.now() <= proofDeadline.getTime();
   };
 
+  const getTaskSteps = (task, submission) => {
+    const steps = [];
+    steps.push({ label: "Candidatar-se", date: task.posting_deadline || null });
+    steps.push({ label: "Enviar link da tarefa", date: task.posting_deadline || task.expires_at || null });
+    if (task.category === 'campanha') {
+      const submissionStatus = normalizeSubmissionStatus(submission?.status);
+      let metricsDate = null;
+      let estimated = false;
+
+      if (submissionStatus === 'approved') {
+        const window = getProofApprovalMetricsWindow(submission?.validated_at || submission?.updated_at);
+        metricsDate = window?.end || null;
+      } else {
+        const baseDate = task.posting_deadline || task.expires_at || null;
+        if (baseDate) {
+          const window = getProofApprovalMetricsWindow(baseDate);
+          metricsDate = window?.end || null;
+          estimated = true;
+        }
+      }
+
+      steps.push({ label: "Enviar métricas", date: metricsDate, estimated });
+    }
+    return steps;
+  };
+
+  const getCompletedStepsCount = (task, submission, metricsSubmission) => {
+    const submissionStatus = normalizeSubmissionStatus(submission?.status);
+    const metricsStatus = String(metricsSubmission?.status || '').trim().toLowerCase();
+    let completed = 0;
+
+    if (submission) completed++;
+
+    if (['proof_pending', 'approved'].includes(submissionStatus)) completed++;
+    if (task.category === 'campanha' && metricsStatus === 'approved') completed++;
+
+    return completed;
+  };
+
+  const formatFollowersCount = (count) => {
+    const num = Number(count) || 0;
+    if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(num % 1_000_000 === 0 ? 0 : 1)}M`;
+    if (num >= 1_000) return `${(num / 1_000).toFixed(num % 1_000 === 0 ? 0 : 1)}K`;
+    return `${num}`;
+  };
+
   // ─── TaskCard ──────────────────────────────────────────────────────────────
-  const TaskCard = ({ task }) => {
-    const Icon = CATEGORY_ICONS[task.category] || Target;
-    const accent = CATEGORY_ACCENT[task.category] || C.lime;
-    const accentText = accent === C.lime || accent === C.cyan ? C.black : C.cream;
-    const isCampaignTask = task.category === 'campanha';
-    const isPaidTask = task.category === 'campanha' || Number(task.offered_value || 0) > 0;
+  const TaskCard = ({ task, index }) => {
+    const COLUMN_COLORS = [
+      { color: C.blue, bg: C.blue_back },
+      { color: C.orange, bg: C.orange_back },
+      { color: C.lime, bg: C.lime_back },
+    ];
+    const columnColor = COLUMN_COLORS[index % COLUMN_COLORS.length];
+    const accent = columnColor.color;
+    const accentBg = columnColor.bg;
     const submission = getTaskSubmission(task.id);
     const metricsSubmission = getTaskMetricsSubmission(task.id);
+    const steps = getTaskSteps(task, submission);
+    const completedSteps = getCompletedStepsCount(task, submission, metricsSubmission);
+    const Icon = CATEGORY_ICONS[task.category] || Target;
+    const accentText = accent === C.lime ? C.black : C.cream;
+    const isCampaignTask = task.category === 'campanha';
+    const isPaidTask = task.category === 'campanha' || Number(task.offered_value || 0) > 0;
     const metricsStatus = String(metricsSubmission?.status || '').trim().toLowerCase();
     const submissionStatus = normalizeSubmissionStatus(submission?.status);
     const claimed = isTaskClaimed(task.id);
@@ -300,60 +355,104 @@ export default function Tasks() {
           {/* Topo: emoji + destaque + pts */}
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <Icon size={20} color={accent} />
               {task.min_followers && (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, background: "rgba(255,255,216,0.06)", color: MUTED_COLOR, fontSize: 11 }}>
-                  <Users size={9} /> {task.min_followers}+ seguidores
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 999, background: "rgba(255,255,216,0.06)", color: MUTED_COLOR, fontSize: 12, fontWeight: 500 }}>
+                  <Users size={11} /> {formatFollowersCount(task.min_followers)}+ seguidores
                 </span>
               )}
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 999, background: "rgba(255,136,51,0.15)", color: C.orange, flexShrink: 0 }}>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 999, flexShrink: 0,
+              background: isPaidTask ? "rgba(255,136,51,0.15)" : C.lime_back,
+              color: isPaidTask ? C.orange : C.lime,
+            }}>
               {isPaidTask
                 ? <CircleDollarSign size={11} />
-                : <Star size={10} style={{ fill: C.orange }} />
+                : <Star size={10} style={{ fill: C.lime }} />
               }
               <span style={{ fontSize: 12, fontWeight: 700 }}>
                 {isPaidTask
                   ? `R$ ${Number(task.offered_value || 0).toLocaleString('pt-BR')}`
-                  : Number(task.points || 0).toLocaleString('pt-BR')}
+                  : `${Number(task.points || 0).toLocaleString('pt-BR')} pts`}
               </span>
             </div>
           </div>
 
+          {/* Formatos de conteúdo */}
+          {Array.isArray(task.content_formats) && task.content_formats.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {task.content_formats.map(fmt => (
+                <span key={fmt} style={{ padding: "2px 8px", borderRadius: 12, fontSize: 12, fontWeight: 600, background: accentBg, color: accent }}>
+                  {fmt}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Título + descrição */}
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 500, color: C.cream, letterSpacing: "-0.01em", lineHeight: 1.3, marginBottom: 6 }}>
+            <div style={{ fontSize: 15, fontWeight: 500, color: C.cream, letterSpacing: "-0.01em", lineHeight: 1.3, marginBottom: 6 }}>
               {task.title}
             </div>
-            <div style={{ fontSize: 11, color: "rgba(255,255,216,0.45)", lineHeight: 1.55, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+            <div style={{ fontSize: 12, color: "rgba(255,255,216,0.45)", lineHeight: 1.55, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
               {task.description}
             </div>
           </div>
 
-          {/* Meta: data + vagas */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            {task.expires_at && (
-              <span style={{
-                display: "inline-flex", alignItems: "center", gap: 4,
-                padding: "3px 8px", borderRadius: 6, fontSize: 11,
-                background: deadline.isCritical ? "rgba(255,34,85,0.12)" : deadline.isWarning ? "rgba(255,136,51,0.12)" : "rgba(255,255,216,0.06)",
-                color: deadline.isCritical ? "#FF2255" : deadline.isWarning ? C.orange : MUTED_COLOR,
-              }}>
-                <Calendar size={10} />
-                {format(new Date(task.expires_at), "dd/MM")}
-              </span>
-            )}
+          {/* Data limite + vagas */}
+          <div className="flex items-center gap-3">
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: MUTED_COLOR }}>
+              <Clock size={10} />
+              {format(new Date(task.posting_deadline || task.expires_at || task.delivery_deadline), "dd/MM/yyyy")}
+            </span>
             {task.max_participants && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "rgba(255,255,216,0.3)" }}>
-                <Users size={10} />
-                {task.current_participants || 0}/{task.max_participants}
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: MUTED_COLOR }}>
+                <Users size={10} /> {task.current_participants || 0}/{task.max_participants}
               </span>
             )}
           </div>
 
+          {/* Mini cronograma */}
+          {steps.length > 0 && (
+            <div style={{ paddingTop: 10, borderTop: `1px solid ${BORDER_COLOR}` }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ fontSize: 10, color: MUTED_COLOR, textTransform: "uppercase", letterSpacing: "0.1em" }}>Cronograma</span>
+                <span style={{ fontSize: 10, color: MUTED_COLOR }}>{completedSteps}/{steps.length} etapas</span>
+              </div>
+              <div style={{ height: 4, borderRadius: 999, background: "rgba(255,255,222,0.06)", marginBottom: 10, overflow: "hidden" }}>
+                <div style={{ height: "100%", borderRadius: 999, width: `${(completedSteps / steps.length) * 100}%`, background: accent, transition: "width 0.3s" }} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {steps.map((step, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{
+                      width: 16, height: 16, borderRadius: "50%", flexShrink: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: i < completedSteps ? accent : "rgba(255,255,222,0.07)",
+                      border: i === completedSteps ? `1px solid ${accent}` : "none",
+                    }}>
+                      {i < completedSteps
+                        ? <CheckCircle2 size={9} color={accentText} />
+                        : <span style={{ fontSize: 8, fontWeight: 800, color: i === completedSteps ? accent : MUTED_COLOR }}>{i + 1}</span>
+                      }
+                    </div>
+                    <span style={{ fontSize: 11, color: i < completedSteps ? `${C.cream}90` : MUTED_COLOR }}>
+                      {step.label}
+                      {step.date && (
+                        <span style={{ color: `${C.cream}30` }}>
+                          {" "}até {format(new Date(step.date), "dd/MM/yyyy 'às' HH:mm")}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Footer: status */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 10, borderTop: `1px solid ${BORDER_COLOR}` }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, background: "rgba(255,255,216,0.06)", color: MUTED_COLOR, fontSize: 11 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, background: accentBg, color: accent, fontSize: 11, fontWeight: 600 }}>
               <Icon size={9} /> {CATEGORY_NAMES[task.category] || task.category}
             </span>
             <StatusBadge />
@@ -382,13 +481,13 @@ export default function Tasks() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   const FILTER_TABS = [
-    { value: "todas",               label: "Todas" },
-    { value: "campanha",            label: "Campanhas" },
-    { value: "resposta_rapida",     label: "Respostas Rápidas" },
-    { value: "oficina",             label: "Oficinas" },
-    { value: "folhetim",            label: "Folhetins" },
-    { value: "compartilhar_ecoante",label: "Compartilhar" },
-    { value: "sidequest_teste",     label: "Sidequest" },
+    { value: "todas", label: "Todas" },
+    { value: "campanha", label: "Campanhas" },
+    { value: "resposta_rapida", label: "Respostas Rápidas" },
+    { value: "oficina", label: "Oficinas" },
+    { value: "folhetim", label: "Folhetins" },
+    { value: "compartilhar_ecoante", label: "Compartilhar" },
+    { value: "sidequest_teste", label: "Missões" },
   ];
 
   return (
@@ -421,7 +520,7 @@ export default function Tasks() {
           </h1>
           <p style={{ fontSize: 14, color: `${C.cream}50`, marginTop: 6 }} className="flex items-center gap-2">
             Escolha uma tarefa e ganhe pontos!
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ backgroundColor: `${C.lime}18`, color: C.lime }}>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ backgroundColor: `${C.lime_back}`, color: C.lime }}>
               +{filteredTasks.reduce((a, t) => a + (Number(t.points) || 0), 0)} pts disponíveis
             </span>
           </p>
@@ -460,8 +559,8 @@ export default function Tasks() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredTasks.map((task) => (
-              <TaskCard key={task.id} task={task} />
+            {filteredTasks.map((task, index) => (
+              <TaskCard key={task.id} task={task} index={index} />
             ))}
           </div>
         )}
@@ -475,6 +574,7 @@ export default function Tasks() {
           isTaskClaimed={isTaskClaimed(selectedTask.id)}
           isTaskApproved={isTaskApproved(selectedTask.id)}
           currentSubmission={getTaskSubmission(selectedTask.id)}
+          cardIndex={filteredTasks.findIndex(t => t.id === selectedTask.id)}
         />
       )}
     </div>

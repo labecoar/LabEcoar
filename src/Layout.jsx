@@ -2,15 +2,17 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Home, Target, CheckCircle2, Trophy, LogOut, Shield, User, Users, MessageSquare, Gift, DollarSign, BarChart3, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Target, FileCheck, Trophy, LogOut, Shield, User, Users, MessageSquare, Gift, CreditCard, DollarSign, BarChart3, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUserScore } from "@/hooks/useScores";
+import { useUserScore, useGroupProgress } from "@/hooks/useScores";
 import logoCuica from "@/assets/images/cuica_lab.png";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { C, heading, body } from '@/lib/theme'
 import { useQuery } from "@tanstack/react-query";
 import { adminUsersService } from "@/services/admin-users.service";
 import { useAdminTasks } from "@/hooks/useTasks";
+import { getGroupCategory } from "@/components/dashboard/GroupProgress";
+import { getCurrentQuarterKey } from "@/services/scores.service";
 
 import {
   Sidebar,
@@ -36,7 +38,7 @@ const navigationItems = [
   {
     title: "Dashboard",
     url: createPageUrl("Dashboard"),
-    icon: Home,
+    icon: LayoutDashboard,
   },
   {
     title: "Tarefas Disponíveis",
@@ -46,7 +48,7 @@ const navigationItems = [
   {
     title: "Minhas Submissões",
     url: createPageUrl("MySubmissions"),
-    icon: CheckCircle2,
+    icon: FileCheck,
   },
   {
     title: "Fórum",
@@ -61,7 +63,7 @@ const navigationItems = [
   {
     title: "Meus Pagamentos",
     url: createPageUrl("MyPayments"),
-    icon: DollarSign,
+    icon: CreditCard,
   },
   {
     title: "Perfil",
@@ -124,20 +126,6 @@ const adminNavigationItems = [
   },
 ];
 
-const CATEGORY_INFO = {
-  voz_e_violao: { name: "Voz e Violão", color: "bg-yellow-500", range: "50-200 pts", value: "R$ 1.000" },
-  dueto: { name: "Dueto", color: "bg-pink-500", range: "201-500 pts", value: "R$ 2.000" },
-  fanfarra: { name: "Fanfarra", color: "bg-blue-500", range: "501-1000 pts", value: "R$ 3.500" },
-  carnaval: { name: "Carnaval", color: "bg-orange-500", range: "999+ pts", value: "R$ 4.500" }
-};
-
-const getCategoryByPoints = (points = 0) => {
-  if (points >= 1001) return 'carnaval';
-  if (points >= 501) return 'fanfarra';
-  if (points >= 201) return 'dueto';
-  return 'voz_e_violao';
-};
-
 function NavigationMenu({ items, isNavItemActive }) {
   const { isMobile, setOpenMobile } = useSidebar();
 
@@ -150,7 +138,7 @@ function NavigationMenu({ items, isNavItemActive }) {
   return (
     <SidebarMenu>
       {items.map((item) => (
-        <SidebarMenuItem key={item.title}>
+        <SidebarMenuItem key={item.title} className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
           <SidebarMenuButton
             asChild
             className={`hover:bg-[#096e4c10] transition-all duration-200 rounded-xl mb-1 ${isNavItemActive(item.url) ? 'text-black shadow-md' : 'text-white'
@@ -161,11 +149,12 @@ function NavigationMenu({ items, isNavItemActive }) {
           >
             <Link
               to={item.url}
-              className="flex items-center gap-3 px-4 py-2.5"
+              className="flex items-center gap-3 px-4 py-2.5 w-full group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
               onClick={handleNavigationClick}
             >
               <item.icon className="w-4 h-4" />
               <span
+                className="group-data-[collapsible=icon]:hidden"
                 style={{
                   fontSize: 13,
                   fontWeight: isNavItemActive(item.url) ? 700 : 400,
@@ -200,6 +189,31 @@ export default function Layout({ children, currentPageName }) {
   const visibleNavigationItems = isAdmin ? adminNavigationItems : navigationItems;
   const landingPageUrl = currentPageName ? createPageUrl(currentPageName) : null;
 
+  // Controla a sidebar no desktop: fechada (só ícones) por padrão, expande no hover.
+  // No mobile o comportamento continua sendo o padrão do Sheet (openMobile / setOpenMobile).
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const closeTimeoutRef = React.useRef(null);
+
+  const handleSidebarMouseEnter = () => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+    setSidebarOpen(true);
+  };
+
+  const handleSidebarMouseLeave = () => {
+    closeTimeoutRef.current = setTimeout(() => {
+      setSidebarOpen(false);
+    }, 400); // tempo (ms) parado fora da sidebar antes de minimizar
+  };
+
+  React.useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    };
+  }, []);
+
   // Chamadas de hooks devem ficar obrigatoriamente dentro do componente
   const { data: users } = useQuery({
     queryKey: ['admin-users'],
@@ -207,6 +221,14 @@ export default function Layout({ children, currentPageName }) {
     enabled: !!isAdmin // Evita buscar a lista de usuários para não-admins
   });
   const { data: tasks } = useAdminTasks();
+
+  // Progresso do GRUPO (substitui a categoria individual na sidebar)
+  const currentQuarter = getCurrentQuarterKey();
+  const { data: groupProgress } = useGroupProgress(currentQuarter);
+  const collectivePoints = groupProgress?.collective_points || 0;
+  const activeEcoantes = groupProgress?.active_ecoantes || 0;
+  const groupProgressPct = Math.round(groupProgress?.progress_percentage || 0);
+  const groupCategory = getGroupCategory(collectivePoints, activeEcoantes || 1);
 
   const activeUsers = users?.filter(u => u.is_active !== false).length ?? 0;
   const activeTasks = tasks?.filter(t => t.status === 'active' && !isTaskExpired(t)).length ?? 0;
@@ -222,12 +244,7 @@ export default function Layout({ children, currentPageName }) {
     window.location.href = '/Login';
   };
 
-  const hasScoreLoaded = typeof userScore?.total_points === 'number';
   const currentPoints = Number(userScore?.total_points || 0);
-  const categoryKey = hasScoreLoaded
-    ? getCategoryByPoints(currentPoints)
-    : (profile?.current_category || 'voz_e_violao');
-  const categoryInfo = CATEGORY_INFO[categoryKey] || CATEGORY_INFO.voz_e_violao;
   const displayUserName = isAdmin
     ? 'Administrador'
     : (user?.display_name && user.display_name.trim() !== ''
@@ -237,7 +254,7 @@ export default function Layout({ children, currentPageName }) {
         : 'Ecoante');
 
   return (
-    <SidebarProvider>
+    <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
       <MobileSidebarAutoCloseOnRouteChange pathname={location.pathname} />
       <style>{`
         :root {
@@ -285,23 +302,26 @@ export default function Layout({ children, currentPageName }) {
 
       <div className="min-h-screen flex w-full bg-background text-foreground">
         <Sidebar
+          collapsible="icon"
           className="border-r flex flex-col"
-          // style={{
           style={{
-            backgroundColor: C.blue
+            backgroundColor: C.blue,
+            "--sidebar-width-icon": "4rem"
           }}
+          onMouseEnter={handleSidebarMouseEnter}
+          onMouseLeave={handleSidebarMouseLeave}
         >
           <SidebarHeader className="border-a p-6" >
             <img
               src={logoCuica}
               style={{ height: 38, width: 172, justifyContent: "center", alignSelf: "center" }}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover group-data-[collapsible=icon]:hidden"
             />
           </SidebarHeader>
 
           <SidebarContent className="flex flex-col h-full">
 
-            <div className="flex-1 overflow-y-auto p-3">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 group-data-[collapsible=icon]:px-1">
               <SidebarGroup>
                 <SidebarGroupContent>
                   <NavigationMenu
@@ -314,7 +334,7 @@ export default function Layout({ children, currentPageName }) {
             <div className="p-3 pt-0 shrink-0">
 
               {isAdmin && (
-                <SidebarGroup>
+                <SidebarGroup className="group-data-[collapsible=icon]:hidden">
                   <div
                     className="p-4 rounded-2xl border"
                     style={{
@@ -364,7 +384,7 @@ export default function Layout({ children, currentPageName }) {
               )}
 
               {!isAdmin && (
-                <SidebarGroup>
+                <SidebarGroup className="group-data-[collapsible=icon]:hidden">
                   <div
                     className="p-4 rounded-2xl border"
                     style={{
@@ -373,7 +393,7 @@ export default function Layout({ children, currentPageName }) {
                     }}
                   >
                     <p className="text-xs text-white/50 uppercase mb-3">
-                      Categoria Atual
+                      Nível do Grupo
                     </p>
 
                     <div
@@ -386,26 +406,31 @@ export default function Layout({ children, currentPageName }) {
                         fontWeight: 700,
                       }}
                     >
-                      <Trophy size={16} />
-                      {categoryInfo.name}
+                      {groupCategory?.icon && <groupCategory.icon size={16} />}
+                      {groupCategory?.name}
                     </div>
 
-                    <p className="text-white/50 mt-1" style={{ fontFamily: body.fontFamily, fontSize: 11, fontWeight: 400 }}>
-                      Agência CuícaLab
-                    </p>
-
-                    <div className="mt-1 space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-white/60">Pontos</span>
+                    <div className="mt-4 space-y-1">
+                      <div className="flex justify-between items-center">
+                        <span className="text-white/60">Progresso grupal</span>
                         <span className="text-lime-300 font-bold">
-                          {currentPoints}
+                          {groupProgressPct}%
                         </span>
+                      </div>
+                      <div className="h-1.5 rounded-full w-full overflow-hidden mt-2 mb-3" style={{ backgroundColor: "rgba(255,255,255,0.1)" }}>
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${Math.min(100, groupProgressPct)}%`,
+                            background: `linear-gradient(90deg, ${C.blue} 0%, ${C.lime} 100%)`,
+                          }}
+                        />
                       </div>
 
                       <div className="flex justify-between">
-                        <span className="text-white/60">Ganho Previsto</span>
+                        <span className="text-white/60">Seus pontos</span>
                         <span className="font-bold text-white">
-                          {categoryInfo.value}
+                          {currentPoints}
                         </span>
                       </div>
                     </div>
@@ -415,19 +440,19 @@ export default function Layout({ children, currentPageName }) {
             </div>
           </SidebarContent>
 
-          <SidebarFooter className="border-t p-4" style={{ borderColor: '#096e4c20' }}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 flex-1 min-w-0">
+          <SidebarFooter className="border-t p-4 group-data-[collapsible=icon]:p-2" style={{ borderColor: '#096e4c20' }}>
+            <div className="flex items-center justify-between group-data-[collapsible=icon]:justify-center">
+              <div className="flex items-center gap-3 flex-1 min-w-0 group-data-[collapsible=icon]:flex-none">
                 {user?.avatar_url ? (
                   <img
                     src={user.avatar_url}
                     alt={user.full_name}
-                    className="w-10 h-10 rounded-full object-cover border-2"
+                    className="w-10 h-10 rounded-full object-cover border-2 shrink-0"
                     style={{ borderColor: '#096e4c' }}
                   />
                 ) : (
                   <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center"
+                    className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
                     style={{
                       backgroundColor: C.orange,
                       color: C.cream
@@ -438,14 +463,14 @@ export default function Layout({ children, currentPageName }) {
                     </span>
                   </div>
                 )}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
                   <p className="font-medium text-sm truncate text-white">{displayUserName}</p>
-                  <p className="text-xs truncate text-white/50" >{user?.instagram_handle || user?.email}</p>
+                  <p className="text-xs truncate text-white/50">{user?.instagram_handle || user?.email}</p>
                 </div>
               </div>
               <button
                 onClick={handleLogout}
-                className="p-2 rounded-lg transition-colors duration-200 hover:bg-[#ce161c10]"
+                className="p-2 rounded-lg transition-colors duration-200 hover:bg-[#ce161c10] shrink-0 group-data-[collapsible=icon]:hidden"
                 title="Sair"
               >
                 <LogOut className="w-4 h-4 text-white" />

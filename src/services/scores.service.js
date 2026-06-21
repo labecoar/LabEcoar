@@ -32,6 +32,8 @@ const toScoreModel = (userId, quarterKey, points = 0, tasks = 0) => ({
   tasks_completed: Number(tasks || 0),
 })
 
+export const MAX_JOURNEY_POINTS = 1500
+
 /**
  * Serviço de Pontuação
  */
@@ -187,6 +189,83 @@ export const scoresService = {
   },
 
   /**
+   * Ecoantes ativos = perfis ativos (is_active !== false), excluindo admins.
+   * Usa RPC no Supabase para contornar RLS (usuário comum só vê o próprio perfil).
+   */
+  async countActiveEcoantes() {
+    const { data, error } = await supabase.rpc('get_active_ecoantes_count')
+
+    if (!error && data !== null && data !== undefined) {
+      return Number(data)
+    }
+
+    console.warn(
+      '[scores] RPC get_active_ecoantes_count indisponível — aplique migrations/add_active_ecoantes_count_rpc.sql no Supabase.',
+      error?.message
+    )
+
+    const { count, error: countError } = await supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .neq('is_active', false)
+      .neq('role', 'admin')
+      .is('deleted_at', null)
+
+    if (countError) throw countError
+    return Number(count || 0)
+  },
+
+  /**
+   * Progresso grupal do trimestre: ecoantes ativos e pontos coletivos
+   */
+  async getGroupProgress(quarterKey = getCurrentQuarterKey()) {
+    const { data, error } = await supabase.rpc('get_group_progress_stats', {
+      p_quarter_key: quarterKey,
+    })
+
+    if (!error && data) {
+      return {
+        quarter_key: data.quarter_key ?? quarterKey,
+        active_ecoantes: Number(data.active_ecoantes ?? 0),
+        active_in_quarter: Number(data.active_in_quarter ?? 0),
+        collective_points: Number(data.collective_points ?? 0),
+        target_points: Number(data.target_points ?? 0),
+        progress_percentage: Number(data.progress_percentage ?? 0),
+      }
+    }
+
+    console.warn(
+      '[scores] RPC get_group_progress_stats indisponível — aplique migrations/add_active_ecoantes_count_rpc.sql no Supabase.',
+      error?.message
+    )
+
+    const [quarterEntries, activeEcoantes] = await Promise.all([
+      this.getLeaderboard(1000, quarterKey),
+      this.countActiveEcoantes(),
+    ])
+
+    const collectivePoints = quarterEntries.reduce(
+      (sum, entry) => sum + Number(entry.total_points || 0),
+      0
+    )
+    const activeInQuarter = quarterEntries.length
+
+    const targetPoints = activeEcoantes * MAX_JOURNEY_POINTS
+    const progressPercentage = targetPoints > 0
+      ? Math.min((collectivePoints / targetPoints) * 100, 100)
+      : 0
+
+    return {
+      quarter_key: quarterKey,
+      active_ecoantes: activeEcoantes,
+      active_in_quarter: activeInQuarter,
+      collective_points: collectivePoints,
+      target_points: targetPoints,
+      progress_percentage: progressPercentage,
+    }
+  },
+
+  /**
    * Lista trimestres disponíveis para seleção (do mais recente ao mais antigo)
    */
   getRecentQuarterKeys(count = 8) {
@@ -206,4 +285,5 @@ export const scoresService = {
 
     return result
   }
+
 }

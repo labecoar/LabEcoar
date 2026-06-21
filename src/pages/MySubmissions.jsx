@@ -26,7 +26,7 @@ const CATEGORY_NAMES = {
   oficina: 'Oficina',
   folhetim: 'Folhetim',
   compartilhar_ecoante: 'Compartilhar Ecoante',
-  sidequest_teste: 'Sidequest',
+  sidequest_teste: 'Missão',
 };
 
 const CATEGORY_COLORS = {

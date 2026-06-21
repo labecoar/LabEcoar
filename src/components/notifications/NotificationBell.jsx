@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { Bell, CheckCheck, X } from 'lucide-react';
 import NotificationItem from '@/components/notifications/NotificationItem';
 import { useTaskNotifications } from '@/hooks/useTaskNotifications';
+import { C } from '@/lib/theme';
 
 export default function NotificationBell() {
   const navigate = useNavigate()
@@ -54,14 +55,12 @@ export default function NotificationBell() {
 
   const handleNotificationClick = (notification) => {
     markAsRead(notification.id)
-    
-    // Navegar para a página de tarefas disponíveis
+
     navigate('/Tasks')
-    
+
     setIsOpen(false)
   }
 
-  // ← separar o overlay em variável para usar no portal
   const overlay = isOpen ? (
     <>
       <div onClick={() => setIsOpen(false)} className="fixed inset-0 z-40" />
@@ -79,15 +78,18 @@ export default function NotificationBell() {
       >
         <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10 bg-black">
           <div>
-            <p className="text-sm font-semibold text-white">Notificações</p>
-            <p className="text-xs text-white/60">Tarefas disponíveis e prazos próximos</p>
+            <p className="text-sm font-extrabold text-white font-size-16">Notificações</p>
+            <p className="text-xs text-white/60">
+              {unreadCount > 0 ? `${unreadCount} não lidas` : 'Tudo em dia por aqui'}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={markAllAsRead}
-              className="inline-flex items-center gap-1 text-xs font-medium text-emerald-500 hover:text-emerald-400"
+              className="inline-flex items-center gap-1 text-xs font-medium hover:text-emerald-400"
               title="Marcar todas como lidas"
+              style={{ color: C.lime }}
             >
               <CheckCheck className="w-4 h-4" />
               Ler todas
@@ -141,7 +143,6 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {/* ← Portal renderiza direto no body, fora de qualquer stacking context */}
       {createPortal(overlay, document.body)}
     </div>
   )

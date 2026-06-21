@@ -2,6 +2,7 @@ import React from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CheckCircle2, XCircle, AlertCircle, Info, Bell, Clock3, CalendarClock } from "lucide-react";
+import { C } from "@/lib/theme";
 
 const NOTIFICATION_ICONS = {
   task_available: Bell,
@@ -16,15 +17,15 @@ const NOTIFICATION_ICONS = {
 };
 
 const NOTIFICATION_COLORS = {
-  task_available: { bg: '#096e4c12', color: '#096e4c', border: '#096e4c30' },
-  task_due_soon: { bg: '#ffb10012', color: '#c77d00', border: '#ffb10030' },
-  task_metrics_due_soon: { bg: '#0077ad12', color: '#0077ad', border: '#0077ad30' },
-  candidatura_aprovada: { bg: '#00c33110', color: '#00c331', border: '#00c33130' },
-  candidatura_rejeitada: { bg: '#ce161c10', color: '#ce161c', border: '#ce161c30' },
-  submissao_aprovada: { bg: '#00c33110', color: '#00c331', border: '#00c33130' },
-  submissao_rejeitada: { bg: '#ce161c10', color: '#ce161c', border: '#ce161c30' },
-  tarefa_expirando: { bg: '#ff6a2d10', color: '#ff6a2d', border: '#ff6a2d30' },
-  info: { bg: '#0077ad10', color: '#0077ad', border: '#0077ad30' }
+  task_available: { color: C.lime, bg: C.lime_back },
+  task_due_soon: { color: C.orange, bg: C.orange_back },
+  task_metrics_due_soon: { color: C.orange, bg: C.orange_back },
+  candidatura_aprovada: { color: C.lime, bg: C.lime_back },
+  candidatura_rejeitada: { color: C.red, bg: C.red_back },
+  submissao_aprovada: { color: C.lime, bg: C.lime_back },
+  submissao_rejeitada: { color: C.red, bg: C.red_back },
+  tarefa_expirando: { color: C.orange, bg: C.orange_back },
+  info: { color: C.lime, bg: C.lime_back }
 };
 
 export default function NotificationItem({ notification, onMarkAsRead }) {
@@ -40,7 +41,7 @@ export default function NotificationItem({ notification, onMarkAsRead }) {
       <div className="flex items-start gap-3">
         <div
           className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-          style={{ background: colors.bg }}
+          style={{ backgroundColor: colors.bg }}
         >
           <Icon className="w-5 h-5" style={{ color: colors.color }} />
         </div>
@@ -57,7 +58,7 @@ export default function NotificationItem({ notification, onMarkAsRead }) {
             {notification.message}
           </p>
           {notification.related_task_title && (
-            <p className="text-xs mb-2" style={{ color: '#096e4c' }}>
+            <p className="text-xs mb-2" style={{ color: colors.color }}>
               📋 {notification.related_task_title}
             </p>
           )}
