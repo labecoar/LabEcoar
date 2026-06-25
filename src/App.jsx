@@ -3,7 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -18,8 +18,19 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
 
+const PasswordRecoveryRedirect = () => {
+  const { loading, isPasswordRecovery } = useAuth()
+  const location = useLocation()
+
+  if (loading || !isPasswordRecovery || location.pathname === '/ResetPassword') {
+    return null
+  }
+
+  return <Navigate to="/ResetPassword" replace />
+}
+
 const AuthenticatedApp = () => {
-  const { loading, isAuthenticated, isAdmin } = useAuth();
+  const { loading, isAdmin } = useAuth();
   const landingPageKey = isAdmin ? 'AdminContentManagement' : mainPageKey;
   const LandingPage = landingPageKey ? Pages[landingPageKey] : null;
 
@@ -34,7 +45,9 @@ const AuthenticatedApp = () => {
 
   // Render the main app
   return (
-    <Routes>
+    <>
+      <PasswordRecoveryRedirect />
+      <Routes>
       <Route path="/Login" element={<Pages.Login />} />
       <Route path="/ResetPassword" element={<ResetPassword />} />
       <Route
@@ -70,6 +83,7 @@ const AuthenticatedApp = () => {
       })}
       <Route path="*" element={<PageNotFound />} />
     </Routes>
+    </>
   );
 };
 

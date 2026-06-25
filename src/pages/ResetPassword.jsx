@@ -3,10 +3,18 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Lock } from 'lucide-react'
 import logoCuica from '@/assets/images/logo_cuica.png'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/contexts/AuthContext'
+
+const isRecoveryHash = () => {
+  const hash = window.location.hash?.substring(1) || ''
+  if (!hash) return false
+  return new URLSearchParams(hash).get('type') === 'recovery'
+}
 
 export default function ResetPassword() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { isPasswordRecovery, clearPasswordRecovery } = useAuth()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
@@ -36,14 +44,38 @@ export default function ResetPassword() {
 
   // Aguarda o Supabase confirmar a sessão de recovery
   useEffect(() => {
+    if (isPasswordRecovery || isRecoveryHash()) {
+      setSessionReady(true)
+      setError('')
+      return undefined
+    }
+
+    let cancelled = false
+
+    const verifyRecoverySession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (cancelled) return
+
+      if (session?.user && isRecoveryHash()) {
+        setSessionReady(true)
+        setError('')
+      }
+    }
+
+    verifyRecoverySession()
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setSessionReady(true)
         setError('')
       }
     })
-    return () => subscription.unsubscribe()
-  }, [])
+
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
+    }
+  }, [isPasswordRecovery])
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -67,6 +99,7 @@ export default function ResetPassword() {
       if (updateError) throw updateError
 
       setInfo('Senha atualizada com sucesso. Redirecionando para o login...')
+      clearPasswordRecovery()
       await supabase.auth.signOut()
 
       setTimeout(() => {

@@ -3,17 +3,42 @@ import { supabase } from '@/lib/supabase'
 import { authService } from '@/services/auth.service'
 import { isProfileComplete as checkProfileComplete } from '@/lib/profile-utils'
 
+const PASSWORD_RECOVERY_KEY = 'labecoar_password_recovery'
+
+const isRecoveryHash = () => {
+  const hash = window.location.hash?.substring(1) || ''
+  if (!hash) return false
+  return new URLSearchParams(hash).get('type') === 'recovery'
+}
+
+const isPasswordRecoveryPending = () => {
+  if (typeof window === 'undefined') return false
+  return sessionStorage.getItem(PASSWORD_RECOVERY_KEY) === '1'
+}
+
+const markPasswordRecoveryPending = () => {
+  if (typeof window === 'undefined') return
+  sessionStorage.setItem(PASSWORD_RECOVERY_KEY, '1')
+}
+
+const clearPasswordRecoveryPending = () => {
+  if (typeof window === 'undefined') return
+  sessionStorage.removeItem(PASSWORD_RECOVERY_KEY)
+}
+
 const AuthContext = createContext({
   user: null,
   profile: null,
   loading: true,
   isAuthenticated: false,
+  isPasswordRecovery: false,
   isAdmin: false,
   isProfileComplete: false,
   signIn: async (_email, _password) => null,
   signInWithGoogle: async () => null,
   signUp: async (_email, _password, _userData) => null,
   resetPassword: async (_email) => null,
+  clearPasswordRecovery: () => {},
   signOut: async () => null,
   updateProfile: async (_updates) => null,
   refreshProfile: async () => null,
@@ -32,6 +57,9 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(
+    () => isRecoveryHash() || isPasswordRecoveryPending()
+  )
 
   // Buscar perfil do usuário no banco
   const fetchProfileFromDb = async (userId) => {
@@ -81,11 +109,17 @@ export function AuthProvider({ children }) {
     // Verificar sessão existente
     const initializeAuth = async () => {
       try {
+        const recoveryFlow = isRecoveryHash() || isPasswordRecoveryPending()
+        if (recoveryFlow) {
+          markPasswordRecoveryPending()
+          setIsPasswordRecovery(true)
+        }
+
         const { data: { session } } = await supabase.auth.getSession()
         setUser(session?.user ?? null)
         setIsAuthenticated(!!session?.user)
 
-        if (session?.user) {
+        if (session?.user && !recoveryFlow) {
           await loadUserProfile(session.user)
         }
       } catch (err) {
@@ -100,11 +134,25 @@ export function AuthProvider({ children }) {
     // Escutar mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        const recoveryFlow = event === 'PASSWORD_RECOVERY' || isRecoveryHash() || isPasswordRecoveryPending()
+
+        if (recoveryFlow) {
+          markPasswordRecoveryPending()
+          setIsPasswordRecovery(true)
+        }
+
         setUser(session?.user ?? null)
         setIsAuthenticated(!!session?.user)
 
         if (!session?.user) {
           setProfile(null)
+          setIsPasswordRecovery(false)
+          clearPasswordRecoveryPending()
+          return
+        }
+
+        // Durante recuperação de senha, não carrega perfil nem bloqueia a UI.
+        if (recoveryFlow) {
           return
         }
 
@@ -197,11 +245,17 @@ export function AuthProvider({ children }) {
   const isAccountActive = profile?.is_active !== false
   const isProfileComplete = checkProfileComplete(profile)
 
+  const clearPasswordRecovery = () => {
+    setIsPasswordRecovery(false)
+    clearPasswordRecoveryPending()
+  }
+
   const value = {
     user,
     profile,
     loading,
     isAuthenticated,
+    isPasswordRecovery,
     isAdmin,
     isAccountActive,
     isProfileComplete,
@@ -209,6 +263,7 @@ export function AuthProvider({ children }) {
     signInWithGoogle,
     signUp,
     resetPassword,
+    clearPasswordRecovery,
     signOut,
     updateProfile,
     refreshProfile: () => (user ? loadUserProfile(user) : null),
