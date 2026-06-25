@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { Instagram, Lock, Mail, Users } from 'lucide-react'
+import { Eye, EyeOff, Instagram, Lock, Mail, Users } from 'lucide-react'
 import cuicaLogin from '@/assets/images/cuica_login.png'
 import iconGoogle from '@/assets/images/icon_google.png'
 import imageLogin from '@/assets/images/image_login.png'
