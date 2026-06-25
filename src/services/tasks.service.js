@@ -136,7 +136,16 @@ export const tasksService = {
         .select()
         .single()
 
-      if (!error) return data
+      if (!error) {
+        if (data?.category === 'campanha') {
+          supabase.functions.invoke('send-new-campaign-email', {
+            body: { record: data },
+          }).catch((invokeError) => {
+            console.error('Erro ao enfileirar e-mails da nova campanha:', invokeError)
+          })
+        }
+        return data
+      }
 
       const message = String(error.message || '')
 
