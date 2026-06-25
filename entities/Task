@@ -41,7 +41,7 @@
     },
     "points": {
       "type": "number",
-      "description": "Pontos que a tarefa vale (para oficinas, folhetim e sidequests)"
+      "description": "Pontos que a tarefa vale (para oficinas, folhetim e missões)"
     },
     "payment_value": {
       "type": "number",

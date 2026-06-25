@@ -338,13 +338,13 @@ export const FAQ_SECTIONS = [
   },
   {
     id: "missoes",
-    title: "Missões e side quests",
+    title: "Missões",
     colorKey: "purple",
     items: [
       {
-        question: "O que são side quests?",
+        question: "O que são missões?",
         paragraphs: [
-          "As side quests são missões extras e atividades complementares que ajudam os participantes a acumularem pontos e se envolverem mais com a comunidade.",
+          "As missões são atividades complementares que ajudam os participantes a acumularem pontos e se envolverem mais com a comunidade.",
           "Essas ações podem incluir participação em oficinas, criação de conteúdos originais, compartilhamento de publicações, participação em debates, interações com outros Ecoantes e outras iniciativas ligadas à mobilização socioambiental. Fique sempre de olho no submenu \"missões\" na área Tarefas Disponíveis para conferir as novidades.",
         ],
       },

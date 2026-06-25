@@ -44,7 +44,7 @@ const CATEGORY_OPTIONS = [
   { value: 'oficina', label: 'Oficina (50 pts)', points: 50 },
   { value: 'folhetim', label: 'Folhetim (75 pts)', points: 75 },
   { value: 'compartilhar_ecoante', label: 'Compartilhar Ecoante (150 pts)', points: 150 },
-  { value: 'sidequest_teste', label: 'Sidequest' },
+  { value: 'sidequest_teste', label: 'Missão' },
 ]
 
 const CATEGORY_META = {
@@ -52,7 +52,7 @@ const CATEGORY_META = {
   oficina: { label: 'Oficina', icon: BookOpen, color: 'bg-purple-100 text-purple-700 border-purple-200' },
   folhetim: { label: 'Folhetim', icon: Share2, color: 'bg-blue-100 text-blue-700 border-blue-200' },
   compartilhar_ecoante: { label: 'Compartilhar Ecoante', icon: Users, color: 'bg-pink-100 text-pink-700 border-pink-200' },
-  sidequest_teste: { label: 'Sidequest', icon: Target, color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  sidequest_teste: { label: 'Missão', icon: Target, color: 'bg-amber-100 text-amber-700 border-amber-200' },
 }
 
 const PROOF_TYPE_LABELS = {
@@ -394,7 +394,7 @@ export default function AdminContentManagement() {
     }
 
     if (isSidequestTest && (Number.isNaN(points) || points <= 0)) {
-      setError('Informe uma pontuação válida para a Sidequest.')
+      setError('Informe uma pontuação válida para a Missão.')
       return
     }
 
@@ -724,10 +724,10 @@ export default function AdminContentManagement() {
                     </div>
                   </div>
 
-                  {/* Sidequest points */}
+                  {/* Missão points */}
                   {isSidequestTest && (
                     <div className="rounded-xl p-4" style={{ border: `1px solid rgba(245,158,11,0.3)`, backgroundColor: 'rgba(245,158,11,0.06)' }}>
-                      <label style={{ ...labelStyle, color: '#f59e0b' }}>PONTUAÇÃO DA SIDEQUEST <span style={{ color: C.orange }}>*</span></label>
+                      <label style={{ ...labelStyle, color: '#f59e0b' }}>PONTUAÇÃO DA MISSÃO <span style={{ color: C.orange }}>*</span></label>
                       <input
                         className={aInputCls}
                         style={aInputStyle}
@@ -737,7 +737,7 @@ export default function AdminContentManagement() {
                         onChange={(e) => setFormData((prev) => ({ ...prev, points: e.target.value }))}
                         placeholder="Ex: 120"
                       />
-                      <p style={{ fontSize: 11, color: '#f59e0b', marginTop: 5 }}>Defina manualmente quantos pontos essa sidequest vale.</p>
+                      <p style={{ fontSize: 11, color: '#f59e0b', marginTop: 5 }}>Defina manualmente quantos pontos essa missão vale.</p>
                     </div>
                   )}
 

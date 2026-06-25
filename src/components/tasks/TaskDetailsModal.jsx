@@ -747,7 +747,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                         ? 'Candidatar-se para esta Vaga'
                         : canSubmitProof
                           ? isSidequestTask && submissionStatus === 'application_pending'
-                            ? 'Avançar para prova da Sidequest'
+                            ? 'Avançar para prova da Missão'
                             : submissionStatus === 'rejected'
                               ? 'Prova rejeitada - reenviar'
                               : 'Inscrição aprovada - ir para prova'
