@@ -23,6 +23,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
 import { C, heading, body } from '@/lib/theme';
@@ -110,7 +111,7 @@ export default function Rewards() {
     }
 
     try {
-      await claimRewardMutation.mutateAsync({ 
+      await claimRewardMutation.mutateAsync({
         rewardId: String(selectedReward.id).trim(),
         address: address
       });
@@ -211,9 +212,9 @@ export default function Rewards() {
                     </div>
                   </div>
                   <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{
-                      backgroundColor: claim.status === "entregue" ? `${C.lime}1A` : claim.status === "processando" ? "rgba(68,102,255,0.12)" : `${C.orange}1A`,
-                      color: claim.status === "entregue" ? C.lime : claim.status === "processando" ? "#8899FF" : C.orange
-                    }}>
+                    backgroundColor: claim.status === "entregue" ? `${C.lime}1A` : claim.status === "processando" ? "rgba(68,102,255,0.12)" : `${C.orange}1A`,
+                    color: claim.status === "entregue" ? C.lime : claim.status === "processando" ? "#8899FF" : C.orange
+                  }}>
                     {claim.status === "entregue" ? "Entregue" : claim.status === "processando" ? "Processando" : "Pendente"}
                   </span>
                 </div>
@@ -243,7 +244,7 @@ export default function Rewards() {
             return (
               <div key={reward.id} className="flex flex-col rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:brightness-110 cursor-pointer" onClick={() => setSelectedReward(reward)} style={{ backgroundColor: C.card, border: `1px solid ${canClaim ? `${C.lime}18` : "rgba(255,255,222,0.06)"}`, opacity: canClaim ? 1 : 0.7 }}>
                 <div className="h-1 w-full" style={{ backgroundColor: canClaim ? C.lime : "rgba(255,255,222,0.1)" }} />
-                
+
                 {reward.image_url && (
                   <div className="h-40 w-full bg-black/40 overflow-hidden">
                     <img
@@ -293,172 +294,182 @@ export default function Rewards() {
         {/* Modal de Detalhes da Recompensa */}
         {selectedReward && (
           <Dialog open={!!selectedReward && !showAddressModal} onOpenChange={() => setSelectedReward(null)}>
-            <DialogContent className="sm:max-w-xl p-0 border-0 bg-transparent overflow-hidden shadow-none">
-            <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.1)` }}>
-              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
-                <span style={{ ...heading, fontSize: 18, fontWeight: 700, color: C.cream }}>{selectedReward?.title}</span>
-                <button onClick={() => setSelectedReward(null)} style={{ color: `${C.cream}50` }} className="hover:opacity-100 transition-opacity"><XCircle size={18} /></button>
-              </div>
-              
-              <div className="p-6 flex flex-col gap-5 max-h-[70vh] overflow-y-auto">
-                {selectedReward?.image_url && (
-                  <img src={selectedReward.image_url} alt={selectedReward.title} className="w-full h-48 object-cover rounded-xl border border-[rgba(255,255,222,0.1)]" />
-                )}
-                
-                <div>
-                  <h3 style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream, marginBottom: 8 }}>Descrição</h3>
-                  <p style={{ fontSize: 13, color: `${C.cream}60`, lineHeight: 1.65 }}>{selectedReward?.description}</p>
+            <DialogContent className="sm:max-w-xl p-0 border-0 bg-transparent overflow-hidden shadow-none [&>button]:text-[rgba(255,255,222,0.5)] [&>button]:hover:opacity-100 [&>button]:top-4 [&>button]:right-5 [&>button]:scale-125" aria-describedby={undefined} >
+              <DialogTitle className="sr-only">Detalhes da Recompensa</DialogTitle>
+              <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.1)` }}>
+                <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+                  <span style={{ ...heading, fontSize: 18, fontWeight: 700, color: C.cream }}>{selectedReward?.title}</span>
                 </div>
 
-                {selectedReward?.terms && (
+                <div className="p-6 flex flex-col gap-5 max-h-[70vh] overflow-y-auto">
+                  {selectedReward?.image_url && (
+                    <div
+                      className="cursor-zoom-in"
+                      onClick={() => openOriginalImage(selectedReward.image_url)}
+                      title="Clique para ver em tela cheia"
+                    >
+                      <img
+                        src={selectedReward.image_url}
+                        alt={selectedReward.title}
+                        className="w-full h-48 object-cover rounded-xl border border-[rgba(255,255,222,0.1)] hover:brightness-110 transition-all"
+                      />
+                    </div>
+                  )}
+
                   <div>
-                    <h3 style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream, marginBottom: 8 }}>Termos e Condições</h3>
-                    <p style={{ fontSize: 13, color: `${C.cream}60`, lineHeight: 1.65 }}>{selectedReward.terms}</p>
+                    <h3 style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream, marginBottom: 8 }}>Descrição</h3>
+                    <p style={{ fontSize: 13, color: `${C.cream}60`, lineHeight: 1.65 }}>{selectedReward?.description}</p>
                   </div>
-                )}
 
-                <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: "rgba(255,255,222,0.04)", border: `1px solid rgba(255,255,222,0.08)` }}>
-                   <div>
-                     <span style={{ fontSize: 11, color: `${C.cream}50`, block: "block", marginBottom: 2 }}>Custo da Recompensa</span>
-                     <div style={{ ...heading, fontSize: 24, fontWeight: 900, color: C.lime }}>{selectedReward?.points_required} pts</div>
-                   </div>
-                   <div className="text-right">
-                     <span style={{ fontSize: 11, color: `${C.cream}50`, block: "block", marginBottom: 2 }}>Seu Saldo Atual</span>
-                     <div style={{ ...heading, fontSize: 24, fontWeight: 900, color: C.cream }}>{currentPoints} pts</div>
-                   </div>
-                </div>
+                  {selectedReward?.terms && (
+                    <div>
+                      <h3 style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream, marginBottom: 8 }}>Termos e Condições</h3>
+                      <p style={{ fontSize: 13, color: `${C.cream}60`, lineHeight: 1.65 }}>{selectedReward.terms}</p>
+                    </div>
+                  )}
 
-                <div className="flex gap-3 pt-2">
-                  <button onClick={() => setSelectedReward(null)} className="flex-1 h-12 rounded-xl transition-all hover:bg-[rgba(255,255,222,0.05)]" style={{ color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}>
-                    Voltar
-                  </button>
-                  <button 
-                    disabled={!hasEnoughPoints(selectedReward) || !isAvailable(selectedReward)}
-                    onClick={() => handleClaim(selectedReward)} 
-                    className="flex-1 h-12 rounded-xl transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed" 
-                    style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}
-                  >
-                    {claimRewardMutation.isPending ? "Processando..." : "Resgatar Agora"}
-                  </button>
+                  <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: "rgba(255,255,222,0.04)", border: `1px solid rgba(255,255,222,0.08)` }}>
+                    <div>
+                      <span style={{ fontSize: 11, color: `${C.cream}50`, block: "block", marginBottom: 2 }}>Custo da Recompensa</span>
+                      <div style={{ ...heading, fontSize: 24, fontWeight: 900, color: C.lime }}>{selectedReward?.points_required} pts</div>
+                    </div>
+                    <div className="text-right">
+                      <span style={{ fontSize: 11, color: `${C.cream}50`, block: "block", marginBottom: 2 }}>Seu Saldo Atual</span>
+                      <div style={{ ...heading, fontSize: 24, fontWeight: 900, color: C.cream }}>{currentPoints} pts</div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button onClick={() => setSelectedReward(null)} className="flex-1 h-12 rounded-xl transition-all hover:bg-[rgba(255,255,222,0.05)]" style={{ color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}>
+                      Voltar
+                    </button>
+                    <button
+                      disabled={!hasEnoughPoints(selectedReward) || !isAvailable(selectedReward)}
+                      onClick={() => handleClaim(selectedReward)}
+                      className="flex-1 h-12 rounded-xl transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}
+                    >
+                      {claimRewardMutation.isPending ? "Processando..." : "Resgatar Agora"}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
             </DialogContent>
           </Dialog>
-      )}
+        )}
 
         {/* MODAL DE ENDEREÇO */}
         <Dialog open={showAddressModal} onOpenChange={() => setShowAddressModal(false)}>
-          <DialogContent className="sm:max-w-md p-0 border-0 bg-transparent overflow-hidden shadow-none">
+          <DialogContent className="sm:max-w-xl p-0 border-0 bg-transparent overflow-hidden shadow-none [&>button]:text-[rgba(255,255,222,0.5)] [&>button]:hover:opacity-100 [&>button]:top-4 [&>button]:right-5 [&>button]:scale-125" aria-describedby={undefined}>
+            <DialogTitle className="sr-only">Endereço de Entrega</DialogTitle>
             <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.1)` }}>
               <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
                 <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream }}>Endereço de Entrega</span>
-                <button onClick={() => setShowAddressModal(false)} style={{ color: `${C.cream}50` }} className="hover:opacity-100 transition-opacity"><XCircle size={18} /></button>
               </div>
-              
+
               <div className="p-6 flex flex-col gap-4 max-h-[75vh] overflow-y-auto">
-                  {/* CEP */}
-                  <div>
-                    <label style={labelStyle}>CEP *</label>
-                    <div className="relative">
-                      <input
-                        style={inputStyle}
-                        placeholder="12345-678"
-                        value={address.cep}
-                        onChange={(e) => {
-                          let value = e.target.value.replace(/\D/g, '');
-                          if (value.length > 5) {
-                            value = value.slice(0, 5) + '-' + value.slice(5, 8);
-                          }
-                          setAddress({ ...address, cep: value });
-                          
-                          // Chamar API quando tiver 9 caracteres (5 dígitos + hífen + 3 dígitos)
-                          if (value.length === 9) {
-                            handleCepBlur(value);
-                          }
-                        }}
-                        className="w-full px-4 py-3 rounded-xl outline-none"
-                        disabled={isCepLoading}
-                        maxLength="9"
-                      />
-                      {isCepLoading && (
-                        <Loader2 className="absolute right-3 top-3 w-5 h-5 text-[rgba(255,255,222,0.5)] animate-spin" />
-                      )}
-                    </div>
-                  </div>
+                {/* CEP */}
+                <div>
+                  <label style={labelStyle}>CEP *</label>
+                  <div className="relative">
+                    <input
+                      style={inputStyle}
+                      placeholder="12345-678"
+                      value={address.cep}
+                      onChange={(e) => {
+                        let value = e.target.value.replace(/\D/g, '');
+                        if (value.length > 5) {
+                          value = value.slice(0, 5) + '-' + value.slice(5, 8);
+                        }
+                        setAddress({ ...address, cep: value });
 
-                  {/* Endereço */}
+                        // Chamar API quando tiver 9 caracteres (5 dígitos + hífen + 3 dígitos)
+                        if (value.length === 9) {
+                          handleCepBlur(value);
+                        }
+                      }}
+                      className="w-full px-4 py-3 rounded-xl outline-none"
+                      disabled={isCepLoading}
+                      maxLength="9"
+                    />
+                    {isCepLoading && (
+                      <Loader2 className="absolute right-3 top-3 w-5 h-5 text-[rgba(255,255,222,0.5)] animate-spin" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Endereço */}
+                <div>
+                  <label style={labelStyle}>RUA *</label>
+                  <input
+                    style={inputStyle}
+                    className="w-full px-4 py-3 rounded-xl outline-none"
+                    placeholder="Rua Principal"
+                    value={address.endereco}
+                    onChange={(e) => setAddress({ ...address, endereco: e.target.value })}
+                  />
+                </div>
+
+                {/* Número e Complemento */}
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label style={labelStyle}>RUA *</label>
+                    <label style={labelStyle}>NÚMERO *</label>
                     <input
                       style={inputStyle}
                       className="w-full px-4 py-3 rounded-xl outline-none"
-                      placeholder="Rua Principal"
-                      value={address.endereco}
-                      onChange={(e) => setAddress({ ...address, endereco: e.target.value })}
+                      placeholder="123"
+                      value={address.numero}
+                      onChange={(e) => setAddress({ ...address, numero: e.target.value })}
                     />
                   </div>
-
-                  {/* Número e Complemento */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label style={labelStyle}>NÚMERO *</label>
-                      <input
-                        style={inputStyle}
-                        className="w-full px-4 py-3 rounded-xl outline-none"
-                        placeholder="123"
-                        value={address.numero}
-                        onChange={(e) => setAddress({ ...address, numero: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>COMPLEMENTO</label>
-                      <input
-                        style={inputStyle}
-                        className="w-full px-4 py-3 rounded-xl outline-none"
-                        placeholder="Apto 45"
-                        value={address.complemento}
-                        onChange={(e) => setAddress({ ...address, complemento: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Bairro */}
                   <div>
-                    <label style={labelStyle}>BAIRRO *</label>
+                    <label style={labelStyle}>COMPLEMENTO</label>
                     <input
                       style={inputStyle}
                       className="w-full px-4 py-3 rounded-xl outline-none"
-                      placeholder="Centro"
-                      value={address.bairro}
-                      onChange={(e) => setAddress({ ...address, bairro: e.target.value })}
+                      placeholder="Apto 45"
+                      value={address.complemento}
+                      onChange={(e) => setAddress({ ...address, complemento: e.target.value })}
                     />
                   </div>
+                </div>
 
-                  {/* Cidade e Estado */}
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="col-span-2">
-                      <label style={labelStyle}>CIDADE *</label>
-                      <input
-                        style={inputStyle}
-                        className="w-full px-4 py-3 rounded-xl outline-none"
-                        placeholder="São Paulo"
-                        value={address.cidade}
-                        onChange={(e) => setAddress({ ...address, cidade: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>UF *</label>
-                      <input
-                        style={inputStyle}
-                        className="w-full px-4 py-3 rounded-xl outline-none uppercase"
-                        placeholder="SP"
-                        value={address.estado.toUpperCase()}
-                        onChange={(e) => setAddress({ ...address, estado: e.target.value })}
-                        maxLength="2"
-                      />
-                    </div>
+                {/* Bairro */}
+                <div>
+                  <label style={labelStyle}>BAIRRO *</label>
+                  <input
+                    style={inputStyle}
+                    className="w-full px-4 py-3 rounded-xl outline-none"
+                    placeholder="Centro"
+                    value={address.bairro}
+                    onChange={(e) => setAddress({ ...address, bairro: e.target.value })}
+                  />
+                </div>
+
+                {/* Cidade e Estado */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="col-span-2">
+                    <label style={labelStyle}>CIDADE *</label>
+                    <input
+                      style={inputStyle}
+                      className="w-full px-4 py-3 rounded-xl outline-none"
+                      placeholder="São Paulo"
+                      value={address.cidade}
+                      onChange={(e) => setAddress({ ...address, cidade: e.target.value })}
+                    />
                   </div>
+                  <div>
+                    <label style={labelStyle}>UF *</label>
+                    <input
+                      style={inputStyle}
+                      className="w-full px-4 py-3 rounded-xl outline-none uppercase"
+                      placeholder="SP"
+                      value={address.estado.toUpperCase()}
+                      onChange={(e) => setAddress({ ...address, estado: e.target.value })}
+                      maxLength="2"
+                    />
+                  </div>
+                </div>
 
                 <div className="flex gap-3">
                   <button onClick={() => setShowAddressModal(false)} className="flex-1 h-12 rounded-xl transition-all hover:bg-[rgba(255,255,222,0.05)]" style={{ color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}>
@@ -467,7 +478,7 @@ export default function Rewards() {
                   <button
                     onClick={handleConfirmClaim}
                     disabled={claimRewardMutation.isPending}
-                    className="flex-1 h-12 rounded-xl transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed" 
+                    className="flex-1 h-12 rounded-xl transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}
                   >
                     {claimRewardMutation.isPending ? "Confirmando..." : "Confirmar Resgate"}

@@ -217,119 +217,122 @@ export default function MyPayments() {
                   Cadastrar Dados Bancarios
                 </button>
               </div>
-            ) : isEditing ? (
+            ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Tipo de Conta + Banco */}
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>Tipo de Conta *</label>
                     <select
-                      className="w-full px-4 py-2.5 rounded-xl outline-none"
-                      style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: C.surface, color: C.cream, fontSize: 13, ...body }}
+                      className="w-full px-4 py-2.5 rounded-xl outline-none appearance-none"
+                      style={{ backgroundColor: "rgba(255,255,222,0.04)", border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`, color: isEditing ? C.cream : `${C.cream}80`, fontSize: 13, ...body }}
+                      disabled={!isEditing}
                       value={paymentData.account_type}
-                      onValueChange={(value) => setPaymentData({ ...paymentData, account_type: value })}
+                      onChange={(e) => setPaymentData({ ...paymentData, account_type: e.target.value })}
                     >
                       <option value="corrente" style={{ backgroundColor: C.card }}>Conta Corrente</option>
                       <option value="poupanca" style={{ backgroundColor: C.card }}>Conta Poupança</option>
                     </select>
                   </div>
-
                   <div className="space-y-2">
                     <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>Nome do Banco *</label>
                     <input
                       className="w-full px-4 py-2.5 rounded-xl outline-none"
-                      style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: C.surface, color: C.cream, fontSize: 13, ...body }}
+                      style={{ backgroundColor: "rgba(255,255,222,0.04)", border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`, color: isEditing ? C.cream : `${C.cream}80`, fontSize: 13, ...body }}
                       placeholder="Ex: Banco do Brasil"
+                      readOnly={!isEditing}
                       value={paymentData.bank_name}
                       onChange={(e) => setPaymentData({ ...paymentData, bank_name: e.target.value })}
-                      required
                     />
                   </div>
                 </div>
 
+                {/* Código + Agência + Conta */}
                 <div className="grid md:grid-cols-3 gap-6">
                   <div className="space-y-2">
                     <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>Código do Banco</label>
                     <input
                       className="w-full px-4 py-2.5 rounded-xl outline-none"
-                      style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: C.surface, color: C.cream, fontSize: 13, ...body }}
+                      style={{ backgroundColor: "rgba(255,255,222,0.04)", border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`, color: isEditing ? C.cream : `${C.cream}80`, fontSize: 13, ...body }}
                       placeholder="Ex: 001"
+                      readOnly={!isEditing}
                       value={paymentData.bank_code}
                       onChange={(e) => setPaymentData({ ...paymentData, bank_code: onlyDigits(e.target.value).slice(0, 4) })}
                     />
                   </div>
-
                   <div className="space-y-2">
                     <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>Agência *</label>
                     <input
                       className="w-full px-4 py-2.5 rounded-xl outline-none"
-                      style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: C.surface, color: C.cream, fontSize: 13, ...body }}
+                      style={{ backgroundColor: "rgba(255,255,222,0.04)", border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`, color: isEditing ? C.cream : `${C.cream}80`, fontSize: 13, ...body }}
                       placeholder="Ex: 1234"
+                      readOnly={!isEditing}
                       value={paymentData.agency}
                       onChange={(e) => setPaymentData({ ...paymentData, agency: onlyDigits(e.target.value).slice(0, 8) })}
-                      required
                     />
                   </div>
-
                   <div className="space-y-2">
                     <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>Conta + Dígito *</label>
                     <div className="flex gap-2">
                       <input
-                        className="flex-1 w-full px-4 py-2.5 rounded-xl outline-none"
-                        style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: C.surface, color: C.cream, fontSize: 13, ...body }}
+                        className="flex-1 px-4 py-2.5 rounded-xl outline-none"
+                        style={{ backgroundColor: "rgba(255,255,222,0.04)", border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`, color: isEditing ? C.cream : `${C.cream}80`, fontSize: 13, ...body }}
                         placeholder="12345"
+                        readOnly={!isEditing}
                         value={paymentData.account_number}
                         onChange={(e) => setPaymentData({ ...paymentData, account_number: onlyDigits(e.target.value).slice(0, 16) })}
-                        required
                       />
                       <input
                         className="w-16 px-4 py-2.5 rounded-xl outline-none"
-                        style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: C.surface, color: C.cream, fontSize: 13, ...body }}
+                        style={{ backgroundColor: "rgba(255,255,222,0.04)", border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`, color: isEditing ? C.cream : `${C.cream}80`, fontSize: 13, ...body }}
                         placeholder="6"
+                        readOnly={!isEditing}
                         value={paymentData.account_digit}
                         onChange={(e) => setPaymentData({ ...paymentData, account_digit: onlyDigits(e.target.value).slice(0, 1) })}
-                        required
                         maxLength={1}
                       />
                     </div>
                   </div>
                 </div>
 
+                {/* Titular + CPF */}
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>Nome Completo do Titular *</label>
                     <input
                       className="w-full px-4 py-2.5 rounded-xl outline-none"
-                      style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: C.surface, color: C.cream, fontSize: 13, ...body }}
+                      style={{ backgroundColor: "rgba(255,255,222,0.04)", border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`, color: isEditing ? C.cream : `${C.cream}80`, fontSize: 13, ...body }}
                       placeholder="Como consta no banco"
+                      readOnly={!isEditing}
                       value={paymentData.full_name}
                       onChange={(e) => setPaymentData({ ...paymentData, full_name: e.target.value })}
-                      required
                     />
                   </div>
-
                   <div className="space-y-2">
                     <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>CPF *</label>
                     <input
                       className="w-full px-4 py-2.5 rounded-xl outline-none"
-                      style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: C.surface, color: C.cream, fontSize: 13, ...body }}
+                      style={{ backgroundColor: "rgba(255,255,222,0.04)", border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`, color: isEditing ? C.cream : `${C.cream}80`, fontSize: 13, ...body }}
                       placeholder="000.000.000-00"
+                      readOnly={!isEditing}
                       value={paymentData.cpf}
                       onChange={(e) => setPaymentData({ ...paymentData, cpf: formatCpf(e.target.value) })}
-                      required
                     />
                   </div>
                 </div>
 
-                <div className="border-t pt-6">
-                  <h3 className="font-semibold mb-4">Chave PIX (Opcional)</h3>
+                {/* PIX */}
+                <div style={{ borderTop: `1px solid rgba(255,255,222,0.07)`, paddingTop: 24 }}>
+                  <h3 style={{ ...heading, fontSize: 13, fontWeight: 700, color: `${C.cream}60`, marginBottom: 16 }}>Chave PIX (Opcional)</h3>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>Tipo de Chave</label>
                       <select
-                        className="w-full px-4 py-2.5 rounded-xl outline-none"
-                        style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: C.surface, color: C.cream, fontSize: 13, ...body }}
+                        className="w-full px-4 py-2.5 rounded-xl outline-none appearance-none"
+                        style={{ backgroundColor: "rgba(255,255,222,0.04)", border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`, color: isEditing ? C.cream : `${C.cream}80`, fontSize: 13, ...body }}
+                        disabled={!isEditing}
                         value={paymentData.pix_type}
-                        onValueChange={(value) => setPaymentData({ ...paymentData, pix_type: value })}
+                        onChange={(e) => setPaymentData({ ...paymentData, pix_type: e.target.value })}
                       >
                         <option value="cpf" style={{ backgroundColor: C.card }}>CPF</option>
                         <option value="email" style={{ backgroundColor: C.card }}>Email</option>
@@ -337,13 +340,13 @@ export default function MyPayments() {
                         <option value="aleatoria" style={{ backgroundColor: C.card }}>Chave Aleatória</option>
                       </select>
                     </div>
-
                     <div className="space-y-2">
                       <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>Chave PIX</label>
                       <input
                         className="w-full px-4 py-2.5 rounded-xl outline-none"
-                        style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: C.surface, color: C.cream, fontSize: 13, ...body }}
+                        style={{ backgroundColor: "rgba(255,255,222,0.04)", border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`, color: isEditing ? C.cream : `${C.cream}80`, fontSize: 13, ...body }}
                         placeholder="Digite sua chave PIX"
+                        readOnly={!isEditing}
                         value={paymentData.pix_key}
                         onChange={(e) => setPaymentData({ ...paymentData, pix_key: e.target.value })}
                       />
@@ -351,64 +354,30 @@ export default function MyPayments() {
                   </div>
                 </div>
 
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (savedPaymentData) {
-                        setPaymentData((prev) => ({ ...prev, ...savedPaymentData }));
-                      }
-                      setIsEditing(false);
-                    }}
-                    className="flex-1 h-12 rounded-xl transition-all hover:bg-[rgba(255,255,222,0.05)]"
-                    style={{ color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 h-12 rounded-xl transition-all hover:brightness-110"
-                    style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}
-                  >
-                    {upsertPaymentInfo.isPending ? "Salvando..." : "Salvar Dados"}
-                  </button>
-                </div>
+                {/* Botões — só aparecem ao editar */}
+                {isEditing && (
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (savedPaymentData) setPaymentData((prev) => ({ ...prev, ...savedPaymentData }));
+                        setIsEditing(false);
+                      }}
+                      className="flex-1 h-12 rounded-xl transition-all hover:brightness-110"
+                      style={{ backgroundColor: "rgba(255,255,222,0.04)", border: `1px solid rgba(255,255,222,0.07)`, color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 h-12 rounded-xl transition-all hover:brightness-110"
+                      style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}
+                    >
+                      {upsertPaymentInfo.isPending ? "Salvando..." : "Salvar Dados"}
+                    </button>
+                  </div>
+                )}
               </form>
-            ) : (
-              <div className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <p style={{ fontSize: 11, color: `${C.cream}50` }}>Tipo de Conta</p>
-                    <p style={{ fontWeight: 500, color: C.cream }}>{paymentData.account_type === "corrente" ? "Conta Corrente" : "Conta Poupança"}</p>
-                  </div>
-                  <div>
-                    <p style={{ fontSize: 11, color: `${C.cream}50` }}>Banco</p>
-                    <p style={{ fontWeight: 500, color: C.cream }}>{paymentData.bank_name}</p>
-                  </div>
-                  <div>
-                    <p style={{ fontSize: 11, color: `${C.cream}50` }}>Agência</p>
-                    <p style={{ fontWeight: 500, color: C.cream }}>{paymentData.agency}</p>
-                  </div>
-                  <div>
-                    <p style={{ fontSize: 11, color: `${C.cream}50` }}>Conta</p>
-                    <p style={{ fontWeight: 500, color: C.cream }}>{paymentData.account_number}-{paymentData.account_digit}</p>
-                  </div>
-                  <div>
-                    <p style={{ fontSize: 11, color: `${C.cream}50` }}>Titular</p>
-                    <p style={{ fontWeight: 500, color: C.cream }}>{paymentData.full_name}</p>
-                  </div>
-                  <div>
-                    <p style={{ fontSize: 11, color: `${C.cream}50` }}>CPF</p>
-                    <p style={{ fontWeight: 500, color: C.cream }}>{paymentData.cpf}</p>
-                  </div>
-                  {paymentData.pix_key && (
-                    <div className="md:col-span-2">
-                      <p style={{ fontSize: 11, color: `${C.cream}50` }}>Chave PIX</p>
-                      <p style={{ fontWeight: 500, color: C.cream }}>{paymentData.pix_key}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
             )}
           </div>
         </div>
@@ -464,11 +433,11 @@ export default function MyPayments() {
           </div>
         </div>
 
-        <div className="flex justify-end mt-5">
+        {/* <div className="flex justify-end mt-5">
           <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all hover:brightness-110" style={{ backgroundColor: "rgba(255,255,222,0.06)", color: `${C.cream}70`, fontSize: 12, ...body }}>
             <Download size={13} /> Exportar relatório
           </button>
-        </div>
+        </div> */}
       </div>
     </main>
   );

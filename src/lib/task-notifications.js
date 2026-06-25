@@ -299,6 +299,9 @@ export const buildTaskNotifications = ({
   profile = null,
   now = new Date(),
 }) => {
+
+  if (profile?.is_active === false) return []
+
   const notifications = []
   const taskMap = new Map((tasks || []).map((task) => [String(task.id), task]))
   const seenIds = new Set()
@@ -452,7 +455,10 @@ export const buildAdminNotifications = ({
 }
 
 export const buildAllNotifications = (params) => {
-  const userNotifications = buildTaskNotifications(params)
+  const userNotifications = params.isAdmin
+    ? []
+    : buildTaskNotifications(params)
+
   const adminNotifications = params.isAdmin
     ? buildAdminNotifications({
       tasks: params.tasks,

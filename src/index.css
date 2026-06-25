@@ -37,3 +37,14 @@
     font-feature-settings: 'rlig' 1, 'calt' 1;
   }
 }
+
+input[type="file"]::file-selector-button {
+  background-color: #C8FF00;
+  color: #1D1D1B;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+}

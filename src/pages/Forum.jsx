@@ -12,9 +12,11 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { notifyError } from "@/lib/toast";
 import { C, heading, body } from '@/lib/theme';
+import { ChevronDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogTitle
 } from "@/components/ui/dialog";
 
 const CATEGORY_INFO = {
@@ -22,7 +24,7 @@ const CATEGORY_INFO = {
   duvidas: { name: "Dúvidas", colorHex: C.blue },
   conquistas: { name: "Conquistas", colorHex: "#AA66FF" },
   campanhas: { name: "Campanhas", colorHex: C.lime },
-  geral: { name: "Geral", colorHex: `${C.cream}80` },
+  geral: { name: "Geral", colorHex: C.cream },
   sugestoes: { name: "Sugestões", colorHex: "#FF2255" }
 };
 
@@ -118,7 +120,7 @@ export default function Forum() {
             { label: "Visualizações totais", value: totalViews, icon: Eye },
           ].map(({ label, value, icon: Icon }) => (
             <div key={label} className="p-4 rounded-2xl flex items-center gap-4" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${C.lime}14`, color: C.lime }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: C.lime_back, color: C.lime }}>
                 <Icon size={16} />
               </div>
               <div>
@@ -201,7 +203,8 @@ export default function Forum() {
 
       {/* Modal / Dialog */}
       <Dialog open={showNewTopicDialog} onOpenChange={setShowNewTopicDialog}>
-        <DialogContent className="sm:max-w-lg p-0 border-0 bg-transparent overflow-hidden shadow-none">
+        <DialogContent aria-describedby={undefined} className="sm:max-w-lg p-0 border-0 bg-transparent overflow-hidden shadow-none">
+          <DialogTitle className="sr-only">Novo Tópico</DialogTitle>
           <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.1)` }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
               <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream }}>Novo Tópico</span>
@@ -215,11 +218,17 @@ export default function Forum() {
               <div>
                 <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>CATEGORIA</label>
                 <div className="relative mt-2">
-                  <select className="w-full px-4 py-3 rounded-xl outline-none appearance-none" style={{ backgroundColor: "#2E2E2C", border: `1px solid rgba(255,255,222,0.1)`, color: newTopic.category ? C.cream : `${C.cream}40`, ...body, fontSize: 14 }} value={newTopic.category} onChange={(e) => setNewTopic({ ...newTopic, category: e.target.value })}>
+                  <select
+                    className="w-full px-4 py-3 rounded-xl outline-none appearance-none pr-10"
+                    style={{ backgroundColor: "#2E2E2C", border: `1px solid rgba(255,255,222,0.1)`, color: newTopic.category ? C.cream : `${C.cream}40`, ...body, fontSize: 14 }}
+                    value={newTopic.category}
+                    onChange={(e) => setNewTopic({ ...newTopic, category: e.target.value })}
+                  >
                     {Object.entries(CATEGORY_INFO).map(([key, info]) => (
                       <option key={key} value={key} style={{ backgroundColor: C.card, color: C.cream }}>{info.name}</option>
                     ))}
                   </select>
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: `${C.cream}50` }} />
                 </div>
               </div>
               <div>

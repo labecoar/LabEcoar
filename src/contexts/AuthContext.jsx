@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { authService } from '@/services/auth.service'
+import { isProfileComplete as checkProfileComplete } from '@/lib/profile-utils'
 
 const AuthContext = createContext({
   user: null,
@@ -32,20 +33,44 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-  // Buscar perfil do usuário
-  const fetchProfile = async (userId) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
+  // Buscar perfil do usuário no banco
+  const fetchProfileFromDb = async (userId) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
 
-      if (error) throw error
-      setProfile(data)
-      return data
+    if (error) throw error
+    return data
+  }
+
+  const loadUserProfile = async (authUser) => {
+    if (!authUser?.id) {
+      setProfile(null)
+      return null
+    }
+
+    try {
+      let profileData = null
+
+      try {
+        profileData = await fetchProfileFromDb(authUser.id)
+      } catch (error) {
+        console.error('Erro ao buscar perfil:', error)
+      }
+
+      profileData = await authService.syncProfileFromMetadata(
+        authUser.id,
+        authUser.email,
+        authUser.user_metadata,
+        profileData
+      )
+
+      setProfile(profileData)
+      return profileData
     } catch (error) {
-      console.error('Erro ao buscar perfil:', error)
+      console.error('Erro ao carregar perfil:', error)
       setProfile(null)
       return null
     }
@@ -61,7 +86,7 @@ export function AuthProvider({ children }) {
         setIsAuthenticated(!!session?.user)
 
         if (session?.user) {
-          await fetchProfile(session.user.id)
+          await loadUserProfile(session.user)
         }
       } catch (err) {
         console.error('[AuthContext] Erro ao verificar sessão:', err)
@@ -90,7 +115,7 @@ export function AuthProvider({ children }) {
         }
 
         // Busca o perfil sem bloquear o callback de auth.
-        fetchProfile(session.user.id)
+        loadUserProfile(session.user)
       }
     )
 
@@ -103,7 +128,7 @@ export function AuthProvider({ children }) {
     const signedUser = data?.user
 
     if (signedUser) {
-      const profileData = await fetchProfile(signedUser.id)
+      const profileData = await loadUserProfile(signedUser)
 
       if (profileData?.is_active === false) {
         await authService.signOut()
@@ -122,6 +147,20 @@ export function AuthProvider({ children }) {
   // Função de registro
   const signUp = async (email, password, userData) => {
     const data = await authService.signUp(email, password, userData)
+
+    if (data?.session && data?.user) {
+      setUser(data.user)
+      setIsAuthenticated(true)
+
+      const { signup_profile: _signupProfile, ...profileUpdates } = userData
+      const profileData = await authService.updateProfile(
+        data.user.id,
+        data.user.email,
+        profileUpdates
+      )
+      setProfile(profileData)
+    }
+
     return data
   }
 
@@ -156,18 +195,7 @@ export function AuthProvider({ children }) {
   // Verificar se é admin
   const isAdmin = profile?.role === 'admin'
   const isAccountActive = profile?.is_active !== false
-  const hasLegacyProfileCompletion = Boolean(
-    profile
-    && (profile.display_name || profile.full_name)
-    && String(profile.instagram_handle || profile.instagram || '').trim()
-    && profile.followers_count !== null
-    && profile.followers_count !== undefined
-  )
-  const hasCurrentProfileCompletion = Boolean(
-    hasLegacyProfileCompletion
-    && String(profile?.cpf || '').trim()
-  )
-  const isProfileComplete = Boolean(hasCurrentProfileCompletion || hasLegacyProfileCompletion)
+  const isProfileComplete = checkProfileComplete(profile)
 
   const value = {
     user,
@@ -183,7 +211,7 @@ export function AuthProvider({ children }) {
     resetPassword,
     signOut,
     updateProfile,
-    refreshProfile: () => user ? fetchProfile(user.id) : null,
+    refreshProfile: () => (user ? loadUserProfile(user) : null),
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

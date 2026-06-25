@@ -198,11 +198,28 @@ export default function Profile() {
     },
   })
 
+  const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif']
+
   const handleAvatarChange = async (event) => {
     const file = event.target.files?.[0]
     if (!file || !user?.id) return
 
     try {
+      const extension = '.' + file.name.split('.').pop().toLowerCase()
+
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type) || !ALLOWED_EXTENSIONS.includes(extension)) {
+        notifyError('Formato inválido. Use JPG, PNG, WEBP ou GIF.')
+        if (event?.target) event.target.value = ''
+        return
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        notifyError('Arquivo muito grande. Máximo 5MB.')
+        if (event?.target) event.target.value = ''
+        return
+      }
+
       if (!String(file.type || '').startsWith('image/')) {
         throw new Error('Selecione um arquivo de imagem valido.')
       }
@@ -368,9 +385,9 @@ export default function Profile() {
             </div>
             <div className="p-6 space-y-4">
               <p style={{ fontSize: 13, color: `${C.cream}60` }}>Arraste para posicionar e use o zoom para enquadrar no círculo.</p>
-              
-            <div className="flex justify-center">
-              <div
+
+              <div className="flex justify-center">
+                <div
                   className="relative overflow-hidden rounded-lg bg-black/90 select-none touch-none"
                   style={{ width: `${AVATAR_CROP_FRAME_SIZE}px`, height: `${AVATAR_CROP_FRAME_SIZE}px`, border: `1px solid ${C.lime}44` }}
                   onMouseDown={handleAvatarDragStart}
@@ -451,47 +468,47 @@ export default function Profile() {
           {/* Avatar + identity */}
           <div className="p-6 rounded-2xl flex flex-col items-center text-center gap-4" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
             <div className="relative">
-                {formData.avatar_url ? (
-                  <img
-                    src={formData.avatar_url}
-                    alt={profile?.full_name || 'Avatar'}
-                    className="w-20 h-20 rounded-full object-cover object-center shadow-lg"
-                  />
-                ) : (
-                  <div className="w-20 h-20 rounded-full flex items-center justify-center font-bold text-3xl shadow-lg" style={{ backgroundColor: C.orange, color: C.cream }}>
-                    {(displayName || 'E').charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <label
-                  htmlFor="avatar-upload"
-                  className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all hover:brightness-110"
-                  style={{ backgroundColor: C.surface, border: `2px solid ${C.card}`, color: `${C.cream}70` }}
-                >
-                  <Upload size={14} />
-                  <input
-                    id="avatar-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarChange}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-              {isUploadingAvatar && (
-                <p style={{ fontSize: 11, color: C.lime }}>Enviando imagem...</p>
+              {formData.avatar_url ? (
+                <img
+                  src={formData.avatar_url}
+                  alt={profile?.full_name || 'Avatar'}
+                  className="w-20 h-20 rounded-full object-cover object-center shadow-lg"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full flex items-center justify-center font-bold text-3xl shadow-lg" style={{ backgroundColor: C.orange, color: C.cream }}>
+                  {(displayName || 'E').charAt(0).toUpperCase()}
+                </div>
               )}
-              <div>
-                <div style={{ ...heading, fontSize: 18, fontWeight: 800, color: C.cream, lineHeight: 1.2 }}>{displayName}</div>
-                <div style={{ fontSize: 12, color: `${C.cream}45`, marginTop: 4 }}>{user?.email}</div>
-              </div>
+              <label
+                htmlFor="avatar-upload"
+                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all hover:brightness-110"
+                style={{ backgroundColor: C.surface, border: `2px solid ${C.card}`, color: `${C.cream}70` }}
+              >
+                <Upload size={14} />
+                <input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  className="hidden"
+                />
+              </label>
             </div>
+            {isUploadingAvatar && (
+              <p style={{ fontSize: 11, color: C.lime }}>Enviando imagem...</p>
+            )}
+            <div>
+              <div style={{ ...heading, fontSize: 18, fontWeight: 800, color: C.cream, lineHeight: 1.2 }}>{displayName}</div>
+              <div style={{ fontSize: 12, color: `${C.cream}45`, marginTop: 4 }}>{user?.email}</div>
+            </div>
+          </div>
 
           {/* Stats panel */}
           <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
             {[
-              { icon: Trophy,  label: "Categoria", value: categoryLabel, valueColor: C.orange },
-              { icon: Star,    label: "Pontos",    value: totalPoints, valueColor: C.lime   },
-              { icon: Award,   label: "Ganhos",    value: `R$ ${totalEarnings.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, valueColor: C.lime },
+              { icon: Trophy, label: "Categoria", value: categoryLabel, valueColor: C.orange },
+              { icon: Star, label: "Pontos", value: totalPoints, valueColor: C.lime },
+              { icon: Award, label: "Ganhos", value: `R$ ${totalEarnings.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, valueColor: C.lime },
             ].map(({ icon: IconComponent, label, value, valueColor }, i, arr) => (
               <div key={label} className="flex items-center justify-between px-5 py-4" style={{ borderBottom: i < arr.length - 1 ? `1px solid rgba(255,255,222,0.06)` : "none" }}>
                 <div className="flex items-center gap-2.5">
@@ -551,7 +568,7 @@ export default function Profile() {
                       readOnly={!isEditing}
                       className="w-full px-4 py-3 rounded-xl outline-none"
                       style={{
-                        backgroundColor: isEditing ? C.surface : "rgba(255,255,222,0.04)",
+                        backgroundColor: "rgba(255,255,222,0.04)",
                         border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`,
                         color: isEditing ? C.cream : `${C.cream}80`,
                         ...body, fontSize: 13
@@ -566,7 +583,13 @@ export default function Profile() {
                       value={formData.cpf}
                       readOnly
                       className="w-full px-4 py-3 rounded-xl outline-none"
-                      style={{ backgroundColor: "rgba(255,255,222,0.04)", border: "1px solid rgba(255,255,222,0.07)", color: `${C.cream}60`, ...body, fontSize: 13 }}
+                      style={{
+                        backgroundColor: "rgba(255,255,222,0.04)",
+                        border: "1px solid rgba(255,255,222,0.07)",
+                        color: `${C.cream}60`,
+                        ...body,
+                        fontSize: 13
+                      }}
                       placeholder="000.000.000-00"
                     />
                   </div>
@@ -593,7 +616,7 @@ export default function Profile() {
                     rows={4}
                     className="w-full px-4 py-3 rounded-xl outline-none"
                     style={{
-                      backgroundColor: isEditing ? C.surface : "rgba(255,255,222,0.04)",
+                      backgroundColor: "rgba(255,255,222,0.04)",
                       border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`,
                       color: isEditing ? C.cream : `${C.cream}80`,
                       resize: isEditing ? "vertical" : "none",
@@ -615,7 +638,7 @@ export default function Profile() {
                         className="w-full py-3 pr-4 rounded-xl outline-none"
                         style={{
                           paddingLeft: 36,
-                          backgroundColor: isEditing ? C.surface : "rgba(255,255,222,0.04)",
+                          backgroundColor: "rgba(255,255,222,0.04)",
                           border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`,
                           color: isEditing ? C.cream : `${C.cream}80`,
                           ...body, fontSize: 13
@@ -643,7 +666,7 @@ export default function Profile() {
                         className="w-full py-3 pr-4 rounded-xl outline-none"
                         style={{
                           paddingLeft: 36,
-                          backgroundColor: isEditing ? C.surface : "rgba(255,255,222,0.04)",
+                          backgroundColor: "rgba(255,255,222,0.04)",
                           border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`,
                           color: isEditing ? C.cream : `${C.cream}80`,
                           ...body, fontSize: 13

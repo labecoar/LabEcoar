@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { buildProfileSyncFromMetadata } from '@/lib/profile-utils'
 
 const getAuthRedirectUrl = () => {
   const configured = import.meta.env.VITE_AUTH_REDIRECT_URL
@@ -166,5 +167,17 @@ export const authService = {
 
       throw error
     }
-  }
+  },
+
+  /**
+   * Aplica dados pendentes do cadastro (user_metadata) ao perfil após login/confirmação.
+   */
+  async syncProfileFromMetadata(userId, userEmail, metadata = {}, existingProfile = null) {
+    const updates = buildProfileSyncFromMetadata(metadata, existingProfile)
+    if (Object.keys(updates).length === 0) {
+      return existingProfile
+    }
+
+    return this.updateProfile(userId, userEmail, updates)
+  },
 }

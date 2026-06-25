@@ -548,8 +548,8 @@ export default function AdminContentManagement() {
       <style>{`
         input[type="datetime-local"]::-webkit-calendar-picker-indicator {
           background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 24 24' fill='none' stroke= "white" stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E");
-          width: 24px;
-          height: 24px;
+          width: 18px;
+          height: 18px;
           background-size: contain;
           cursor: pointer;
         }
@@ -582,7 +582,7 @@ export default function AdminContentManagement() {
           </span>
         </div>
       </div>
-      
+
       <div
         className="flex items-center justify-between px-8 py-0 sticky top-0 z-10"
         style={{
@@ -836,7 +836,7 @@ export default function AdminContentManagement() {
                         <label style={{ ...labelStyle, marginBottom: 0 }}>DATA E HORA FINAL DA TAREFA <span style={{ color: C.orange }}>*</span></label>
                       </div>
                       <p style={{ fontSize: 11, color: `${C.cream}45`, marginBottom: 8 }}>
-                        O sistema usa a mesma data e hora para postagem e expiração da tarefa. Se a data final ficar em até 3 dias úteis, a campanha vira{' '}
+                        Se a data final ficar em até 3 dias úteis, a campanha vira{' '}
                         <span style={{ color: C.lime, fontWeight: 600 }}>Resposta Rápida</span>.
                       </p>
                       <input
