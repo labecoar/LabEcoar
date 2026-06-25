@@ -165,7 +165,7 @@ export default function GroupProgress({ selectedQuarter }) {
                 letterSpacing: "0.12em",
               }}
             >
-              Progresso Grupal
+              Progresso da Comunidade
             </span>
 
             <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -185,7 +185,7 @@ export default function GroupProgress({ selectedQuarter }) {
                 marginTop: 10,
               }}
             >
-              Oie! Essa é a barra de progressão em equipe — um medidor visual do sucesso grupal. Ela sobe conforme todos ganham pontos ao concluir tarefas e missões. A meta é {Math.round(GROUP_TARGET_FACTOR * 100)}% do máximo teórico ({MAX_JOURNEY_POINTS.toLocaleString("pt-BR")} pts × Ecoantes ativos). Pontos trocados por recompensas não saem daqui; eles só valem para a Loja de Recompensas, nunca para remuneração.
+              Oie! Essa é a sua barra de progressão em equipe. Toda vez que você fizer missões, essa barra aumenta e você pode ver a progressão de todos os Ecoantes ativos da plataforma. Não se preocupe, os pontos convertidos em recompensas não são tirados daqui!
             </p>
           </div>
 

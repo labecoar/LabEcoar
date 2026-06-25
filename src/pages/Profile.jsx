@@ -482,7 +482,7 @@ export default function Profile() {
               <label
                 htmlFor="avatar-upload"
                 className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all hover:brightness-110"
-                style={{ backgroundColor: C.surface, border: `2px solid ${C.card}`, color: C.cream}}
+                style={{ backgroundColor: C.surface, border: `2px solid ${C.card}`, color: C.cream }}
               >
                 <Upload size={14} />
                 <input
@@ -506,7 +506,6 @@ export default function Profile() {
           {/* Stats panel */}
           <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
             {[
-              { icon: Trophy, label: "Categoria", value: categoryLabel, valueColor: C.orange },
               { icon: Star, label: "Pontos", value: totalPoints, valueColor: C.lime },
               { icon: Award, label: "Ganhos", value: `R$ ${totalEarnings.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, valueColor: C.lime },
             ].map(({ icon: IconComponent, label, value, valueColor }, i, arr) => (
