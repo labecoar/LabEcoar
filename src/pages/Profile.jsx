@@ -482,7 +482,7 @@ export default function Profile() {
               <label
                 htmlFor="avatar-upload"
                 className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-all hover:brightness-110"
-                style={{ backgroundColor: C.surface, border: `2px solid ${C.card}`, color: `${C.cream}70` }}
+                style={{ backgroundColor: C.surface, border: `2px solid ${C.card}`, color: C.cream}}
               >
                 <Upload size={14} />
                 <input

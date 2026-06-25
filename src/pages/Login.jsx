@@ -189,7 +189,7 @@ export default function Login() {
 
       setTimeout(() => {
         setShowForgotModal(false)
-      }, 2500)
+      }, 6000)
     } catch (err) {
       console.error('Erro ao recuperar senha:', err)
       setForgotError('Nao foi possivel enviar agora. Tente novamente em instantes.')
@@ -294,7 +294,7 @@ export default function Login() {
         setError('Email não confirmado. Verifique sua caixa de entrada ou clique em reenviar.')
         setShowResendButton(true)
       } else {
-        setError('Nao foi possivel concluir. Verifique os dados e tente novamente.')
+        setError('Não foi possível concluir. Verifique os dados e tente novamente.')
       }
     } finally {
       setLoading(false)

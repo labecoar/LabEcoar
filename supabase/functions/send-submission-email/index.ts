@@ -8,7 +8,7 @@ const APP_URL = 'https://cuicalab.com'
 
 const EMAIL_TEMPLATES = {
   application_approved: {
-    subject: '✅ Candidatura aprovada!',
+    subject: 'Candidatura aprovada!',
     title: 'Candidatura aprovada!',
     message: (name, taskTitle) =>
       `Olá, ${name}! Sua candidatura para a tarefa <strong>"${taskTitle}"</strong> foi aprovada. Acesse a plataforma para enviar sua prova.`,
@@ -20,7 +20,7 @@ const EMAIL_TEMPLATES = {
       `Olá, ${name}! Infelizmente sua candidatura para a tarefa <strong>"${taskTitle}"</strong> não foi aprovada desta vez.`,
   },
   approved: {
-    subject: '🎉 Prova aprovada! Pontos adicionados.',
+    subject: 'Prova aprovada! Pontos adicionados.',
     title: 'Prova aprovada!',
     message: (name, taskTitle, points) =>
       `Olá, ${name}! Sua prova para a tarefa <strong>"${taskTitle}"</strong> foi aprovada e <strong>${points} pontos</strong> foram adicionados ao seu saldo.`,
@@ -87,7 +87,7 @@ serve(async (req) => {
       <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
         <tr>
           <td style="background:#0f1833;padding:24px 32px;text-align:center;">
-            <span style="display:inline-block;background:#ffffff;border-radius:8px;padding:8px 14px;font-size:15px;font-weight:600;color:#0f1833;">Agência Cuica</span>
+            <span style="display:inline-block;background:#ffffff;border-radius:8px;padding:8px 14px;font-size:15px;font-weight:600;color:#0f1833;">Cuica Lab</span>
           </td>
         </tr>
         <tr>
@@ -106,8 +106,8 @@ serve(async (req) => {
         </tr>
         <tr>
           <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 32px;text-align:center;">
-            <p style="font-size:12px;color:#94a3b8;margin:0 0 4px;">Agência Cuica</p>
-            <p style="font-size:12px;margin:0;"><a href="mailto:contato@cuicalab.com" style="color:#185FA5;text-decoration:none;">contato@agenciacuica.com</a></p>
+            <p style="font-size:12px;color:#94a3b8;margin:0 0 4px;">Cuica Lab</p>
+            <p style="font-size:12px;margin:0;"><a href="mailto:contato@cuicalab.com" style="color:#185FA5;text-decoration:none;">contato@cuicalab.com</a></p>
           </td>
         </tr>
       </table>
