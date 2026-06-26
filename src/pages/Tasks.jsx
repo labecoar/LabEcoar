@@ -183,9 +183,11 @@ export default function Tasks() {
     return true;
   });
 
-  const filteredTasks = selectedCategory === "todas"
-    ? tasks
-    : tasks.filter((task) => task.category === selectedCategory);
+  const filteredTasks = (() => {
+    if (selectedCategory === "todas") return tasks;
+    if (selectedCategory === "agendadas") return tasks.filter(isTaskScheduled);
+    return tasks.filter((task) => task.category === selectedCategory);
+  })();
 
   const isTaskClaimed = (taskId) => {
     const submission = getTaskSubmission(taskId);
@@ -513,6 +515,7 @@ export default function Tasks() {
     { value: "folhetim", label: "Folhetins" },
     { value: "compartilhar_ecoante", label: "Compartilhar" },
     { value: "sidequest_teste", label: "Missões" },
+    { value: "agendadas", label: "Agendadas" },
   ];
 
   return (
