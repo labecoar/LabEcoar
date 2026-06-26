@@ -196,7 +196,6 @@ export const FAQ_SECTIONS = [
         paragraphs: [
           "Quando você sobe de categoria dentro do CuícaLab, isso significa que sua participação e engajamento na plataforma avançaram para um novo nível ao longo do ciclo.",
           "As categorias funcionam como uma forma de reconhecer influenciadores mais ativos dentro da comunidade, levando em consideração campanhas realizadas, missões concluídas, participação em ações e pontos acumulados.",
-          "Além do reconhecimento dentro da plataforma, subir de categoria também significa que seu pagamento ao final do ciclo será maior do que o da categoria anterior.",
         ],
       },
       {
