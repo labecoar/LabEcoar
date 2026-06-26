@@ -156,19 +156,19 @@ export default function Tasks() {
     if (submissionStatus !== 'approved') return false;
     const metricsSubmission = getTaskMetricsSubmission(task.id);
     const metricsStatus = String(metricsSubmission?.status || '').trim().toLowerCase();
-    const now = new Date();
+    const now = Date.now();
     const metricsWindowEnd = getProofMetricsWindowFromSubmission(submission).end;
 
     if (!metricsSubmission) {
       if (!metricsWindowEnd) return true;
-      return now <= metricsWindowEnd;
+      return now <= new Date(metricsWindowEnd).getTime(); // ← corrigido
     }
     if (metricsStatus === 'pending') return true;
     if (metricsStatus === 'approved') return false;
     if (metricsStatus === 'rejected') {
       const resubmissionDeadline = getMetricsResubmissionDeadline(metricsSubmission?.reviewed_at);
       if (!resubmissionDeadline) return true;
-      return now <= resubmissionDeadline.getTime();
+      return now <= new Date(resubmissionDeadline).getTime(); // ← corrigido
     }
     return false;
   };
@@ -185,7 +185,7 @@ export default function Tasks() {
 
   const filteredTasks = (() => {
     if (selectedCategory === "todas") return tasks;
-    if (selectedCategory === "agendadas") return tasks.filter(isTaskScheduled);
+    if (selectedCategory === "agendadas") return tasks.filter(task => isTaskScheduled(task));
     return tasks.filter((task) => task.category === selectedCategory);
   })();
 
@@ -430,7 +430,13 @@ export default function Tasks() {
           <div className="flex items-center gap-3">
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: MUTED_COLOR }}>
               <Clock size={10} />
-              {format(new Date(task.posting_deadline || task.expires_at || task.delivery_deadline), "dd/MM/yyyy")}
+              {(() => {
+                const dateVal = task.posting_deadline || task.expires_at || task.delivery_deadline;
+                if (!dateVal) return <span style={{ color: MUTED_COLOR }}>—</span>;
+                const d = new Date(dateVal);
+                if (isNaN(d.getTime())) return <span style={{ color: MUTED_COLOR }}>—</span>;
+                return format(d, "dd/MM/yyyy");
+              })()}
             </span>
             {task.max_participants && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: MUTED_COLOR }}>
