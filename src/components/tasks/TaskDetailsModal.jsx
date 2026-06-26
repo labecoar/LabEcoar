@@ -5,7 +5,7 @@ import { useCreateSubmission, useSubmitProof } from "@/hooks/useSubmissions";
 import { useMyMetricsSubmissions, useSubmitMetricsSubmission } from "@/hooks/useMetrics";
 import { usePaymentInfo } from "@/hooks/usePayments";
 import { useUploadFile } from "@/hooks/useStorage";
-import { getProofApprovalMetricsWindow, getMetricsResubmissionDeadline } from '@/lib/metrics-window';
+import { getProofMetricsWindowFromSubmission, getMetricsResubmissionDeadline, METRICS_WAIT_AFTER_PROOF_DAYS, METRICS_SUBMISSION_WINDOW_DAYS } from '@/lib/metrics-window';
 import {
   Dialog,
   DialogContent,
@@ -22,6 +22,7 @@ import { Calendar, Clock, Users, Star, CircleDollarSign, UserRoundCheck, Send, U
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
 import { C, heading, body } from '@/lib/theme';
 import { CATEGORY_ACCENT } from "@/pages/Tasks";
+import { formatLaunchDateTime, isTaskScheduled } from '@/lib/task-scheduling';
 
 const CATEGORY_NAMES = {
   campanha: "Campanha",
@@ -233,7 +234,9 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const isSubmissionExpiredByRule = isAutoExpiredSubmissionRejection(currentSubmission) && isProofDeadlineExpired;
   const isSubmissionReopenedByDateChange = isAutoExpiredSubmissionRejection(currentSubmission) && !isProofDeadlineExpired;
   const shouldShowSubmissionRejectionReason = Boolean(currentSubmission?.rejection_reason) && !isSubmissionReopenedByDateChange;
-  const canApply = (!currentSubmission || isSubmissionReopenedByDateChange) && !isTaskApproved && !isFull && meetsFollowersRequirement;
+  const isScheduled = isTaskScheduled(task);
+  const launchLabel = isScheduled ? formatLaunchDateTime(task.launch_at) : null;
+  const canApply = (!currentSubmission || isSubmissionReopenedByDateChange) && !isTaskApproved && !isFull && meetsFollowersRequirement && !isScheduled;
   const canSubmitProof = (
     (submissionStatus === 'application_approved' || submissionStatus === 'rejected' || (isSidequestTask && submissionStatus === 'application_pending'))
     && !isProofDeadlineExpired
@@ -252,7 +255,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const canSubmitMetrics = isCampaignTask
     && submissionStatus === 'approved'
     && (!currentMetricsSubmission || (metricsStatus === 'rejected' && !hasResubmissionWindowExpired));
-  const proofApprovalMetricsWindow = getProofApprovalMetricsWindow(currentSubmission?.validated_at);
+  const proofApprovalMetricsWindow = getProofMetricsWindowFromSubmission(currentSubmission);
   const metricsWindowStart = proofApprovalMetricsWindow.start;
   const metricsWindowEnd = proofApprovalMetricsWindow.end;
   const metricsWindowLabel = metricsWindowStart && metricsWindowEnd
@@ -280,14 +283,14 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const hasPassedStep2 = submissionStatus === 'approved';
   const isMetricsCompleted = metricsStatus === 'approved';
   const footerStageDeadline = useMemo(() => {
-    if (isCampaignTask && hasPassedStep2 && metricsWindowEnd) {
+    if (isCampaignTask && hasPassedStep2 && !isMetricsCompleted && metricsWindowEnd && !hasMetricsWindowPassed) {
       return {
-        label: 'Expira em',
-        date: metricsWindowEnd,
+        label: metricsWindowStart && now < metricsWindowStart ? 'Métricas liberam em' : 'Prazo das métricas até',
+        date: metricsWindowStart && now < metricsWindowStart ? metricsWindowStart : metricsWindowEnd,
       };
     }
 
-    if (hasProofDeadline) {
+    if (hasProofDeadline && !hasPassedStep2) {
       return {
         label: 'Prazo do conteúdo até',
         date: proofDeadline,
@@ -302,15 +305,15 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     }
 
     return null;
-  }, [isCampaignTask, hasPassedStep2, metricsWindowEnd, hasProofDeadline, proofDeadline, task.expires_at, timeLeft]);
+  }, [isCampaignTask, hasPassedStep2, isMetricsCompleted, metricsWindowStart, metricsWindowEnd, hasMetricsWindowPassed, hasProofDeadline, proofDeadline, task.expires_at, timeLeft, now]);
 
   const submissionStageLabel = isSidequestTask && submissionStatus === 'application_pending'
     ? SIDEQUEST_PENDING_TEXT
     : STATUS_TEXT[submissionStatus] || 'Inscrição em análise';
 
   const metricsWindowHoverText = metricsWindowLabel
-    ? `Só será possível enviar as métricas na janela: de ${metricsWindowLabel}.`
-    : 'A janela de envio de métricas será disponibilizada 24 horas após a aprovação da prova.';
+    ? `Envio de métricas: de ${metricsWindowLabel}.`
+    : `A janela de envio de métricas será disponibilizada ${METRICS_WAIT_AFTER_PROOF_DAYS} dias após o envio da prova, por ${METRICS_SUBMISSION_WINDOW_DAYS} dias.`;
 
   const metricsSubmitHint = (!metricsFiles || metricsFiles.length === 0)
     ? 'Anexe o arquivo de métricas para enviar.'
@@ -320,7 +323,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
         ? 'A janela de envio de métricas foi encerrada.'
         : !isInsideMetricsWindow
           ? (metricsWindowLabel
-            ? `As métricas só serão possíveis de enviar na janela: ${metricsWindowLabel}.`
+            ? `As métricas só poderão ser enviadas entre ${metricsWindowLabel}.`
             : 'As métricas ainda não podem ser enviadas.')
           : '';
 
@@ -334,7 +337,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
           ? 'A janela de envio de métricas já foi encerrada.'
           : !isInsideMetricsWindow
             ? (metricsWindowLabel
-              ? `Envio liberado apenas entre ${metricsWindowLabel}.`
+              ? `Envio liberado entre ${metricsWindowLabel}.`
               : 'A janela de envio de métricas ainda não começou.')
             : '';
 
@@ -377,10 +380,10 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     if (isCampaignTask) {
       steps.push({
         label: "Enviar métricas",
-        description: (metricsWindowStart && metricsWindowEnd)
+        description: metricsWindowStart && metricsWindowEnd
           ? `Entre ${metricsWindowStart.toLocaleDateString('pt-BR')} e ${metricsWindowEnd.toLocaleDateString('pt-BR')}`
-          : "Liberado 24h após aprovação da prova",
-        dateInfo: null // A data aqui já foi pro description para caber no layout da sua imagem
+          : `${METRICS_WAIT_AFTER_PROOF_DAYS} dias após a prova, por ${METRICS_SUBMISSION_WINDOW_DAYS} dias`,
+        dateInfo: null
       });
     }
 
@@ -473,7 +476,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     e.preventDefault();
     if (!canSubmitMetrics || !metricsFiles || metricsFiles.length === 0) return;
     if (!isInsideMetricsWindow) {
-      notifyWarning('As métricas só podem ser enviadas a partir de 24 horas após a aprovação da prova e por até 2 dias úteis após esse momento.');
+      notifyWarning(`As métricas só podem ser enviadas entre ${metricsWindowLabel || `${METRICS_WAIT_AFTER_PROOF_DAYS} dias após a prova e por mais ${METRICS_SUBMISSION_WINDOW_DAYS} dias`}.`);
       return;
     }
 
@@ -554,6 +557,18 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
         {/* ── Body scrollável ── */}
         <div className="overflow-y-auto px-6 py-6 flex flex-col gap-5">
+
+          {isScheduled && launchLabel && (
+            <div className="rounded-xl p-4 text-sm" style={{ backgroundColor: 'rgba(170,102,255,0.12)', border: '1px solid rgba(170,102,255,0.2)', color: C.purple }}>
+              <div className="flex items-center gap-2 font-semibold mb-1">
+                <Calendar size={14} />
+                Lançamento agendado
+              </div>
+              <p style={{ color: `${C.cream}80`, fontSize: 13 }}>
+                Esta tarefa será liberada em <strong style={{ color: C.cream }}>{launchLabel}</strong>. Você poderá se candidatar a partir desse horário.
+              </p>
+            </div>
+          )}
 
           {/* Pagamento + Vagas */}
           <div className={`grid grid-cols-1 ${task.max_participants ? 'sm:grid-cols-2' : ''} gap-3`}>
@@ -724,6 +739,11 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
               {!hasPassedStep1 && submissionStatus !== 'approved' && (
 
                 <form onSubmit={handleApply}>
+                  {isScheduled && launchLabel && (
+                    <div className="mb-3 text-xs rounded-xl p-3" style={{ backgroundColor: 'rgba(170,102,255,0.12)', color: C.purple, border: '1px solid rgba(170,102,255,0.2)' }}>
+                      Agendada para {launchLabel}. A participação será liberada automaticamente no horário.
+                    </div>
+                  )}
                   {!meetsFollowersRequirement && minFollowersRequired > 0 && (
                     <div className="mb-3 text-xs rounded-xl p-3" style={{ backgroundColor: 'rgba(255,34,85,0.12)', color: '#FF2255', border: '1px solid rgba(255,34,85,0.2)' }}>
                       Esta tarefa exige no mínimo {minFollowersRequired} seguidores. Você possui {userFollowers}.
@@ -757,9 +777,11 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                               ? 'Prazo expirado'
                               : isFull
                                 ? 'Vagas encerradas'
-                                : isSubmitting
-                                  ? 'Enviando...'
-                                  : 'Candidatar-se para esta Vaga'}
+                                : isScheduled
+                                  ? `Agendada para ${launchLabel}`
+                                  : isSubmitting
+                                    ? 'Enviando...'
+                                    : 'Candidatar-se para esta Vaga'}
                   </button>
                 </form>
 

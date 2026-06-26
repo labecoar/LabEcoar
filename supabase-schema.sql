@@ -192,6 +192,8 @@ CREATE TABLE IF NOT EXISTS tasks (
 );
 
 -- Garantir colunas adicionais de tarefas em bases já existentes
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS launch_at TIMESTAMPTZ;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS launch_email_sent BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS offered_value NUMERIC(12,2);
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS proof_type TEXT DEFAULT 'link';
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS folhetim_type TEXT;
@@ -241,6 +243,8 @@ ALTER TABLE submissions DROP CONSTRAINT IF EXISTS submissions_status_check;
 ALTER TABLE submissions
   ADD CONSTRAINT submissions_status_check
   CHECK (status IN ('application_pending', 'application_approved', 'application_rejected', 'proof_pending', 'approved', 'rejected', 'pending'));
+
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS proof_submitted_at TIMESTAMPTZ;
 
 -- Índice para evitar duplicidade de workflow por usuário/tarefa
 CREATE UNIQUE INDEX IF NOT EXISTS idx_submissions_user_task_unique

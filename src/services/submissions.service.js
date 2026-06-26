@@ -278,7 +278,7 @@ export const submissionsService = {
   async createSubmission(submissionData) {
     const { data: taskRequirementRows, error: taskRequirementError } = await supabase
       .from('tasks')
-      .select('id, min_followers')
+      .select('id, min_followers, launch_at')
       .eq('id', submissionData.task_id)
       .limit(1)
 
@@ -287,6 +287,11 @@ export const submissionsService = {
     const taskDataForRequirement = taskRequirementRows?.[0] || null
     if (!taskDataForRequirement) {
       throw new Error('Tarefa nao encontrada para esta candidatura.')
+    }
+
+    const launchAt = taskDataForRequirement.launch_at ? new Date(taskDataForRequirement.launch_at) : null
+    if (launchAt && !Number.isNaN(launchAt.getTime()) && launchAt.getTime() > Date.now()) {
+      throw new Error('Esta tarefa ainda nao foi liberada. Aguarde o horario de lancamento.')
     }
 
     const minFollowersRequired = Number(taskDataForRequirement?.min_followers || 0)
@@ -509,6 +514,7 @@ export const submissionsService = {
         points_awarded: 0,
         rejection_reason: null,
         validated_at: null,
+        proof_submitted_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
       .eq('id', submissionId)

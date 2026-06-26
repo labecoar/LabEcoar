@@ -9,7 +9,7 @@ import { Clock, CheckCircle, XCircle, Star, ExternalLink, CircleDollarSign, File
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import TaskDetailsModal from "../components/tasks/TaskDetailsModal";
-import { getProofApprovalMetricsWindow, getMetricsResubmissionDeadline } from '@/lib/metrics-window';
+import { getProofMetricsWindowFromSubmission, getMetricsResubmissionDeadline } from '@/lib/metrics-window';
 import { C, heading, body } from '@/lib/theme';
 import { createPageUrl } from "@/utils";
 
@@ -84,9 +84,8 @@ export default function MySubmissions() {
     return String(metricsSubmission?.status || '').trim().toLowerCase() || null;
   };
 
-  const getCampaignMetricsWindowEnd = (submission) => {
-    return getProofApprovalMetricsWindow(submission?.validated_at || submission?.updated_at).end;
-  };
+  const getCampaignMetricsWindowEnd = (submission) =>
+    getProofMetricsWindowFromSubmission(submission).end;
 
   const getCampaignMetricsResubmissionDeadline = (submission) => {
     const taskId = getSubmissionTaskId(submission);
@@ -117,8 +116,8 @@ export default function MySubmissions() {
 
       if (metricsStatus === 'approved') return false;
 
-      const metricsWindowEnd = getCampaignMetricsWindowEnd(submission);
       const resubmissionDeadline = getCampaignMetricsResubmissionDeadline(submission);
+      const metricsWindowEnd = getCampaignMetricsWindowEnd(submission);
       const deadline = resubmissionDeadline || metricsWindowEnd;
 
       if (!deadline) return false;

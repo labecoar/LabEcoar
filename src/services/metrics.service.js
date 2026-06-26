@@ -1,6 +1,11 @@
 import { supabase } from '@/lib/supabase'
 import { storageService } from '@/services/storage.service'
-import { getProofApprovalMetricsWindow, getMetricsResubmissionDeadline } from '@/lib/metrics-window'
+import {
+  getProofMetricsWindowFromSubmission,
+  getMetricsResubmissionDeadline,
+  METRICS_WAIT_AFTER_PROOF_DAYS,
+  METRICS_SUBMISSION_WINDOW_DAYS,
+} from '@/lib/metrics-window'
 
 const METRICS_STATUS = {
   PENDING: 'pending',
@@ -188,7 +193,7 @@ export const metricsService = {
 
     const { data: proofSubmission, error: proofSubmissionError } = await supabase
       .from('submissions')
-      .select('id, status, validated_at, updated_at')
+      .select('id, status, proof_submitted_at, validated_at, updated_at')
       .eq('user_id', user.id)
       .eq('task_id', task.id)
       .eq('status', 'approved')
@@ -196,18 +201,18 @@ export const metricsService = {
 
     if (proofSubmissionError) throw proofSubmissionError
 
-    const proofMetricsWindow = getProofApprovalMetricsWindow(proofSubmission?.validated_at || proofSubmission?.updated_at)
+    const proofMetricsWindow = getProofMetricsWindowFromSubmission(proofSubmission)
     const now = new Date()
     if (!proofMetricsWindow.start || !proofMetricsWindow.end) {
       throw new Error('A janela de envio de métricas ainda não foi liberada.')
     }
 
     if (now < proofMetricsWindow.start) {
-      throw new Error('As métricas só podem ser enviadas 24 horas após a aprovação da prova.')
+      throw new Error(`As métricas só podem ser enviadas ${METRICS_WAIT_AFTER_PROOF_DAYS} dias após o envio da prova.`)
     }
 
     if (now > proofMetricsWindow.end) {
-      throw new Error('A janela de envio de métricas foi encerrada.')
+      throw new Error(`A janela de envio de métricas foi encerrada (${METRICS_SUBMISSION_WINDOW_DAYS} dias após a liberação).`)
     }
     
     // Capture timestamp automatically at submission time (prevents date fraud)

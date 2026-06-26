@@ -37,7 +37,13 @@ import {
   Plus,
 } from 'lucide-react'
 import { notifyError, notifySuccess, notifyWarning } from '@/lib/toast'
+import { getCampaignAdminVisibilityDeadline, isCampaignVisibleForAdminReview } from '@/lib/metrics-window'
 import { C, heading, body } from '@/lib/theme'
+import {
+  formatDateTimeLocalValue as formatLaunchDateTimeLocalValue,
+  formatLaunchDateTime,
+  isTaskScheduled,
+} from '@/lib/task-scheduling'
 
 const CATEGORY_OPTIONS = [
   { value: 'campanha', label: 'Campanha (Paga)' },
@@ -84,6 +90,8 @@ const initialFormData = {
   profile_requirements: '',
   min_followers: '',
   target_audience: '',
+  schedule_launch: false,
+  launch_at: '',
 }
 
 const initialForumForm = {
@@ -105,6 +113,9 @@ const getProofTypeLabel = (task) => {
 
 const isTaskExpired = (task) => {
   if (!task?.expires_at) return false
+  if (task.category === 'campanha') {
+    return !isCampaignVisibleForAdminReview(task)
+  }
   return new Date(task.expires_at).getTime() < Date.now()
 }
 
@@ -139,7 +150,12 @@ const countBusinessDaysUntil = (targetDateRaw, referenceDateRaw = new Date()) =>
 }
 
 const getTaskDeadlineState = (task) => {
-  if (!task?.expires_at) {
+  const adminVisibilityDeadline = task?.category === 'campanha'
+    ? getCampaignAdminVisibilityDeadline(task?.expires_at)
+    : null
+  const effectiveExpiresAt = adminVisibilityDeadline || (task?.expires_at ? new Date(task.expires_at) : null)
+
+  if (!effectiveExpiresAt) {
     return {
       isExpired: false,
       isCritical: false,
@@ -148,8 +164,7 @@ const getTaskDeadlineState = (task) => {
     }
   }
 
-  const expiresAt = new Date(task.expires_at)
-  if (Number.isNaN(expiresAt.getTime())) {
+  if (Number.isNaN(effectiveExpiresAt.getTime())) {
     return {
       isExpired: false,
       isCritical: false,
@@ -158,9 +173,13 @@ const getTaskDeadlineState = (task) => {
     }
   }
 
-  const diffMs = expiresAt.getTime() - Date.now()
+  const diffMs = effectiveExpiresAt.getTime() - Date.now()
   const oneDayMs = 24 * 60 * 60 * 1000
   const threeDaysMs = 3 * oneDayMs
+  const pastUserDeadline = task?.category === 'campanha'
+    && task?.expires_at
+    && new Date(task.expires_at).getTime() < Date.now()
+    && diffMs > 0
 
   if (diffMs <= 0) {
     return {
@@ -179,7 +198,9 @@ const getTaskDeadlineState = (task) => {
     isExpired: false,
     isCritical: diffMs <= oneDayMs,
     isWarning: diffMs > oneDayMs && diffMs <= threeDaysMs,
-    timeLabel: days > 0 ? `${days}d ${hours}h` : `${hours}h`,
+    timeLabel: pastUserDeadline
+      ? `Revisão admin: ${days > 0 ? `${days}d ${hours}h` : `${hours}h`}`
+      : (days > 0 ? `${days}d ${hours}h` : `${hours}h`),
   }
 }
 
@@ -341,6 +362,8 @@ export default function AdminContentManagement() {
       profile_requirements: task.profile_requirements || '',
       min_followers: task.min_followers ? String(task.min_followers) : '',
       target_audience: task.target_audience || '',
+      schedule_launch: Boolean(task.launch_at),
+      launch_at: formatLaunchDateTimeLocalValue(task.launch_at),
     })
   }
 
@@ -423,6 +446,20 @@ export default function AdminContentManagement() {
       return
     }
 
+    if (formData.schedule_launch && !formData.launch_at) {
+      setError('Informe a data e hora do lançamento agendado.')
+      return
+    }
+
+    const launchAtIso = formData.schedule_launch && formData.launch_at
+      ? new Date(formData.launch_at).toISOString()
+      : null
+
+    if (launchAtIso && Number.isNaN(new Date(launchAtIso).getTime())) {
+      setError('Informe uma data e hora de lançamento válida.')
+      return
+    }
+
     try {
       const taskPayload = {
         title,
@@ -447,6 +484,11 @@ export default function AdminContentManagement() {
         min_followers: minFollowers,
         target_audience: formData.target_audience || null,
         expires_at: isCampaign ? finalDeadline : nonCampaignFinalDeadline,
+        launch_at: launchAtIso,
+      }
+
+      if (editingTask && launchAtIso && new Date(launchAtIso).getTime() > Date.now()) {
+        taskPayload.launch_email_sent = false
       }
 
       if (editingTask) {
@@ -876,6 +918,38 @@ export default function AdminContentManagement() {
                     </div>
                   )}
 
+                  {/* Agendamento de lançamento */}
+                  <div>
+                    <label className="flex items-center gap-2.5 cursor-pointer w-fit mb-2">
+                      <input
+                        type="checkbox"
+                        style={{ accentColor: C.lime, width: 16, height: 16 }}
+                        checked={formData.schedule_launch}
+                        onChange={(e) => setFormData((prev) => ({
+                          ...prev,
+                          schedule_launch: e.target.checked,
+                          launch_at: e.target.checked ? prev.launch_at : '',
+                        }))}
+                      />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: `${C.cream}80` }}>Agendar lançamento</span>
+                    </label>
+                    {formData.schedule_launch && (
+                      <>
+                        <p style={{ fontSize: 11, color: `${C.cream}45`, marginBottom: 8 }}>
+                          A tarefa ficará visível antes do horário, mas só poderá ser feita após o lançamento.
+                          {isCampaign && ' Campanhas agendadas recebem e-mail apenas quando forem liberadas.'}
+                        </p>
+                        <input
+                          type="datetime-local"
+                          className={aInputCls}
+                          style={{ ...aInputStyle, maxWidth: 260 }}
+                          value={formData.launch_at}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, launch_at: e.target.value }))}
+                        />
+                      </>
+                    )}
+                  </div>
+
                   {/* Máx participantes + Tipo campanha */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -1021,6 +1095,7 @@ export default function AdminContentManagement() {
                     const categoryMeta = CATEGORY_META[task.category] || { label: task.category, icon: Target, color: '' }
                     const Icon = categoryMeta.icon
                     const deadline = getTaskDeadlineState(task)
+                    const scheduled = isTaskScheduled(task)
                     return (
                       <TaskCard
                         key={task.id}
@@ -1028,6 +1103,8 @@ export default function AdminContentManagement() {
                         Icon={Icon}
                         categoryMeta={categoryMeta}
                         deadline={deadline}
+                        scheduled={scheduled}
+                        launchLabel={scheduled ? formatLaunchDateTime(task.launch_at) : null}
                         onEdit={handleEditTask}
                         onDelete={handleDeleteTask}
                         deleteIsPending={deleteTask.isPending}
@@ -1237,18 +1314,23 @@ export default function AdminContentManagement() {
 }
 
 // ─── Task Card (shared between Ativas / Concluídas) ───────────────────────────
-function TaskCard({ task, Icon, categoryMeta, deadline, onEdit, onDelete, deleteIsPending, heading, body, dimmed = false }) {
+function TaskCard({ task, Icon, categoryMeta, deadline, scheduled = false, launchLabel = null, onEdit, onDelete, deleteIsPending, heading, body, dimmed = false }) {
   return (
     <div
       className="relative rounded-2xl p-5 transition-all"
       style={{
-        border: `1px solid rgba(255,255,222,0.07)`,
-        backgroundColor: dimmed ? 'rgba(255,255,222,0.01)' : 'rgba(255,255,222,0.03)',
+        border: `1px solid ${scheduled ? 'rgba(170,102,255,0.25)' : 'rgba(255,255,222,0.07)'}`,
+        backgroundColor: scheduled ? 'rgba(170,102,255,0.06)' : dimmed ? 'rgba(255,255,222,0.01)' : 'rgba(255,255,222,0.03)',
         opacity: dimmed ? 0.75 : 1,
       }}
     >
       {/* Badges */}
       <div className="absolute top-4 right-4 flex items-center gap-2 flex-wrap justify-end" style={{ maxWidth: '45%' }}>
+        {scheduled && launchLabel && (
+          <span style={{ backgroundColor: 'rgba(170,102,255,0.18)', color: C.purple, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <Clock3 size={11} /> Agendada · {launchLabel}
+          </span>
+        )}
         <span style={{ backgroundColor: `${C.lime}20`, color: C.lime, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
           <Icon size={11} /> {categoryMeta.label}
         </span>

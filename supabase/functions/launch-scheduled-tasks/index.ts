@@ -1,18 +1,6 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-
-declare const EdgeRuntime: {
-  waitUntil: (promise: Promise<unknown>) => void
-}
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret',
-}
-
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-const WEBHOOK_SECRET = Deno.env.get('WEBHOOK_SECRET')
 const FROM_EMAIL = 'Cuica Lab <contato@cuicalab.com>'
 const APP_URL = 'https://cuicalab.com'
 const BATCH_SIZE = 50
@@ -32,7 +20,8 @@ type Task = {
   title: string
   category: string
   status: string
-  launch_at?: string | null 
+  launch_at?: string | null
+  launch_email_sent?: boolean | null
   min_followers?: number | null
   max_participants?: number | null
   current_participants?: number | null
@@ -41,6 +30,8 @@ type Task = {
 const supabaseHeaders = {
   apikey: SUPABASE_SERVICE_ROLE_KEY || '',
   Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+  'Content-Type': 'application/json',
+  Prefer: 'return=representation',
 }
 
 const buildEmailHtml = (name: string, taskTitle: string) => `
@@ -89,33 +80,26 @@ const buildEmailHtml = (name: string, taskTitle: string) => `
 
 const isEligibleProfile = (profile: Profile, task: Task) => {
   if (!profile?.email) return false
-
   const minFollowers = Number(task.min_followers || 0)
   const followers = Number(profile.followers_count || 0)
   if (minFollowers > 0 && followers < minFollowers) return false
-
   return true
 }
 
 const isCampaignAvailable = (task: Task) => {
   if (task.category !== 'campanha') return false
   if (task.status !== 'active') return false
-  if (task.launch_at && new Date(task.launch_at) > new Date()) return false
-
   const maxParticipants = Number(task.max_participants || 0)
   const currentParticipants = Number(task.current_participants || 0)
   if (maxParticipants > 0 && currentParticipants >= maxParticipants) return false
-
   return true
 }
 
-const verifyWebhookSecret = (req: Request) => {
-  const secret = req.headers.get('x-webhook-secret')
-  if (!WEBHOOK_SECRET) {
-    console.warn('WEBHOOK_SECRET not configured')
-    return false
-  }
-  return secret === WEBHOOK_SECRET
+const isTaskLaunched = (task: Task, now = Date.now()) => {
+  if (!task.launch_at) return true
+  const launchAt = new Date(task.launch_at).getTime()
+  if (Number.isNaN(launchAt)) return true
+  return launchAt <= now
 }
 
 async function fetchEligibleProfiles(task: Task) {
@@ -126,39 +110,30 @@ async function fetchEligibleProfiles(task: Task) {
     deleted_at: 'is.null',
     email: 'not.is.null',
   })
-
   if (minFollowers > 0) {
     params.set('followers_count', `gte.${minFollowers}`)
   }
-
   const profileRes = await fetch(
     `${SUPABASE_URL}/rest/v1/profiles?${params.toString()}`,
     { headers: supabaseHeaders },
   )
-
   if (!profileRes.ok) {
     const errorText = await profileRes.text()
     throw new Error(`Failed to fetch profiles: ${errorText}`)
   }
-
   const profiles = await profileRes.json() as Profile[]
   return (profiles || []).filter((profile) => isEligibleProfile(profile, task))
 }
 
 async function sendCampaignEmails(task: Task) {
-  if (!RESEND_API_KEY) {
-    throw new Error('RESEND_API_KEY is not configured')
-  }
-
+  if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY is not configured')
   const profiles = await fetchEligibleProfiles(task)
   if (profiles.length === 0) {
     console.log('No eligible profiles for campaign email', task.id)
     return { sent: 0 }
   }
-
   const taskTitle = task.title || 'campanha'
   let sent = 0
-
   for (let index = 0; index < profiles.length; index += BATCH_SIZE) {
     const batch = profiles.slice(index, index + BATCH_SIZE)
     const payload = batch.map((profile) => {
@@ -170,7 +145,6 @@ async function sendCampaignEmails(task: Task) {
         html: buildEmailHtml(name, taskTitle),
       }
     })
-
     const resendResponse = await fetch('https://api.resend.com/emails/batch', {
       method: 'POST',
       headers: {
@@ -179,60 +153,85 @@ async function sendCampaignEmails(task: Task) {
       },
       body: JSON.stringify(payload),
     })
-
     const resendData = await resendResponse.text()
     console.log('Resend batch status:', resendResponse.status)
     console.log('Resend batch response:', resendData)
-
-    if (!resendResponse.ok) {
-      throw new Error(`Resend error: ${resendData}`)
-    }
-
+    if (!resendResponse.ok) throw new Error(`Resend error: ${resendData}`)
     sent += batch.length
   }
-
-  await fetch(
-    `${SUPABASE_URL}/rest/v1/tasks?id=eq.${task.id}`,
-    {
-      method: 'PATCH',
-      headers: { ...supabaseHeaders, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify({ launch_email_sent: true }),
-    }
-  )
-
   console.log(`Campaign emails sent for task ${task.id}: ${sent}`)
   return { sent }
 }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+async function markLaunchEmailSent(taskId: string) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/tasks?id=eq.${taskId}`, {
+    method: 'PATCH',
+    headers: supabaseHeaders,
+    body: JSON.stringify({
+      launch_email_sent: true,
+      updated_at: new Date().toISOString(),
+    }),
+  })
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Failed to mark launch email sent: ${errorText}`)
   }
+}
 
+async function fetchTasksPendingLaunchEmail() {
+  console.log('fetchTasksPendingLaunchEmail started')
+  const params = new URLSearchParams({
+    select: 'id,title,category,status,launch_at,launch_email_sent,min_followers,max_participants,current_participants',
+    status: 'eq.active',
+    category: 'eq.campanha',
+    launch_email_sent: 'eq.false',
+  })
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/tasks?${params.toString()}`, {
+    headers: supabaseHeaders,
+  })
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Failed to fetch scheduled tasks: ${errorText}`)
+  }
+  const tasks = await response.json() as Task[]
+  return (tasks || []).filter((task) => isTaskLaunched(task) && isCampaignAvailable(task))
+}
+
+async function processScheduledLaunches() {
+  console.log('processScheduledLaunches started')
+  const tasks = await fetchTasksPendingLaunchEmail()
+  console.log(`Found ${tasks.length} tasks pending launch email`)
+  const results = []
+  for (const task of tasks) {
+    try {
+      const { sent } = await sendCampaignEmails(task)
+      await markLaunchEmailSent(task.id)
+      results.push({ taskId: task.id, sent, status: 'ok' })
+    } catch (error) {
+      console.error(`Failed to launch task ${task.id}:`, error)
+      results.push({
+        taskId: task.id,
+        status: 'error',
+        message: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+  return { processed: results.length, results }
+}
+
+Deno.serve(async (req: Request) => {
+  console.log('handler called', req.method)
   try {
-    if (!verifyWebhookSecret(req)) {
-      return new Response('forbidden', { status: 403 })
+    if (req.method !== 'POST') {
+      return new Response('method not allowed', { status: 405 })
     }
-
-    const payload = await req.json()
-    const record = payload.record as Task | undefined
-
-    if (!record?.id || !record?.title) {
-      return new Response('invalid payload', { status: 400 })
-    }
-
-    if (!isCampaignAvailable(record)) {
-      return new Response('not a campaign', { status: 200 })
-    }
-
-    EdgeRuntime.waitUntil(sendCampaignEmails(record))
-
-    return new Response(JSON.stringify({ queued: true }), {
-      status: 202,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    const result = await processScheduledLaunches()
+    return new Response(JSON.stringify({ ok: true, ...result }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
     })
   } catch (err) {
     console.error('Error:', err)
-    return new Response('error', { status: 500, headers: corsHeaders })
+    return new Response('error', { status: 500 })
   }
 })

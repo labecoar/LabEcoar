@@ -14,8 +14,9 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import TaskDetailsModal from "../components/tasks/TaskDetailsModal";
-import { getProofApprovalMetricsWindow, getMetricsResubmissionDeadline } from '@/lib/metrics-window';
+import { getProofMetricsWindowFromSubmission, getMetricsResubmissionDeadline } from '@/lib/metrics-window';
 import { C, heading, body } from '@/lib/theme';
+import { formatLaunchDateTime, isTaskScheduled } from '@/lib/task-scheduling';
 
 const BORDER_COLOR = "rgba(255,255,222,0.07)";
 const MUTED_COLOR = "rgba(255,255,222,0.45)";
@@ -155,17 +156,21 @@ export default function Tasks() {
     if (submissionStatus !== 'approved') return false;
     const metricsSubmission = getTaskMetricsSubmission(task.id);
     const metricsStatus = String(metricsSubmission?.status || '').trim().toLowerCase();
-    if (!metricsSubmission) return true;
+    const now = new Date();
+    const metricsWindowEnd = getProofMetricsWindowFromSubmission(submission).end;
+
+    if (!metricsSubmission) {
+      if (!metricsWindowEnd) return true;
+      return now <= metricsWindowEnd;
+    }
     if (metricsStatus === 'pending') return true;
     if (metricsStatus === 'approved') return false;
-    const now = new Date();
-    const metricsWindowEnd = getProofApprovalMetricsWindow(submission?.validated_at || submission?.updated_at).end;
-    if (!metricsWindowEnd) return false;
-    if (now <= metricsWindowEnd) return true;
-    if (metricsStatus !== 'rejected') return false;
-    const resubmissionDeadline = getMetricsResubmissionDeadline(metricsSubmission?.reviewed_at);
-    if (!resubmissionDeadline) return false;
-    return now <= resubmissionDeadline;
+    if (metricsStatus === 'rejected') {
+      const resubmissionDeadline = getMetricsResubmissionDeadline(metricsSubmission?.reviewed_at);
+      if (!resubmissionDeadline) return true;
+      return now <= resubmissionDeadline.getTime();
+    }
+    return false;
   };
 
   const tasks = allTasks.filter(task => {
@@ -223,12 +228,12 @@ export default function Tasks() {
       let estimated = false;
 
       if (submissionStatus === 'approved') {
-        const window = getProofApprovalMetricsWindow(submission?.validated_at || submission?.updated_at);
+        const window = getProofMetricsWindowFromSubmission(submission);
         metricsDate = window?.end || null;
       } else {
         const baseDate = task.posting_deadline || task.expires_at || null;
         if (baseDate) {
-          const window = getProofApprovalMetricsWindow(baseDate);
+          const window = getProofMetricsWindowFromSubmission({ proof_submitted_at: baseDate, validated_at: baseDate });
           metricsDate = window?.end || null;
           estimated = true;
         }
@@ -285,8 +290,8 @@ export default function Tasks() {
     const deadline = getDeadlineState(task.expires_at);
     const isExpiredByRule = shouldShowExpiredStatus(task, submission);
     const reopenedByDateChange = isSubmissionReopenedByDateChange(task, submission);
-
-    // ── Badge de status ──────────────────────────────────────────────────────
+    const isScheduled = isTaskScheduled(task);
+    const launchLabel = isScheduled ? formatLaunchDateTime(task.launch_at) : null;
     const StatusBadge = () => {
       const base = {
         display: "inline-flex", alignItems: "center", gap: 4,
@@ -323,6 +328,8 @@ export default function Tasks() {
         return <span style={{ ...base, background: "rgba(255,34,85,0.12)", color: "#FF2255" }}>Rejeitada</span>;
       if (submission && !reopenedByDateChange)
         return <span style={{ ...base, background: "rgba(255,255,216,0.07)", color: MUTED_COLOR }}>Em andamento</span>;
+      if (isScheduled)
+        return <span style={{ ...base, background: "rgba(170,102,255,0.12)", color: C.purple }}><Calendar size={11} /> Em breve</span>;
       return <span style={{ ...base, background: "rgba(204,255,68,0.12)", color: C.lime }}>Disponível</span>;
     };
 
@@ -330,28 +337,46 @@ export default function Tasks() {
       <div
         onClick={() => setSelectedTask(task)}
         style={{
-          background: C.card,
+          background: isScheduled ? 'rgba(170,102,255,0.06)' : C.card,
           borderRadius: 16,
-          border: `1px solid ${BORDER_COLOR}`,
+          border: `1px solid ${isScheduled ? 'rgba(170,102,255,0.22)' : BORDER_COLOR}`,
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
           cursor: "pointer",
           transition: "all 0.2s",
+          opacity: isScheduled ? 0.88 : 1,
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.borderColor = "rgba(204,255,68,0.25)";
+          e.currentTarget.style.borderColor = isScheduled ? "rgba(170,102,255,0.35)" : "rgba(204,255,68,0.25)";
           e.currentTarget.style.transform = "translateY(-2px)";
         }}
         onMouseLeave={e => {
-          e.currentTarget.style.borderColor = BORDER_COLOR;
+          e.currentTarget.style.borderColor = isScheduled ? "rgba(170,102,255,0.22)" : BORDER_COLOR;
           e.currentTarget.style.transform = "translateY(0)";
         }}
       >
         {/* Faixa de acento */}
-        <div style={{ height: 3, background: accent, flexShrink: 0 }} />
+        <div style={{ height: 3, background: isScheduled ? C.purple : accent, flexShrink: 0 }} />
 
         <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
+          {isScheduled && launchLabel && (
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "8px 10px",
+              borderRadius: 10,
+              background: "rgba(170,102,255,0.12)",
+              border: "1px solid rgba(170,102,255,0.18)",
+              color: C.purple,
+              fontSize: 12,
+              fontWeight: 600,
+            }}>
+              <Calendar size={12} />
+              Agendada para {launchLabel}
+            </div>
+          )}
           {/* Topo: emoji + destaque + pts */}
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>

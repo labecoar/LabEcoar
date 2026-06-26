@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Lock } from 'lucide-react'
-import logoCuica from '@/assets/images/logo_cuica.png'
+import logoCuica from '@/assets/images/cuica_login.png'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -121,7 +121,7 @@ export default function ResetPassword() {
     <div className="min-h-screen flex items-center justify-center bg-[#f4f6f5] p-4">
       <div className="w-full max-w-md rounded-xl bg-white border border-slate-200 shadow-[0_15px_35px_rgba(15,23,42,0.08)] p-7 sm:p-8">
         <div className="text-center mb-6">
-          <img src={logoCuica} alt="CuicaLab" className="w-16 h-16 mx-auto mb-3 object-contain" />
+          <img src={logoCuica} alt="CuicaLab" className="w-48 h-48 mx-auto mb-2 object-contain" />
           <h1 className="text-3xl font-bold text-slate-900">Redefinir senha</h1>
           <p className="text-sm text-slate-500 mt-1">Digite sua nova senha para concluir</p>
         </div>

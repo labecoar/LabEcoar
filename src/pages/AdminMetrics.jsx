@@ -11,6 +11,7 @@ import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
 import { C, heading, body } from '@/lib/theme';
+import { METRICS_ADMIN_REVIEW_BUFFER_DAYS, METRICS_SUBMISSION_WINDOW_DAYS } from '@/lib/metrics-window';
 
 const STATUS_LABELS = {
   pending: 'Pendente',
@@ -314,14 +315,14 @@ export default function AdminMetrics() {
             Aprovação de Métricas
           </h1>
           <p style={{ fontSize: 14, color: `${C.cream}50`, marginTop: 6 }}>
-            Valide as métricas de campanhas enviadas pelos Ecoantes.
+            Valide as métricas de campanhas enviadas pelos Ecoantes. Ecoantes têm {METRICS_SUBMISSION_WINDOW_DAYS} dias para enviar; campanhas permanecem visíveis por mais {METRICS_ADMIN_REVIEW_BUFFER_DAYS} dias para revisão.
           </p>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl">
           {[
-            { icon: Clock, label: 'Pendentes', value: pendingMetrics.length, color: C.orange, iconBg: `${C.orange}12` },
+            { icon: Clock, label: 'Pendentes', value: pendingMetrics.length, color: C.orange, iconBg: C.orange_back },
             { icon: CheckCircle, label: 'Aprovadas', value: approvedMetrics.length, color: C.lime, iconBg: C.lime_back },
             { icon: XCircle, label: 'Rejeitadas', value: rejectedMetrics.length, color: '#f87171', iconBg: 'rgba(248,113,113,0.10)' },
           ].map(({ icon: Icon, label, value, color, iconBg }) => (

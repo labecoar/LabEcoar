@@ -15,3 +15,9 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/send-new-campaign-email/deno.json"
 entrypoint = "./functions/send-new-campaign-email/index.ts"
+
+[functions.launch-scheduled-tasks]
+enabled = true
+verify_jwt = false
+import_map = "./functions/launch-scheduled-tasks/deno.json"
+entrypoint = "./functions/launch-scheduled-tasks/index.ts"

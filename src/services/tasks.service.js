@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { shouldSendCampaignEmailOnCreate } from '@/lib/task-scheduling'
 
 const toDateOrNull = (value) => {
   if (!value) return null
@@ -137,7 +138,7 @@ export const tasksService = {
         .single()
 
       if (!error) {
-        if (data?.category === 'campanha') {
+        if (shouldSendCampaignEmailOnCreate(data)) {
           supabase.functions.invoke('send-new-campaign-email', {
             body: { record: data },
           }).catch((invokeError) => {

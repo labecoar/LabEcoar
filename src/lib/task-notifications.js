@@ -1,6 +1,7 @@
 import { differenceInCalendarDays, format, startOfDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { getProofApprovalMetricsWindow, getMetricsResubmissionDeadline } from '@/lib/metrics-window'
+import { getProofMetricsWindowFromSubmission, getMetricsResubmissionDeadline } from '@/lib/metrics-window'
+import { getTaskAvailabilityReference, isTaskLaunched } from '@/lib/task-scheduling'
 
 export const PROOF_APPROACHING_DAYS = 3
 export const METRICS_APPROACHING_DAYS = 3
@@ -70,6 +71,7 @@ const getMetricsForTask = (metricsSubmissions, taskId) =>
 
 const isTaskVisibleAndAvailable = (task, profile, submission) => {
   if (!task || task.status !== 'active') return false
+  if (!isTaskLaunched(task)) return false
 
   const submissionStatus = normalizeSubmissionStatus(submission?.status)
   if (['application_approved', 'proof_pending', 'approved'].includes(submissionStatus)) return false
@@ -83,8 +85,9 @@ const isTaskVisibleAndAvailable = (task, profile, submission) => {
 }
 
 const isTaskRecentlyOpened = (task, now) => {
-  const reference = toDateOrNull(task?.created_at) || toDateOrNull(task?.updated_at)
+  const reference = getTaskAvailabilityReference(task) || toDateOrNull(task?.updated_at)
   if (!reference) return true
+  if (!isTaskLaunched(task, now)) return false
   const ageDays = differenceInCalendarDays(startOfDay(now), startOfDay(reference))
   return ageDays <= NEW_TASK_MAX_AGE_DAYS
 }
@@ -111,7 +114,7 @@ const buildNewTaskNotification = ({ task, profile, submission, now }) => {
     title: 'Abriu tarefa nova',
     message: `A tarefa "${task.title}" acabou de abrir. Confira em Tarefas Disponíveis.`,
     task,
-    createdDate: task.created_at || task.updated_at || now.toISOString(),
+    createdDate: getTaskAvailabilityReference(task)?.toISOString() || task.created_at || task.updated_at || now.toISOString(),
   })
 }
 
@@ -229,8 +232,16 @@ const resolveMetricsDeadline = ({ submission, metricsSubmission }) => {
     return getMetricsResubmissionDeadline(reviewedAt)
   }
 
-  const metricsWindow = getProofApprovalMetricsWindow(submission?.validated_at || submission?.updated_at)
+  const metricsWindow = getProofMetricsWindowFromSubmission(submission)
   return metricsWindow.end
+}
+
+const resolveAdminMetricsReviewDeadline = ({ submission, metricsSubmission }) => {
+  const metricsStatus = normalizeSubmissionStatus(metricsSubmission?.status)
+  if (metricsStatus !== 'pending') return null
+
+  const metricsWindow = getProofMetricsWindowFromSubmission(submission)
+  return metricsWindow.adminEnd
 }
 
 const buildMetricsSendReminderNotification = ({ task, submission, metricsSubmission, now }) => {
@@ -242,7 +253,7 @@ const buildMetricsSendReminderNotification = ({ task, submission, metricsSubmiss
   const metricsStatus = normalizeSubmissionStatus(metricsSubmission?.status)
   if (metricsStatus === 'approved') return null
 
-  const metricsWindow = getProofApprovalMetricsWindow(submission?.validated_at || submission?.updated_at)
+  const metricsWindow = getProofMetricsWindowFromSubmission(submission)
   if (!metricsWindow.start || now < metricsWindow.start) return null
 
   const deadline = resolveMetricsDeadline({ submission, metricsSubmission })
@@ -423,7 +434,7 @@ export const buildAdminNotifications = ({
       && normalizeSubmissionStatus(submission.status) === 'approved'
     )
 
-    const deadline = resolveMetricsDeadline({
+    const deadline = resolveAdminMetricsReviewDeadline({
       submission: proofSubmission,
       metricsSubmission,
     })
@@ -440,8 +451,8 @@ export const buildAdminNotifications = ({
     notifications.push({
       id: `admin-metrics-review-${task.id}-${dayKey}`,
       type: 'admin_metrics_review_due',
-      title: 'Métricas encerram amanhã',
-      message: `Existem ${count} usuário${count === 1 ? '' : 's'} esperando pela aprovação de métricas na campanha "${task.title}".`,
+      title: 'Prazo de revisão de métricas se aproximando',
+      message: `Existem ${count} usuário${count === 1 ? '' : 's'} aguardando aprovação de métricas na campanha "${task.title}". Revise até amanhã.`,
       related_task_id: task.id,
       related_task_title: task.title,
       created_date: now.toISOString(),
