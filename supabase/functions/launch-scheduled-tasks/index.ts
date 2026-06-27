@@ -42,8 +42,8 @@ const buildEmailHtml = (name: string, taskTitle: string) => `
     <tr><td align="center">
       <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
         <tr>
-          <td style="background:#0f1833;padding:28px 32px;text-align:center;">
-            <span style="display:inline-block;background:#ffffff;border-radius:8px;padding:8px 14px;font-size:15px;font-weight:600;color:#0f1833;letter-spacing:0.5px;">Cuica Lab</span>
+          <td style="background:#0019FF;padding:0;text-align:center;">
+            <img src="https://ynvtwsdvzaksqxuocrbh.supabase.co/storage/v1/object/public/assets/cuica_lab_email.jpeg" alt="Cuica Lab" width="520" style="display:block;width:100%;max-width:520px;" />
           </td>
         </tr>
         <tr>
@@ -68,8 +68,7 @@ const buildEmailHtml = (name: string, taskTitle: string) => `
         </tr>
         <tr>
           <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 32px;text-align:center;">
-            <p style="font-size:12px;color:#94a3b8;margin:0 0 4px;">Cuica Lab</p>
-            <p style="font-size:12px;margin:0;"><a href="mailto:contato@cuicalab.com" style="color:#185FA5;text-decoration:none;">contato@cuicalab.com</a></p>
+            <p style="font-size:16px;color:#94a3b8;margin:0 0 4px;">Cuica Lab</p>
           </td>
         </tr>
       </table>

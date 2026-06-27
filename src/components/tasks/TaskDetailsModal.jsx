@@ -5,7 +5,7 @@ import { useCreateSubmission, useSubmitProof } from "@/hooks/useSubmissions";
 import { useMyMetricsSubmissions, useSubmitMetricsSubmission } from "@/hooks/useMetrics";
 import { usePaymentInfo } from "@/hooks/usePayments";
 import { useUploadFile } from "@/hooks/useStorage";
-import { getProofMetricsWindowFromSubmission, getMetricsResubmissionDeadline, METRICS_WAIT_AFTER_PROOF_DAYS, METRICS_SUBMISSION_WINDOW_DAYS } from '@/lib/metrics-window';
+import { getProofMetricsWindowFromSubmission, getMetricsResubmissionDeadline, METRICS_WAIT_AFTER_PROOF_DAYS } from '@/lib/metrics-window';
 import {
   Dialog,
   DialogContent,
@@ -252,9 +252,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const hasResubmissionWindowExpired = metricsStatus === 'rejected'
     && metricsResubmissionDeadline
     && now > metricsResubmissionDeadline;
-  const canSubmitMetrics = isCampaignTask
-    && submissionStatus === 'approved'
-    && (!currentMetricsSubmission || (metricsStatus === 'rejected' && !hasResubmissionWindowExpired));
+
   const proofApprovalMetricsWindow = getProofMetricsWindowFromSubmission(currentSubmission);
   const metricsWindowStart = proofApprovalMetricsWindow.start;
   const metricsWindowEnd = proofApprovalMetricsWindow.end;
@@ -265,6 +263,10 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     metricsWindowStart && metricsWindowEnd
       ? now >= metricsWindowStart && now <= metricsWindowEnd
       : true;
+  const canSubmitMetrics = isCampaignTask
+    && submissionStatus === 'approved'
+    && (!currentMetricsSubmission || metricsStatus === 'rejected')
+    && isInsideMetricsWindow;
   const hasMetricsWindowPassed = metricsWindowEnd ? now > metricsWindowEnd : false;
   const shouldShowMetricsReminder = Boolean(
     isCampaignTask
@@ -283,12 +285,6 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const hasPassedStep2 = submissionStatus === 'approved';
   const isMetricsCompleted = metricsStatus === 'approved';
   const footerStageDeadline = useMemo(() => {
-    if (isCampaignTask && hasPassedStep2 && !isMetricsCompleted && metricsWindowEnd && !hasMetricsWindowPassed) {
-      return {
-        label: metricsWindowStart && now < metricsWindowStart ? 'Métricas liberam em' : 'Prazo das métricas até',
-        date: metricsWindowStart && now < metricsWindowStart ? metricsWindowStart : metricsWindowEnd,
-      };
-    }
 
     if (hasProofDeadline && !hasPassedStep2) {
       return {
@@ -313,7 +309,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
   const metricsWindowHoverText = metricsWindowLabel
     ? `Envio de métricas: de ${metricsWindowLabel}.`
-    : `A janela de envio de métricas será disponibilizada ${METRICS_WAIT_AFTER_PROOF_DAYS} dias após o envio da prova, por ${METRICS_SUBMISSION_WINDOW_DAYS} dias.`;
+    : `A janela de envio de métricas será disponibilizada ${METRICS_WAIT_AFTER_PROOF_DAYS} dias após a aprovação do conteúdo.`;
 
   const metricsSubmitHint = (!metricsFiles || metricsFiles.length === 0)
     ? 'Anexe o arquivo de métricas para enviar.'
@@ -380,9 +376,9 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     if (isCampaignTask) {
       steps.push({
         label: "Enviar métricas",
-        description: metricsWindowStart && metricsWindowEnd
-          ? `Entre ${metricsWindowStart.toLocaleDateString('pt-BR')} e ${metricsWindowEnd.toLocaleDateString('pt-BR')}`
-          : `${METRICS_WAIT_AFTER_PROOF_DAYS} dias após a prova, por ${METRICS_SUBMISSION_WINDOW_DAYS} dias`,
+        description: metricsWindowStart
+          ? `Disponível a partir de ${metricsWindowStart.toLocaleDateString('pt-BR')}`
+          : `${METRICS_WAIT_AFTER_PROOF_DAYS} dias após a aprovação do conteúdo.`,
         dateInfo: null
       });
     }
@@ -411,7 +407,11 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
         proof_url: null,
       });
 
-      notifySuccess('Candidatura enviada com sucesso! Aguarde a aprovação do administrador. ✅');
+      notifySuccess(
+        isSidequestTask
+          ? 'Inscrito com sucesso! Já pode enviar sua prova. ✅'
+          : 'Candidatura enviada com sucesso! Aguarde a aprovação do administrador. ✅'
+      );
       onClose();
     } catch (error) {
       console.error('Erro ao candidatar-se:', error);
@@ -476,7 +476,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     e.preventDefault();
     if (!canSubmitMetrics || !metricsFiles || metricsFiles.length === 0) return;
     if (!isInsideMetricsWindow) {
-      notifyWarning(`As métricas só podem ser enviadas entre ${metricsWindowLabel || `${METRICS_WAIT_AFTER_PROOF_DAYS} dias após a prova e por mais ${METRICS_SUBMISSION_WINDOW_DAYS} dias`}.`);
+      notifyWarning(`As métricas só podem ser enviadas após ${METRICS_WAIT_AFTER_PROOF_DAYS} dias da aprovação do conteúdo.`);
       return;
     }
 
@@ -640,7 +640,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                 if (showFullDescription) {
                   return (
                     <>
-                      <p className="whitespace-pre-wrap break-words break-all" style={{ fontSize: 13, color: `${C.cream}70`, lineHeight: 1.65 }}>{task.description}</p>
+                      <p className="whitespace-pre-wrap break-words text-justify" style={{ fontSize: 13, color: `${C.cream}70`, lineHeight: 1.65 }}>{task.description}</p>
                       {shouldShowToggle && (
                         <button
                           type="button"
@@ -657,7 +657,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
                 return (
                   <>
-                    <p className="line-clamp-3 break-words break-all whitespace-pre-wrap" style={{ fontSize: 13, color: `${C.cream}70`, lineHeight: 1.65 }}>{task.description}</p>
+                    <p className="line-clamp-3 break-words whitespace-pre-wrap text-justify" style={{ fontSize: 13, color: `${C.cream}70`, lineHeight: 1.65 }}>{task.description}</p>
                     {shouldShowToggle && (
                       <button
                         type="button"
@@ -801,8 +801,9 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                         <Label htmlFor="proof-link" style={{ color: `${C.cream}70`, fontSize: 12 }}>Link da prova</Label>
                         <Input id="proof-link" type="url" value={proofLink} onChange={(e) => setProofLink(e.target.value)} placeholder="Cole o link da prova" className={`mt-1.5 h-[46px] ${inputCls}`} />
                       </div>
+                      <p style={{ fontSize: 12, color: `${C.cream}70`, marginTop: 2 }}>E/ou anexe um arquivo da prova:</p>
                       <div>
-                        <Label htmlFor="proof-file" style={{ color: `${C.cream}70`, fontSize: 12 }}>Arquivo da prova (Opcional)</Label>
+                        <Label htmlFor="proof-file" style={{ color: `${C.cream}70`, fontSize: 12 }}>Arquivo da prova </Label>
                         <input id="proof-file" type="file" onChange={(e) => setProofFile(e.target.files?.[0] || null)} className="block w-full mt-1.5 text-sm file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold transition-all file:bg-white/10 file:text-white hover:file:bg-white/20 file:cursor-pointer cursor-pointer text-white/50" />
                       </div>
                       <button
@@ -836,7 +837,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                       <div title={metricsButtonTitle || undefined}>
                         <button
                           type="submit"
-                          disabled={isSubmitting || uploadFile.isPending || submitMetrics.isPending || !metricsFiles || metricsFiles.length === 0 || !isInsideMetricsWindow || hasResubmissionWindowExpired}
+                          disabled={isSubmitting || uploadFile.isPending || submitMetrics.isPending || !metricsFiles || metricsFiles.length === 0}
                           className="w-full flex justify-center items-center h-[48px] rounded-xl transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                           style={{ backgroundColor: C.orange, color: C.black, ...heading, fontSize: 14, fontWeight: 700 }}
                         >

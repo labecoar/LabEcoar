@@ -278,16 +278,20 @@ export const submissionsService = {
   async createSubmission(submissionData) {
     const { data: taskRequirementRows, error: taskRequirementError } = await supabase
       .from('tasks')
-      .select('id, min_followers, launch_at')
+      .select('id, min_followers, launch_at, category')
       .eq('id', submissionData.task_id)
       .limit(1)
 
     if (taskRequirementError) throw taskRequirementError
 
     const taskDataForRequirement = taskRequirementRows?.[0] || null
+
     if (!taskDataForRequirement) {
       throw new Error('Tarefa nao encontrada para esta candidatura.')
     }
+
+    const isSidequest = taskDataForRequirement.category === 'sidequest_teste'
+    const initialStatus = isSidequest ? 'application_approved' : 'application_pending'
 
     const launchAt = taskDataForRequirement.launch_at ? new Date(taskDataForRequirement.launch_at) : null
     if (launchAt && !Number.isNaN(launchAt.getTime()) && launchAt.getTime() > Date.now()) {
@@ -340,7 +344,7 @@ export const submissionsService = {
       const { error } = await supabase
         .from('submissions')
         .update({
-          status: 'application_pending',
+          status: initialStatus,
           description: submissionData.description || null,
           proof_url: null,
           points_awarded: 0,
@@ -361,7 +365,7 @@ export const submissionsService = {
       if (reloadError) throw reloadError
 
       const updatedSubmission = reloadedRows?.[0] || null
-      if (updatedSubmission && updatedSubmission.status === 'application_pending') {
+      if (updatedSubmission && updatedSubmission.status === initialStatus) {
         return updatedSubmission
       }
 
@@ -372,7 +376,7 @@ export const submissionsService = {
           {
             user_id: submissionData.user_id,
             task_id: submissionData.task_id,
-            status: 'application_pending',
+            status: initialStatus,
             description: submissionData.description || null,
             proof_url: null,
             points_awarded: 0,
@@ -407,7 +411,7 @@ export const submissionsService = {
       .from('submissions')
       .insert([{
         ...submissionData,
-        status: 'application_pending'
+        status: initialStatus
       }])
       .select()
 
@@ -421,7 +425,7 @@ export const submissionsService = {
         const { error: fallbackError } = await supabase
           .from('submissions')
           .update({
-            status: 'application_pending',
+            status: initialStatus,
             description: submissionData.description || null,
             proof_url: null,
             points_awarded: 0,
@@ -447,7 +451,7 @@ export const submissionsService = {
         if (fallbackReadError) throw fallbackReadError
 
         const fallbackSubmission = fallbackRows?.[0] || null
-        if (fallbackSubmission && fallbackSubmission.status === 'application_pending') {
+        if (fallbackSubmission && fallbackSubmission.status === initialStatus) {
           return fallbackSubmission
         }
 

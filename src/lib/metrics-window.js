@@ -4,13 +4,13 @@ import { addDays } from 'date-fns'
 export const METRICS_WAIT_AFTER_PROOF_DAYS = 5
 
 /** Dias corridos que o ecoante tem para enviar métricas após a janela abrir */
-export const METRICS_SUBMISSION_WINDOW_DAYS = 3
+export const METRICS_SUBMISSION_WINDOW_DAYS = 365
 
 /** Dias corridos extras (só admin) para aprovar métricas após o prazo do ecoante */
-export const METRICS_ADMIN_REVIEW_BUFFER_DAYS = 3
+export const METRICS_ADMIN_REVIEW_BUFFER_DAYS = 0
 
 /** Dias corridos para reenvio após rejeição das métricas */
-export const METRICS_RESUBMISSION_WINDOW_DAYS = 2
+export const METRICS_RESUBMISSION_WINDOW_DAYS = 365
 
 export const toDateOrNull = (value) => {
   if (!value) return null

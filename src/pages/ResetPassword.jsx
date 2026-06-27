@@ -206,7 +206,10 @@ export default function ResetPassword() {
 
             <button
               type="button"
-              onClick={() => navigate('/Login')}
+              onClick={() => {
+                clearPasswordRecovery()
+                navigate('/Login')
+              }}
               className="w-full h-11 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
             >
               Voltar ao login
@@ -218,7 +221,10 @@ export default function ResetPassword() {
         {error && !sessionReady && (
           <button
             type="button"
-            onClick={() => navigate('/Login')}
+            onClick={() => {
+              clearPasswordRecovery()
+              navigate('/Login')
+            }}
             className="w-full mt-4 h-11 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
           >
             Voltar ao login

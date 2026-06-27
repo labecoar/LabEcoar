@@ -173,19 +173,38 @@ export default function Tasks() {
     return false;
   };
 
+  const isSidequestCompletedThisMonth = (taskId) => {
+    const submission = getTaskSubmission(taskId);
+    if (!submission) return false;
+    if (normalizeSubmissionStatus(submission.status) !== 'approved') return false;
+    if (submission.task?.category !== 'sidequest_teste') return false;
+
+    const approvedAt = toDateOrNull(submission.validated_at || submission.updated_at);
+    if (!approvedAt) return false;
+
+    const now = new Date();
+    return approvedAt.getMonth() === now.getMonth() && approvedAt.getFullYear() === now.getFullYear();
+  };
+
+  const HIDDEN_CATEGORIES = ['oficina', 'folhetim', 'compartilhar_ecoante']
+
   const tasks = allTasks.filter(task => {
+    if (HIDDEN_CATEGORIES.includes(task.category)) return false;
+    if (task.category === 'sidequest_teste' && isSidequestCompletedThisMonth(task.id)) return true;
     if (shouldHideTaskFromAvailable(task)) return false;
     if (task.expires_at && new Date(task.expires_at) < new Date() && !shouldKeepCampaignVisibleForMetrics(task)) return false;
     if (task.min_followers) {
       const userFollowers = profile?.followers_count || 0;
       if (userFollowers < task.min_followers) return false;
     }
+
     return true;
   });
 
   const filteredTasks = (() => {
     if (selectedCategory === "todas") return tasks;
     if (selectedCategory === "agendadas") return tasks.filter(task => isTaskScheduled(task));
+    if (selectedCategory === "concluidas") return tasks.filter(task => isSidequestCompletedThisMonth(task.id));  // ← novo
     return tasks.filter((task) => task.category === selectedCategory);
   })();
 
@@ -227,21 +246,13 @@ export default function Tasks() {
     if (task.category === 'campanha') {
       const submissionStatus = normalizeSubmissionStatus(submission?.status);
       let metricsDate = null;
-      let estimated = false;
 
       if (submissionStatus === 'approved') {
         const window = getProofMetricsWindowFromSubmission(submission);
         metricsDate = window?.end || null;
-      } else {
-        const baseDate = task.posting_deadline || task.expires_at || null;
-        if (baseDate) {
-          const window = getProofMetricsWindowFromSubmission({ proof_submitted_at: baseDate, validated_at: baseDate });
-          metricsDate = window?.end || null;
-          estimated = true;
-        }
       }
 
-      steps.push({ label: "Enviar métricas", date: metricsDate, estimated });
+      steps.push({ label: "Enviar métricas", date: metricsDate });
     }
     return steps;
   };
@@ -268,6 +279,7 @@ export default function Tasks() {
 
   // ─── TaskCard ──────────────────────────────────────────────────────────────
   const TaskCard = ({ task, index }) => {
+    const isSidequestBlockedThisMonth = task.category === 'sidequest_teste' && isSidequestCompletedThisMonth(task.id);
     const COLUMN_COLORS = [
       { color: C.blue, bg: C.blue_back },
       { color: C.orange, bg: C.orange_back },
@@ -299,6 +311,11 @@ export default function Tasks() {
         display: "inline-flex", alignItems: "center", gap: 4,
         padding: "3px 10px", borderRadius: 6, fontSize: 11, fontWeight: 500, flexShrink: 0,
       };
+
+      if (isSidequestBlockedThisMonth)
+        return <span style={{ ...base, background: "rgba(255,255,216,0.07)", color: "white" }}>
+          <CheckCircle2 size={11} /> Missão concluída
+        </span>;
 
       if (approved) {
         if (isCampaignTask) {
@@ -337,7 +354,7 @@ export default function Tasks() {
 
     return (
       <div
-        onClick={() => setSelectedTask(task)}
+        onClick={() => !isSidequestBlockedThisMonth && setSelectedTask(task)}
         style={{
           background: isScheduled ? 'rgba(170,102,255,0.06)' : C.card,
           borderRadius: 16,
@@ -345,15 +362,17 @@ export default function Tasks() {
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
-          cursor: "pointer",
+          cursor: isSidequestBlockedThisMonth ? 'default' : 'pointer',
           transition: "all 0.2s",
-          opacity: isScheduled ? 0.88 : 1,
+          opacity: isScheduled ? 0.88 : isSidequestBlockedThisMonth ? 0.4 : 1,
         }}
         onMouseEnter={e => {
+          if (isSidequestBlockedThisMonth) return;
           e.currentTarget.style.borderColor = isScheduled ? "rgba(170,102,255,0.35)" : "rgba(204,255,68,0.25)";
           e.currentTarget.style.transform = "translateY(-2px)";
         }}
         onMouseLeave={e => {
+          if (isSidequestBlockedThisMonth) return;
           e.currentTarget.style.borderColor = isScheduled ? "rgba(170,102,255,0.22)" : BORDER_COLOR;
           e.currentTarget.style.transform = "translateY(0)";
         }}
@@ -427,17 +446,20 @@ export default function Tasks() {
           </div>
 
           {/* Data limite + vagas */}
+          {/* Data limite + vagas */}
           <div className="flex items-center gap-3">
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: MUTED_COLOR }}>
-              <Clock size={10} />
-              {(() => {
-                const dateVal = task.posting_deadline || task.expires_at || task.delivery_deadline;
-                if (!dateVal) return <span style={{ color: MUTED_COLOR }}>—</span>;
-                const d = new Date(dateVal);
-                if (isNaN(d.getTime())) return <span style={{ color: MUTED_COLOR }}>—</span>;
-                return format(d, "dd/MM/yyyy");
-              })()}
-            </span>
+            {(() => {
+              const dateVal = task.posting_deadline || task.expires_at || task.delivery_deadline;
+              if (!dateVal) return null;
+              const d = new Date(dateVal);
+              if (isNaN(d.getTime())) return null;
+              return (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: MUTED_COLOR }}>
+                  <Clock size={10} />
+                  {format(d, "dd/MM/yyyy")}
+                </span>
+              );
+            })()}
             {task.max_participants && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: MUTED_COLOR }}>
                 <Users size={10} /> {task.current_participants || 0}/{task.max_participants}
@@ -517,11 +539,9 @@ export default function Tasks() {
     { value: "todas", label: "Todas" },
     { value: "campanha", label: "Campanhas" },
     { value: "resposta_rapida", label: "Respostas Rápidas" },
-    { value: "oficina", label: "Oficinas" },
-    { value: "folhetim", label: "Folhetins" },
-    { value: "compartilhar_ecoante", label: "Compartilhar" },
     { value: "sidequest_teste", label: "Missões" },
     { value: "agendadas", label: "Agendadas" },
+    { value: "concluidas", label: "Concluídas" },  // ← novo
   ];
 
   return (

@@ -47,9 +47,6 @@ import {
 
 const CATEGORY_OPTIONS = [
   { value: 'campanha', label: 'Campanha (Paga)' },
-  { value: 'oficina', label: 'Oficina (50 pts)', points: 50 },
-  { value: 'folhetim', label: 'Folhetim (75 pts)', points: 75 },
-  { value: 'compartilhar_ecoante', label: 'Compartilhar Ecoante (150 pts)', points: 150 },
   { value: 'sidequest_teste', label: 'Missão' },
 ]
 
