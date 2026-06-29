@@ -31,7 +31,7 @@ const STATUS_LABELS = {
 
 const BUSINESS_START_HOUR = 8;
 const BUSINESS_END_HOUR = 18;
-const REVIEW_SLA_BUSINESS_HOURS = 5;
+const REVIEW_SLA_BUSINESS_HOURS = 48;
 
 const isBusinessDay = (date) => { const day = date.getDay(); return day >= 1 && day <= 5; };
 
@@ -499,19 +499,29 @@ export default function AdminApproval() {
                 </div>
 
                 {/* Descrição */}
-                {selectedSubmission.description && (
-                  <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.07)` }}>
-                    <p style={{ fontSize: 10, color: `${C.cream}50`, marginBottom: 6 }}>Descrição</p>
-                    <div className={isDescriptionExpanded ? '' : 'line-clamp-2'}
-                      style={{ fontSize: 13, color: `${C.cream}70`, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                      {selectedSubmission.description}
+                {(() => {
+                  const cleanDesc = (selectedSubmission.description || '')
+                    .replace(/Arquivo \d+: https?:\/\/\S+\n?/g, '')
+                    .trim();
+                  if (!cleanDesc) return null;
+                  return (
+                    <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.07)` }}>
+                      <p style={{ fontSize: 10, color: `${C.cream}50`, marginBottom: 6 }}>Descrição</p>
+                      <div
+                        className={isDescriptionExpanded ? '' : 'line-clamp-2'}
+                        style={{ fontSize: 13, color: `${C.cream}70`, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
+                      >
+                        {cleanDesc}
+                      </div>
+                      {cleanDesc.length > 100 && (
+                        <button type="button" onClick={() => setIsDescriptionExpanded((v) => !v)}
+                          style={{ fontSize: 12, color: C.lime, fontWeight: 600, marginTop: 6 }}>
+                          {isDescriptionExpanded ? 'Ver menos' : 'Ver mais'}
+                        </button>
+                      )}
                     </div>
-                    <button type="button" onClick={() => setIsDescriptionExpanded((v) => !v)}
-                      style={{ fontSize: 12, color: C.lime, fontWeight: 600, marginTop: 6 }}>
-                      {isDescriptionExpanded ? 'Ver menos' : 'Ver mais'}
-                    </button>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Comprovante */}
                 {selectedSubmission.proof_url && (
@@ -531,6 +541,34 @@ export default function AdminApproval() {
                     </a>
                   </div>
                 )}
+
+                {/* Arquivos extras na descrição */}
+                {(() => {
+                  const desc = selectedSubmission.description || '';
+                  const arquivoLinks = [...desc.matchAll(/Arquivo \d+: (https?:\/\/\S+)/g)].map(m => m[1]);
+                  if (arquivoLinks.length === 0) return null;
+                  return (
+                    <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.07)` }}>
+                      <p style={{ fontSize: 10, color: `${C.cream}50`, marginBottom: 8 }}>Arquivos adicionais</p>
+                      <div className="flex flex-col gap-2">
+                        {arquivoLinks.map((url, i) => (
+                          <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:brightness-110"
+                            style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.1)` }}>
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                              style={{ backgroundColor: `${C.lime}14`, color: C.lime }}>
+                              <ExternalLink size={16} />
+                            </div>
+                            <div>
+                              <p style={{ fontSize: 13, fontWeight: 600, color: C.cream }}>Arquivo {i + 1}</p>
+                              <p style={{ fontSize: 11, color: `${C.cream}50` }}>Clique para visualizar</p>
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Ações */}
                 {normalizeSubmissionStatus(selectedSubmission.status) === 'proof_pending' && (

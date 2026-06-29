@@ -186,7 +186,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [proofDescription, setProofDescription] = useState('');
   const [proofLink, setProofLink] = useState('');
-  const [proofFile, setProofFile] = useState(null);
+  const [proofFiles, setProofFiles] = useState([]);
   const [metricsDescription, setMetricsDescription] = useState('');
   const [metricsLink, setMetricsLink] = useState('');
   const [metricsFiles, setMetricsFiles] = useState([]);
@@ -426,32 +426,32 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     if (!canSubmitProof || !currentSubmission?.id) return;
 
     const trimmedProofLink = String(proofLink || '').trim();
-    if (!trimmedProofLink && !proofFile) {
+
+    if (!trimmedProofLink && proofFiles.length === 0) {
       notifyWarning('Envie pelo menos uma prova: link ou arquivo.');
       return;
     }
 
-    if (proofFile) {
-      try {
-        validateFileSize(proofFile, 'Arquivo de prova');
-      } catch (error) {
-        notifyWarning(error.message);
-        return;
-      }
+    try {
+      for (const f of proofFiles) validateFileSize(f, 'Arquivo de prova');
+    } catch (error) {
+      notifyWarning(error.message);
+      return;
     }
 
     setIsSubmitting(true);
 
     try {
-      let uploadedFileUrl = null;
-      if (proofFile) {
-        const uploadResult = await uploadFile.mutateAsync({ file: proofFile, userId: user.id });
-        uploadedFileUrl = uploadResult?.url || null;
+      const uploadedUrls = [];
+      for (const f of proofFiles) {
+        const result = await uploadFile.mutateAsync({ file: f, userId: user.id });
+        if (result?.url) uploadedUrls.push(result.url);
       }
 
-      const finalProofUrl = trimmedProofLink || uploadedFileUrl;
-      const finalDescription = uploadedFileUrl && trimmedProofLink
-        ? `${proofDescription || ''}\n\nArquivo complementar: ${uploadedFileUrl}`.trim()
+      const finalProofUrl = trimmedProofLink || uploadedUrls[0] || null;
+      const extras = uploadedUrls.slice(trimmedProofLink ? 0 : 1);
+      const finalDescription = extras.length > 0
+        ? `${proofDescription || ''}\n\n${extras.map((u, i) => `Arquivo ${i + 1}: ${u}`).join('\n')}`.trim()
         : proofDescription;
 
       await submitProof.mutateAsync({
@@ -804,7 +804,32 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                       <p style={{ fontSize: 12, color: `${C.cream}70`, marginTop: 2 }}>E/ou anexe um arquivo da prova:</p>
                       <div>
                         <Label htmlFor="proof-file" style={{ color: `${C.cream}70`, fontSize: 12 }}>Arquivo da prova </Label>
-                        <input id="proof-file" type="file" onChange={(e) => setProofFile(e.target.files?.[0] || null)} className="block w-full mt-1.5 text-sm file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold transition-all file:bg-white/10 file:text-white hover:file:bg-white/20 file:cursor-pointer cursor-pointer text-white/50" />
+                        <input id="proof-file" type="file" multiple onChange={(e) => {
+                          const novos = Array.from(e.target.files || []);
+                          setProofFiles((prev) => {
+                            const combined = [...prev, ...novos];
+                            return combined.slice(0, 2); // garante máximo de 2
+                          });
+                        }} className="block w-full mt-1.5 text-sm file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold transition-all file:bg-white/10 file:text-white hover:file:bg-white/20 file:cursor-pointer cursor-pointer text-white/50" />
+                        {/* Lista dos arquivos selecionados */}
+                        {proofFiles.length > 0 && (
+                          <div className="flex flex-col gap-2 mt-2">
+                            {proofFiles.map((file, i) => (
+                              <div key={i} className="flex items-center justify-between px-3 py-2 rounded-xl"
+                                style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: '1px solid rgba(255,255,222,0.08)' }}>
+                                <span style={{ fontSize: 12, color: `${C.cream}70` }} className="truncate">{file.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setProofFiles(proofFiles.filter((_, idx) => idx !== i))}
+                                  style={{ color: `${C.cream}40`, marginLeft: 8 }}
+                                  className="hover:opacity-100 opacity-60 shrink-0"
+                                >
+                                  <X size={13} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <button
                         type="submit"
