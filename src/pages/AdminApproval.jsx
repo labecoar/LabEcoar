@@ -33,43 +33,10 @@ const BUSINESS_START_HOUR = 8;
 const BUSINESS_END_HOUR = 18;
 const REVIEW_SLA_BUSINESS_HOURS = 48;
 
-const isBusinessDay = (date) => { const day = date.getDay(); return day >= 1 && day <= 5; };
+const REVIEW_SLA_HOURS = 48;
 
-const nextBusinessDayStart = (baseDate) => {
-  const date = new Date(baseDate);
-  date.setDate(date.getDate() + 1);
-  date.setHours(BUSINESS_START_HOUR, 0, 0, 0);
-  while (!isBusinessDay(date)) date.setDate(date.getDate() + 1);
-  return date;
-};
-
-const normalizeToBusinessWindow = (baseDate) => {
-  const date = new Date(baseDate);
-  if (!isBusinessDay(date)) {
-    date.setHours(BUSINESS_START_HOUR, 0, 0, 0);
-    while (!isBusinessDay(date)) date.setDate(date.getDate() + 1);
-    return date;
-  }
-  const hour = date.getHours();
-  if (hour < BUSINESS_START_HOUR) { date.setHours(BUSINESS_START_HOUR, 0, 0, 0); return date; }
-  if (hour >= BUSINESS_END_HOUR) return nextBusinessDayStart(date);
-  return date;
-};
-
-const addBusinessHours = (baseDate, hoursToAdd) => {
-  let current = normalizeToBusinessWindow(baseDate);
-  let remainingHours = Number(hoursToAdd || 0);
-  while (remainingHours > 0) {
-    const endOfBusinessDay = new Date(current);
-    endOfBusinessDay.setHours(BUSINESS_END_HOUR, 0, 0, 0);
-    const availableTodayHours = Math.max(0, (endOfBusinessDay.getTime() - current.getTime()) / (1000 * 60 * 60));
-    if (availableTodayHours <= 0) { current = nextBusinessDayStart(current); continue; }
-    const consumeHours = Math.min(remainingHours, availableTodayHours);
-    current = new Date(current.getTime() + consumeHours * 60 * 60 * 1000);
-    remainingHours -= consumeHours;
-    if (remainingHours > 0) current = nextBusinessDayStart(current);
-  }
-  return current;
+const addHours = (baseDate, hoursToAdd) => {
+  return new Date(new Date(baseDate).getTime() + hoursToAdd * 60 * 60 * 1000);
 };
 
 export default function AdminApproval() {
@@ -97,7 +64,7 @@ export default function AdminApproval() {
     if (!referenceDate) return null;
     const base = new Date(referenceDate);
     if (Number.isNaN(base.getTime())) return null;
-    return addBusinessHours(base, REVIEW_SLA_BUSINESS_HOURS);
+    return addHours(base, REVIEW_SLA_HOURS);
   };
 
   const formatRemainingReviewTime = (submission) => {
