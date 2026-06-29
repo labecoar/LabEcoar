@@ -377,48 +377,48 @@ export default function AdminApproval() {
           proofPendingSubmissions.length === 0
             ? <EmptyState icon={CheckCircle} title="Nenhuma prova pendente" subtitle="Todas as provas enviadas já foram analisadas." />
             : <div className="space-y-6">
-                {overdueProofSubmissions.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#f87171' }} />
-                      <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: '#f87171' }}>Prioridade Máxima: Provas Atrasadas</span>
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ backgroundColor: 'rgba(248,113,113,0.12)', color: '#f87171' }}>
-                        {overdueProofSubmissions.length} atrasada(s)
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {overdueProofSubmissions.map((s) => <SubmissionCard key={s.id} submission={s} />)}
-                    </div>
+              {overdueProofSubmissions.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#f87171' }} />
+                    <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: '#f87171' }}>Prioridade Máxima: Provas Atrasadas</span>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ backgroundColor: 'rgba(248,113,113,0.12)', color: '#f87171' }}>
+                      {overdueProofSubmissions.length} atrasada(s)
+                    </span>
                   </div>
-                )}
-                {activeProofSubmissions.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: C.lime }} />
-                      <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: C.cream }}>Demais Provas Pendentes</span>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {activeProofSubmissions.map((s) => <SubmissionCard key={s.id} submission={s} />)}
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {overdueProofSubmissions.map((s) => <SubmissionCard key={s.id} submission={s} />)}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+              {activeProofSubmissions.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: C.lime }} />
+                    <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: C.cream }}>Demais Provas Pendentes</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {activeProofSubmissions.map((s) => <SubmissionCard key={s.id} submission={s} />)}
+                  </div>
+                </div>
+              )}
+            </div>
         )}
 
         {activeTab === 'approved' && (
           approvedSubmissions.length === 0
             ? <EmptyState icon={CheckCircle} title="Nenhuma prova aprovada" subtitle="As provas aprovadas aparecerão aqui no histórico." />
             : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {approvedSubmissions.map((s) => <SubmissionCard key={s.id} submission={s} />)}
-              </div>
+              {approvedSubmissions.map((s) => <SubmissionCard key={s.id} submission={s} />)}
+            </div>
         )}
 
         {activeTab === 'rejected' && (
           rejectedSubmissions.length === 0
             ? <EmptyState icon={XCircle} title="Nenhuma prova recusada" subtitle="As recusas de prova aparecerão aqui no histórico." />
             : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {rejectedSubmissions.map((s) => <SubmissionCard key={s.id} submission={s} />)}
-              </div>
+              {rejectedSubmissions.map((s) => <SubmissionCard key={s.id} submission={s} />)}
+            </div>
         )}
       </div>
 
@@ -462,7 +462,14 @@ export default function AdminApproval() {
                 {/* Info grid */}
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { label: 'Categoria', value: selectedSubmission.task?.category || '-', color: C.lime },
+                    {
+                      label: 'Categoria', value: (() => {
+                        const cat = selectedSubmission.task?.category || '';
+                        if (cat === 'sidequest_teste' || cat === 'sidequest') return 'Missão';
+                        if (cat === 'campanha') return 'Campanha';
+                        return cat || '-';
+                      })(), color: C.lime
+                    },
                     {
                       label: 'Valor / Pontuação',
                       value: selectedSubmission.task?.category === 'campanha'

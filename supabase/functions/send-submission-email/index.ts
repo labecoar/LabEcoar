@@ -3,7 +3,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-const FROM_EMAIL = 'contato@cuicalab.com'
+const FROM_EMAIL = 'Cuica Lab <contato@cuicalab.com>'
 const APP_URL = 'https://cuicalab.com'
 
 const EMAIL_TEMPLATES = {
