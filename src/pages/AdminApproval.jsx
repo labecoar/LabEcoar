@@ -60,7 +60,7 @@ export default function AdminApproval() {
   }, []);
 
   const getReviewDeadline = (submission) => {
-    const referenceDate = submission.updated_at || submission.created_at;
+    const referenceDate = submission.proof_submitted_at || submission.updated_at || submission.created_at;
     if (!referenceDate) return null;
     const base = new Date(referenceDate);
     if (Number.isNaN(base.getTime())) return null;
@@ -244,7 +244,7 @@ export default function AdminApproval() {
         <div className="flex items-center justify-between pt-3" style={{ borderTop: `1px solid rgba(255,255,222,0.06)` }}>
           <span className="flex items-center gap-1.5" style={{ fontSize: 11, color: `${C.cream}40` }}>
             <Calendar size={11} />
-            {format(new Date(submission.submitted_at || submission.updated_at || submission.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+            {format(new Date(submission.proof_submitted_at || submission.updated_at || submission.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
           </span>
           {status === 'approved' && latestProofApprovalBySubmission[submission.id] ? (
             <span style={{ fontSize: 11, color: `${C.cream}40` }}>
@@ -446,7 +446,11 @@ export default function AdminApproval() {
                     },
                     {
                       label: 'Enviado em',
-                      value: format(new Date(selectedSubmission.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }),
+                      value: format(
+                        new Date(selectedSubmission.proof_submitted_at || selectedSubmission.created_at),
+                        "dd/MM/yyyy 'às' HH:mm",
+                        { locale: ptBR }
+                      ),
                       color: C.cream,
                     },
                     { label: 'Prazo de revisão', value: formatRemainingReviewTime(selectedSubmission), color: C.cream },

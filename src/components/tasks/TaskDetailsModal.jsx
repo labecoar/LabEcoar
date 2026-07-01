@@ -223,7 +223,9 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const meetsFollowersRequirement = userFollowers >= minFollowersRequired;
   const isFull = Boolean(task.max_participants) && Number(task.current_participants || 0) >= Number(task.max_participants);
   const submissionStatus = currentSubmission?.status;
-  const submittedAt = currentSubmission?.created_at ? new Date(currentSubmission.created_at) : null;
+  const submittedAt = currentSubmission?.proof_submitted_at
+    ? new Date(currentSubmission.proof_submitted_at)
+    : null;
   const hasValidSubmittedAt = submittedAt && !Number.isNaN(submittedAt.getTime());
   const proofDeadline = task?.category === 'campanha'
     ? (task?.posting_deadline ? new Date(task.posting_deadline) : null)
