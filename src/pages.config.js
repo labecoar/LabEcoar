@@ -51,6 +51,7 @@ import AdminApplications from './pages/AdminApplications';
 import AdminApproval from './pages/AdminApproval';
 import AdminContentManagement from './pages/AdminContentManagement';
 import AdminMetrics from './pages/AdminMetrics';
+import AdminMonitoring from './pages/AdminMonitoring';
 import AdminPayments from './pages/AdminPayments';
 import AdminRewards from './pages/AdminRewards';
 import AdminRewardClaims from './pages/AdminRewardClaims';
@@ -75,6 +76,7 @@ export const PAGES = {
     "AdminApproval": AdminApproval,
     "AdminContentManagement": AdminContentManagement,
     "AdminMetrics": AdminMetrics,
+    "AdminMonitoring": AdminMonitoring,
     "AdminPayments": AdminPayments,
     "AdminRewards": AdminRewards,
     "AdminRewardClaims": AdminRewardClaims,

@@ -2,7 +2,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { LayoutDashboard, Target, FileCheck, Trophy, LogOut, Shield, User, Users, MessageSquare, Gift, CreditCard, DollarSign, BarChart3, ShieldCheck, HelpCircle } from "lucide-react";
+import { LayoutDashboard, Target, FileCheck, Trophy, LogOut, Shield, User, Users, MessageSquare, Gift, CreditCard, DollarSign, BarChart3, ShieldCheck, HelpCircle, Activity } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserScore, useGroupProgress } from "@/hooks/useScores";
 import logoCuica from "@/assets/images/cuica_lab.png";
@@ -87,6 +87,11 @@ const adminNavigationItems = [
     title: "Usuários",
     url: createPageUrl("AdminUsers"),
     icon: Users,
+  },
+  {
+    title: "Monitoramento",
+    url: createPageUrl("AdminMonitoring"),
+    icon: Activity,
   },
   {
     title: "Fórum",
