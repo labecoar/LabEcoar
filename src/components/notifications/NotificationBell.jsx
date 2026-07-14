@@ -131,11 +131,12 @@ export default function NotificationBell() {
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className="relative inline-flex items-center justify-center p-2.5 rounded-full bg-white/10 transition-colors hover:bg-white/20"
+        className="relative inline-flex items-center justify-center p-2.5 rounded-full transition-colors hover:opacity-80"
+        style={{ backgroundColor: C.overlay }}
         aria-label="Abrir notificações"
         aria-expanded={isOpen}
       >
-        <Bell className="w-5.5 h-5.5 text-white" />
+        <Bell className="w-5.5 h-5.5" style={{ color: C.cream }} />
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 min-w-6.5 h-6.5 px-1.5 rounded-full bg-[#ce161c] text-white text-[11px] font-bold flex items-center justify-center shadow-md shadow-[#ce161c30] border border-white/60">
             {unreadCount > 9 ? '9+' : unreadCount}

@@ -3,7 +3,8 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
+  :root,
+  [data-theme="dark"] {
     --background: #1D1D1B;
     --foreground: #FFFFDE;
     --card: #252523;
@@ -25,6 +26,29 @@
     --ring: #C8FF00;
     --radius: 0.5rem;
   }
+
+  [data-theme="light"] {
+    --background: #f4f6f5;
+    --foreground: #161616;
+    --card: #ffffff;
+    --card-foreground: #161616;
+    --popover: #ffffff;
+    --popover-foreground: #161616;
+    --primary: #8CBE00;
+    --primary-foreground: #161616;
+    --secondary: #0046DC;
+    --secondary-foreground: #ffffff;
+    --muted: #e8eae9;
+    --muted-foreground: #5a5a55;
+    --accent: #DC4600;
+    --accent-foreground: #ffffff;
+    --destructive: #C81414;
+    --destructive-foreground: #ffffff;
+    --border: rgba(22, 22, 22, 0.1);
+    --input: #e8eae9;
+    --ring: #8CBE00;
+    --radius: 0.5rem;
+  }
 }
 
 @layer base {
@@ -39,8 +63,8 @@
 }
 
 input[type="file"]::file-selector-button {
-  background-color: #C8FF00;
-  color: #1D1D1B;
+  background-color: var(--primary);
+  color: var(--primary-foreground);
   border: none;
   border-radius: 8px;
   padding: 6px 12px;

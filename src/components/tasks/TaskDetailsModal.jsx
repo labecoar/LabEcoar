@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React, { useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateSubmission, useSubmitProof } from "@/hooks/useSubmissions";
@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Calendar, Clock, Users, Star, CircleDollarSign, UserRoundCheck, Send, Upload, BarChart3, CheckCircle2, X, User } from "lucide-react";
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
 import { C, heading, body } from '@/lib/theme';
-import { CATEGORY_ACCENT } from "@/pages/Tasks";
+import { getCategoryStyle } from "@/pages/Tasks";
 import { formatLaunchDateTime, isTaskScheduled } from '@/lib/task-scheduling';
 
 const CATEGORY_NAMES = {
@@ -201,19 +201,10 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   if (!task) return null;
 
   const isCampaignTask = task?.category === 'campanha';
-  const accent = isCampaignTask ? C.orange : C.lime;
-  const accentBg = isCampaignTask ? C.orange_back : C.lime_back;
-  const accentText = accent === C.lime ? C.black : C.cream;
-
-  const COLUMN_COLORS = [
-    { color: C.blue, bg: C.blue_back },
-    { color: C.orange, bg: C.orange_back },
-    { color: C.lime, bg: C.lime_back },
-  ];
-  const safeCardIndex = cardIndex >= 0 ? cardIndex : 0;
-  const columnColor = COLUMN_COLORS[safeCardIndex % COLUMN_COLORS.length];
-  const columnAccent = columnColor.color;
-  const columnAccentBg = columnColor.bg;
+  const { color: accent, bg: accentBg } = getCategoryStyle(task.category);
+  const accentText = accent === C.lime ? C.onAccent : C.cream;
+  const columnAccent = accent;
+  const columnAccentBg = accentBg;
   const timeLeft = useMemo(() => formatTimeLeft(task.expires_at), [task.expires_at]);
   const displayCategory = CATEGORY_NAMES[task.category] || task.category;
   const displayProofType = useMemo(() => getProofTypeLabel(task), [task]);
@@ -841,7 +832,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                         type="submit"
                         disabled={isSubmitting || uploadFile.isPending || submitProof.isPending}
                         className="w-full flex justify-center items-center h-[48px] rounded-xl transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ backgroundColor: C.lime, color: C.black, ...heading, fontSize: 14, fontWeight: 700 }}
+                        style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontSize: 14, fontWeight: 700 }}
                       >
                         <Upload className="w-4 h-4 mr-2" />
                         {isSubmitting || uploadFile.isPending || submitProof.isPending ? 'Enviando prova...' : 'Enviar prova para aprovação'}
@@ -870,7 +861,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                           type="submit"
                           disabled={isSubmitting || uploadFile.isPending || submitMetrics.isPending || !metricsFiles || metricsFiles.length === 0 || !canSubmitMetrics}
                           className="w-full flex justify-center items-center h-[48px] rounded-xl transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                          style={{ backgroundColor: C.orange, color: C.black, ...heading, fontSize: 14, fontWeight: 700 }}
+                          style={{ backgroundColor: C.orange, color: C.onAccent, ...heading, fontSize: 14, fontWeight: 700 }}
                         >
                           <Upload className="w-4 h-4 mr-2" />
                           {isSubmitting || uploadFile.isPending || submitMetrics.isPending ? 'Enviando métricas...' : 'Enviar métricas'}

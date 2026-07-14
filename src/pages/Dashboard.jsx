@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTasks } from "@/hooks/useTasks";
@@ -107,8 +107,8 @@ export default function Dashboard() {
           </select>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.black }}>
-            <Star size={11} fill={C.black} />
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.onAccent }}>
+            <Star size={11} fill={C.onAccent} />
             <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>{currentPoints} pts</span>
           </div>
         </div>
@@ -122,7 +122,7 @@ export default function Dashboard() {
             <h1 style={{ ...heading, fontSize: 52, fontWeight: 900, color: C.cream, lineHeight: 0.92, letterSpacing: "-0.03em" }}>{displayName} <span role="img" aria-label="wave" style={{ fontSize: 44, fontWeight: 400 }}>👋</span></h1>
             <div className="flex items-center gap-2 mt-3 flex-wrap">
               <span style={{ fontSize: 13, color: `${C.cream}50` }}>O grupo está no nível</span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ backgroundColor: C.lime, color: C.black }}>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ backgroundColor: C.lime, color: C.onAccent }}>
                 {activeCategory?.icon && <activeCategory.icon size={12} />}
                 <span style={{ fontSize: 11, fontWeight: 700 }}>{activeCategory?.name}</span>
               </span>

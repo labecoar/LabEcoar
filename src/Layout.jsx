@@ -1,18 +1,22 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { LayoutDashboard, Target, FileCheck, Trophy, LogOut, Shield, User, Users, MessageSquare, Gift, CreditCard, DollarSign, BarChart3, ShieldCheck, HelpCircle, Activity } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useThemeMode } from "@/contexts/ThemeContext";
 import { useUserScore, useGroupProgress } from "@/hooks/useScores";
 import logoCuica from "@/assets/images/cuica_lab.png";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import ThemeToggle from "@/components/ThemeToggle";
 import { C, heading, body } from '@/lib/theme'
 import { useQuery } from "@tanstack/react-query";
 import { adminUsersService } from "@/services/admin-users.service";
 import { useAdminTasks } from "@/hooks/useTasks";
 import { getGroupCategory } from "@/components/dashboard/GroupProgress";
 import { getCurrentQuarterKey } from "@/services/scores.service";
+import { useForumUnread } from "@/hooks/useForumUnread";
+import { useForumRealtime } from "@/hooks/useForumRealtime";
 
 import {
   Sidebar,
@@ -54,6 +58,7 @@ const navigationItems = [
     title: "Fórum",
     url: createPageUrl("Forum"),
     icon: MessageSquare,
+    showUnreadDot: true,
   },
   {
     title: "Recompensas",
@@ -97,6 +102,7 @@ const adminNavigationItems = [
     title: "Fórum",
     url: createPageUrl("Forum"),
     icon: MessageSquare,
+    showUnreadDot: true,
   },
   {
     title: "Seleção",
@@ -141,7 +147,7 @@ const adminNavigationItems = [
   },
 ];
 
-function NavigationMenu({ items, isNavItemActive }) {
+function NavigationMenu({ items, isNavItemActive, hasForumUnread = false }) {
   const { isMobile, setOpenMobile } = useSidebar();
 
   const handleNavigationClick = () => {
@@ -164,10 +170,22 @@ function NavigationMenu({ items, isNavItemActive }) {
           >
             <Link
               to={item.url}
-              className="flex items-center gap-3 px-4 py-2.5 w-full group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+              className="flex items-center gap-3 px-4 py-2.5 w-full group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 relative"
               onClick={handleNavigationClick}
             >
-              <item.icon className="w-4 h-4" />
+              <span className="relative inline-flex shrink-0">
+                <item.icon className="w-4 h-4" />
+                {item.showUnreadDot && hasForumUnread && (
+                  <span
+                    className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
+                    style={{
+                      backgroundColor: "#ce161c",
+                      boxShadow: "0 0 0 2px rgba(0,0,255,0.9)",
+                    }}
+                    aria-label="Novidades no fórum"
+                  />
+                )}
+              </span>
               <span
                 className="group-data-[collapsible=icon]:hidden"
                 style={{
@@ -200,6 +218,9 @@ function MobileSidebarAutoCloseOnRouteChange({ pathname }) {
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const { user, profile, isAdmin, signOut } = useAuth();
+  const { mode, colors } = useThemeMode();
+  const { hasUnread: hasForumUnread } = useForumUnread();
+  useForumRealtime(!!user?.id);
   const { data: userScore } = useUserScore(user?.id);
   const visibleNavigationItems = isAdmin ? adminNavigationItems : navigationItems;
   const landingPageUrl = currentPageName ? createPageUrl(currentPageName) : null;
@@ -251,6 +272,8 @@ export default function Layout({ children, currentPageName }) {
   const isNavItemActive = (itemUrl) => {
     if (location.pathname === itemUrl) return true;
     if (location.pathname === '/' && landingPageUrl && itemUrl === landingPageUrl) return true;
+    // Mantém Fórum ativo ao abrir um tópico
+    if (itemUrl === createPageUrl("Forum") && location.pathname === createPageUrl("ForumTopic")) return true;
     return false;
   };
 
@@ -271,56 +294,13 @@ export default function Layout({ children, currentPageName }) {
   return (
     <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
       <MobileSidebarAutoCloseOnRouteChange pathname={location.pathname} />
-      <style>{`
-        :root {
-          --primary: 165 100% 22%;
-          --primary-foreground: 0 0% 100%;
-          --secondary: 340 80% 13%;
-          --secondary-foreground: 0 0% 100%;
-          --accent: 165 100% 22%;
-          --background: 0 0% 98%;
-          --card: 0 0% 100%;
-          --foreground: 340 80% 13%;
-          
-          /* Nova paleta */
-          --verde-escuro: #096e4c;
-          --marrom-escuro: #3c0b14;
-          --roxo: #a6539f;
-          --rosa: #e833ae;
-          --laranja: #ff6a2d;
-          --coral: #ff8677;
-          --amarelo: #f6c835;
-          --verde-claro: #00c331;
-          --verde-lima: #d9f73b;
-          --azul: #0077ad;
-          --azul-claro: #00d3fb;
-          --cinza: #929292;
-          --vermelho: #ce161c;
-        }
-        
-        .bg-gradient-primary {
-          background: linear-gradient(135deg, #096e4c 0%, #00c331 100%);
-        }
-        
-        .bg-gradient-secondary {
-          background: linear-gradient(135deg, #e833ae 0%, #a6539f 100%);
-        }
-        
-        .text-gradient-primary {
-          background: linear-gradient(135deg, #096e4c 0%, #00c331 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-      `}
-      </style>
 
-      <div className="min-h-screen flex w-full bg-background text-foreground">
+      <div className="min-h-screen flex w-full" style={{ backgroundColor: colors.black, color: colors.cream }}>
         <Sidebar
           collapsible="icon"
           className="border-r flex flex-col"
           style={{
-            backgroundColor: C.blue,
+            backgroundColor: colors.blue,
             "--sidebar-width-icon": "4rem"
           }}
           onMouseEnter={handleSidebarMouseEnter}
@@ -342,11 +322,15 @@ export default function Layout({ children, currentPageName }) {
                   <NavigationMenu
                     items={visibleNavigationItems}
                     isNavItemActive={isNavItemActive}
+                    hasForumUnread={hasForumUnread}
                   />
                 </SidebarGroupContent>
               </SidebarGroup>
             </div>
             <div className="p-3 pt-0 shrink-0">
+              <div className="mb-2 px-1">
+                <ThemeToggle />
+              </div>
 
               {isAdmin && (
                 <SidebarGroup className="group-data-[collapsible=icon]:hidden">
@@ -365,7 +349,7 @@ export default function Layout({ children, currentPageName }) {
                       className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-bold"
                       style={{
                         background: C.lime,
-                        color: C.black,
+                        color: C.onAccent,
                         fontSize: 12,
                         ...body,
                         fontWeight: 700,
@@ -415,7 +399,7 @@ export default function Layout({ children, currentPageName }) {
                       className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-bold"
                       style={{
                         background: C.lime,
-                        color: C.black,
+                        color: C.onAccent,
                         fontSize: 12,
                         ...body,
                         fontWeight: 700,
@@ -495,17 +479,26 @@ export default function Layout({ children, currentPageName }) {
         </Sidebar>
 
         <main className="flex-1 flex flex-col">
-          <header className="backdrop-blur-sm border-b px-6 py-4" style={{ borderColor: 'rgba(255,255,255,0.1)', background: C.black }}>
+          <header
+            className="backdrop-blur-sm border-b px-6 py-4"
+            style={{
+              borderColor: colors.border,
+              background: colors.black,
+            }}
+          >
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <SidebarTrigger className="p-2 rounded-lg transition-colors duration-200 md:hidden hover:bg-white/10 text-white" />
+                <SidebarTrigger
+                  className="p-2 rounded-lg transition-colors duration-200 md:hidden hover:opacity-80"
+                  style={{ color: colors.cream }}
+                />
                 <div className="md:hidden flex items-center gap-2">
                   <img
                     src={logoCuica}
                     alt="Cuíca Lab"
                     className="w-7 h-7 rounded-lg object-cover"
                   />
-                  <h1 className="text-xl font-bold text-white">Cuíca Lab</h1>
+                  <h1 className="text-xl font-bold" style={{ color: colors.cream }}>Cuíca Lab</h1>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -514,7 +507,11 @@ export default function Layout({ children, currentPageName }) {
             </div>
           </header>
 
-          <div className="flex-1 overflow-auto forum-typography">
+          <div
+            key={mode}
+            className="flex-1 overflow-auto forum-typography"
+            style={{ backgroundColor: colors.black }}
+          >
             {children}
           </div>
         </main>

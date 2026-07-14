@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React, { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCreateForumTopic, useDeleteForumTopic, useForumTopics, useUpdateForumTopic } from '@/hooks/useForum'
@@ -579,7 +579,7 @@ export default function AdminContentManagement() {
     { key: 'create', label: 'Criar Tarefa' },
     { key: 'active', label: `Ativas (${activeTasks.length})` },
     { key: 'completed', label: `Concluídas (${completedTasks.length})` },
-    { key: 'forum', label: 'Criar Tópico Fórum' },
+    { key: 'forum', label: `Fórum (${forumTopics.length})` },
   ]
 
   return (
@@ -1053,7 +1053,7 @@ export default function AdminContentManagement() {
                       type="submit"
                       disabled={createTask.isPending || updateTask.isPending}
                       className={`${editingTask ? 'flex-1' : 'w-full'} h-[52px] rounded-xl flex items-center justify-center gap-2 transition-all hover:brightness-110 active:scale-[0.99]`}
-                      style={{ backgroundColor: C.lime, color: C.black, ...heading, fontSize: 15, fontWeight: 700 }}
+                      style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontSize: 15, fontWeight: 700 }}
                     >
                       <Plus size={18} />
                       {editingTask
@@ -1172,7 +1172,7 @@ export default function AdminContentManagement() {
               <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: C.lime }} />
                 <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>
-                  {editingForumTopic ? 'Editar Tópico Fórum' : 'Criar Tópico Fórum'}
+                  {editingForumTopic ? 'Editar Tópico do Fórum' : 'Criar Tópico do Fórum'}
                 </span>
               </div>
 
@@ -1233,7 +1233,7 @@ export default function AdminContentManagement() {
                       type="submit"
                       disabled={createForumTopic.isPending || updateForumTopic.isPending}
                       className={`${editingForumTopic ? 'flex-1' : 'w-full'} h-[52px] rounded-xl flex items-center justify-center gap-2 transition-all hover:brightness-110 active:scale-[0.99]`}
-                      style={{ backgroundColor: C.lime, color: C.black, ...heading, fontSize: 15, fontWeight: 700 }}
+                      style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontSize: 15, fontWeight: 700 }}
                     >
                       <Plus size={18} />
                       {editingForumTopic
@@ -1242,65 +1242,80 @@ export default function AdminContentManagement() {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
 
-                {/* Lista de tópicos */}
-                <div style={{ borderTop: `1px solid rgba(255,255,222,0.07)`, marginTop: 32, paddingTop: 24 }}>
-                  <p style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream, marginBottom: 16 }}>Tópicos já criados</p>
-                  {loadingForum ? (
-                    <p style={{ fontSize: 13, color: `${C.cream}50` }}>Carregando tópicos...</p>
-                  ) : forumTopics.length === 0 ? (
-                    <p style={{ fontSize: 13, color: `${C.cream}50` }}>Nenhum tópico cadastrado ainda.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {forumTopics.slice(0, 10).map((topic) => (
-                        <div
-                          key={topic.id}
-                          className="rounded-2xl p-5"
-                          style={{ border: `1px solid rgba(255,255,222,0.07)`, backgroundColor: 'rgba(255,255,222,0.02)' }}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <p style={{ ...heading, color: C.cream, fontSize: 15, fontWeight: 700 }}>{topic.title}</p>
-                              <p style={{ color: `${C.cream}55`, fontSize: 13, marginTop: 4 }} className="line-clamp-2">{topic.description}</p>
-                              <p style={{ fontSize: 11, color: `${C.cream}35`, marginTop: 6 }}>{topic.author_name || topic.author_email || 'Admin'}</p>
-                            </div>
-                            <div className="flex flex-col items-end gap-2 shrink-0">
-                              <span
-                                style={{
-                                  backgroundColor: `${C.lime}20`,
-                                  color: C.lime,
-                                  fontSize: 11,
-                                  fontWeight: 700,
-                                  padding: '3px 10px',
-                                  borderRadius: 999,
-                                }}
+            {/* Lista / gerenciar tópicos */}
+            <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.07)` }}>
+              <div className="flex items-center justify-between gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+                <div className="flex items-center gap-3">
+                  <MessageSquare size={16} style={{ color: C.orange }} />
+                  <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>
+                    Gerenciar tópicos
+                  </span>
+                </div>
+                <span style={{ fontSize: 12, color: `${C.cream}45`, fontWeight: 600 }}>
+                  {forumTopics.length} tópico{forumTopics.length === 1 ? '' : 's'}
+                </span>
+              </div>
+
+              <div className="p-6">
+                {loadingForum ? (
+                  <p style={{ fontSize: 13, color: `${C.cream}50` }}>Carregando tópicos...</p>
+                ) : forumTopics.length === 0 ? (
+                  <p style={{ fontSize: 13, color: `${C.cream}50` }}>Nenhum tópico cadastrado ainda.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {forumTopics.map((topic) => (
+                      <div
+                        key={topic.id}
+                        className="rounded-2xl p-5"
+                        style={{ border: `1px solid rgba(255,255,222,0.07)`, backgroundColor: 'rgba(255,255,222,0.02)' }}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p style={{ ...heading, color: C.cream, fontSize: 15, fontWeight: 700 }}>{topic.title}</p>
+                            <p style={{ color: `${C.cream}55`, fontSize: 13, marginTop: 4 }} className="line-clamp-2">{topic.description}</p>
+                            <p style={{ fontSize: 11, color: `${C.cream}35`, marginTop: 6 }}>{topic.author_name || topic.author_email || 'Admin'}</p>
+                          </div>
+                          <div className="flex flex-col items-end gap-2 shrink-0">
+                            <span
+                              style={{
+                                backgroundColor: `${C.lime}20`,
+                                color: C.lime,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                padding: '3px 10px',
+                                borderRadius: 999,
+                              }}
+                            >
+                              {topic.category || 'geral'}
+                            </span>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleEditForumTopic(topic)}
+                                className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110"
+                                style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: 'transparent', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
                               >
-                                {topic.category || 'geral'}
-                              </span>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleEditForumTopic(topic)}
-                                  className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110"
-                                  style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: 'transparent', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
-                                >
-                                  <Pencil size={12} /> Editar
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteForumTopic(topic.id)}
-                                  disabled={deleteForumTopic.isPending}
-                                  className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110"
-                                  style={{ border: `1px solid rgba(248,113,113,0.25)`, backgroundColor: 'transparent', color: '#f87171', fontSize: 12, fontWeight: 600, ...heading }}
-                                >
-                                  <Trash2 size={12} /> Excluir
-                                </button>
-                              </div>
+                                <Pencil size={12} /> Editar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteForumTopic(topic.id)}
+                                disabled={deleteForumTopic.isPending}
+                                className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110 disabled:opacity-50"
+                                style={{ border: `1px solid rgba(248,113,113,0.35)`, backgroundColor: 'rgba(248,113,113,0.08)', color: '#f87171', fontSize: 12, fontWeight: 600, ...heading }}
+                              >
+                                <Trash2 size={12} /> Excluir
+                              </button>
                             </div>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>

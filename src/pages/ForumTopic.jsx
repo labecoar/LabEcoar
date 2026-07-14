@@ -1,7 +1,8 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateForumPost, useForumPosts, useForumTopic, useToggleForumPostLike } from "@/hooks/useForum";
+import { useForumUnread } from "@/hooks/useForumUnread";
 import { useUserScore } from "@/hooks/useScores";
 import { forumService } from "@/services/forum.service";
 import {
@@ -24,7 +25,7 @@ const CATEGORY_INFO = {
 };
 
 const inputStyle = {
-  backgroundColor: "#2E2E2C",
+  backgroundColor: C.black_light,
   border: "1px solid rgba(255,255,222,0.1)",
   color: C.cream,
   ...body,
@@ -38,6 +39,11 @@ export default function ForumTopic() {
   const [newPost, setNewPost] = useState("");
 
   const { data: topic, isLoading: topicLoading } = useForumTopic(topicId);
+  const { markTopicSeen } = useForumUnread();
+
+  useEffect(() => {
+    if (topicId) markTopicSeen(topicId);
+  }, [markTopicSeen, topicId]);
   const { data: posts = [] } = useForumPosts(topicId);
   const { data: userScore } = useUserScore(user?.id);
   const createPostMutation = useCreateForumPost(topicId);
@@ -65,6 +71,7 @@ export default function ForumTopic() {
         author_email: profile?.email || user?.email || null,
         author_name: profile?.display_name || profile?.full_name || "Ecoante",
       });
+      markTopicSeen(topicId);
     } catch (error) {
       setNewPost(content);
       notifyError(error?.message || "Não foi possível enviar a resposta.");
@@ -101,9 +108,9 @@ export default function ForumTopic() {
       </div>
       <div
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-        style={{ backgroundColor: C.lime, color: C.black }}
+        style={{ backgroundColor: C.lime, color: C.onAccent }}
       >
-        <Star size={11} fill={C.black} />
+        <Star size={11} fill={C.onAccent} />
         <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>
           {userScore?.total_points || 0} pts
         </span>
@@ -140,7 +147,7 @@ export default function ForumTopic() {
           <Link
             to={createPageUrl("Forum")}
             className="inline-flex items-center gap-2 px-5 py-3 rounded-xl transition-all hover:brightness-110"
-            style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 13 }}
+            style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontWeight: 700, fontSize: 13 }}
           >
             <ArrowLeft size={15} />
             Voltar ao Fórum
@@ -306,7 +313,7 @@ export default function ForumTopic() {
                 className="inline-flex items-center gap-2 px-5 py-3 rounded-xl transition-all hover:brightness-110 disabled:opacity-50"
                 style={{
                   backgroundColor: C.lime,
-                  color: C.black,
+                  color: C.onAccent,
                   ...heading,
                   fontWeight: 700,
                   fontSize: 13,

@@ -6,6 +6,7 @@ import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { ThemeProvider, useThemeMode } from '@/contexts/ThemeContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import ResetPassword from '@/pages/ResetPassword';
 
@@ -31,6 +32,7 @@ const PasswordRecoveryRedirect = () => {
 
 const AuthenticatedApp = () => {
   const { loading, isAdmin } = useAuth();
+  const { mode } = useThemeMode();
   const landingPageKey = isAdmin ? 'AdminContentManagement' : mainPageKey;
   const LandingPage = landingPageKey ? Pages[landingPageKey] : null;
 
@@ -43,9 +45,9 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // Render the main app
+  // key={mode} remonta as rotas ao trocar tema — estilos com C.* atualizam na hora
   return (
-    <>
+    <div key={mode} style={{ display: 'contents' }}>
       <PasswordRecoveryRedirect />
       <Routes>
       <Route path="/Login" element={<Pages.Login />} />
@@ -83,7 +85,7 @@ const AuthenticatedApp = () => {
       })}
       <Route path="*" element={<PageNotFound />} />
     </Routes>
-    </>
+    </div>
   );
 };
 
@@ -91,15 +93,17 @@ const AuthenticatedApp = () => {
 function App() {
 
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
-        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <NavigationTracker />
-          <AuthenticatedApp />
-        </Router>
-        <Toaster />
-      </QueryClientProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <QueryClientProvider client={queryClientInstance}>
+          <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <NavigationTracker />
+            <AuthenticatedApp />
+          </Router>
+          <Toaster />
+        </QueryClientProvider>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 

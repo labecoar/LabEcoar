@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePendingSubmissions, useApproveSubmission, useRejectSubmission, useApprovalHistory } from "@/hooks/useSubmissions";
@@ -549,7 +549,7 @@ export default function AdminApproval() {
                         onClick={() => handleApprove(selectedSubmission)}
                         disabled={approveSubmission.isPending}
                         className="flex-1 h-12 rounded-xl flex items-center justify-center gap-2 transition-all hover:brightness-110 disabled:opacity-50"
-                        style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}
+                        style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontWeight: 700, fontSize: 14 }}
                       >
                         <CheckCircle size={15} />
                         {approveSubmission.isPending ? 'Aprovando...' : 'Aprovar'}
@@ -578,7 +578,7 @@ export default function AdminApproval() {
                           onClick={handleReject}
                           disabled={rejectSubmission.isPending}
                           className="flex-1 h-12 rounded-xl flex items-center justify-center gap-2 transition-all hover:brightness-110 disabled:opacity-50"
-                          style={{ backgroundColor: '#f87171', color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}
+                          style={{ backgroundColor: '#f87171', color: C.onAccent, ...heading, fontWeight: 700, fontSize: 14 }}
                         >
                           {rejectSubmission.isPending ? 'Rejeitando...' : 'Confirmar Rejeição'}
                         </button>

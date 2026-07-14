@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLeaderboard } from "@/hooks/useScores";
@@ -140,7 +140,7 @@ export default function Leaderboard() {
                   {/* Avatar + nome */}
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 text-lg font-black"
-                      style={{ backgroundColor: meta.color, color: C.black }}>
+                      style={{ backgroundColor: meta.color, color: C.onAccent }}>
                       {name.charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0">

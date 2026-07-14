@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -225,8 +225,8 @@ export default function MySubmissions() {
           <FileCheck size={16} style={{ color: C.lime }} />
           <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", textTransform: "uppercase" }}>Minhas Submissões</span>
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.black }}>
-          <Star size={11} fill={C.black} />
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.onAccent }}>
+          <Star size={11} fill={C.onAccent} />
           <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>{userScore?.total_points || 0} pts</span>
         </div>
       </div>
@@ -241,7 +241,7 @@ export default function MySubmissions() {
           <button
             onClick={() => navigate(createPageUrl("Tasks"))}
             className="flex items-center gap-2 px-5 py-3 rounded-xl transition-all hover:brightness-110"
-            style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 13 }}
+            style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontWeight: 700, fontSize: 13 }}
           >
             <Plus size={15} /> Nova Submissão
           </button>

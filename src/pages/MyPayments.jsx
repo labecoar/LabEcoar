@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyPayments, usePaymentInfo, useUpsertPaymentInfo } from "@/hooks/usePayments";
@@ -142,8 +142,8 @@ export default function MyPayments() {
           <CreditCard size={16} style={{ color: C.lime }} />
           <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", textTransform: "uppercase" }}>Meus Pagamentos</span>
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.black }}>
-          <Star size={11} fill={C.black} />
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.onAccent }}>
+          <Star size={11} fill={C.onAccent} />
           <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>{userScore?.total_points || 0} pts</span>
         </div>
       </div>
@@ -212,7 +212,7 @@ export default function MyPayments() {
                 <button
                   onClick={() => setIsEditing(true)}
                   className="flex items-center gap-2 px-5 py-3 rounded-xl transition-all hover:brightness-110"
-                  style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 13 }}
+                  style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontWeight: 700, fontSize: 13 }}
                 >
                   Cadastrar Dados Bancarios
                 </button>
@@ -371,7 +371,7 @@ export default function MyPayments() {
                     <button
                       type="submit"
                       className="flex-1 h-12 rounded-xl transition-all hover:brightness-110"
-                      style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}
+                      style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontWeight: 700, fontSize: 14 }}
                     >
                       {upsertPaymentInfo.isPending ? "Salvando..." : "Salvar Dados"}
                     </button>

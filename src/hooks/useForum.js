@@ -7,6 +7,9 @@ export function useForumTopics() {
     queryFn: () => forumService.getTopics(),
     staleTime: 0,
     refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    // Fallback caso o Realtime não esteja habilitado no projeto
+    refetchInterval: 15000,
   })
 }
 

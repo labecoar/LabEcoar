@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React, { useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useAdminPayments, useUpdatePaymentStatus } from '@/hooks/usePayments'
@@ -246,7 +246,7 @@ export default function AdminPayments() {
                     {(isPending || isProcessing || isError) && (
                       <button onClick={() => handleStatusUpdate(payment, 'pago')} disabled={updatePaymentStatus.isPending}
                         className="flex items-center gap-2 px-4 h-9 rounded-xl transition-all hover:brightness-110 disabled:opacity-50"
-                        style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 13 }}>
+                        style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontWeight: 700, fontSize: 13 }}>
                         <CheckCircle size={13} />Marcar Pago
                       </button>
                     )}

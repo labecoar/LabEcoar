@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTasks } from "@/hooks/useTasks";
@@ -33,13 +33,25 @@ const CATEGORY_ICONS = {
 };
 
 export const CATEGORY_ACCENT = {
-  campanha: C.lime,
-  resposta_rapida: C.orange,
+  campanha: C.orange,
+  resposta_rapida: C.red,
   oficina: C.purple,
-  folhetim: C.blue,
+  folhetim: C.cyan,
   compartilhar_ecoante: C.pink,
   sidequest_teste: C.cyan,
 };
+
+/** Fundo suave do acento por categoria (campanha = verde, missão = laranja) */
+export const CATEGORY_ACCENT_BG = {
+  campanha: C.orange_back,
+  resposta_rapida: C.red_back,
+  sidequest_teste: C.cyan_back,
+};
+
+export const getCategoryStyle = (category) => ({
+  color: CATEGORY_ACCENT[category] || C.blue,
+  bg: CATEGORY_ACCENT_BG[category] || C.blue_back,
+});
 
 const CATEGORY_NAMES = {
   campanha: "Campanha",
@@ -278,22 +290,15 @@ export default function Tasks() {
   };
 
   // ─── TaskCard ──────────────────────────────────────────────────────────────
-  const TaskCard = ({ task, index }) => {
+  const TaskCard = ({ task }) => {
     const isSidequestBlockedThisMonth = task.category === 'sidequest_teste' && isSidequestCompletedThisMonth(task.id);
-    const COLUMN_COLORS = [
-      { color: C.blue, bg: C.blue_back },
-      { color: C.orange, bg: C.orange_back },
-      { color: C.lime, bg: C.lime_back },
-    ];
-    const columnColor = COLUMN_COLORS[index % COLUMN_COLORS.length];
-    const accent = columnColor.color;
-    const accentBg = columnColor.bg;
+    const { color: accent, bg: accentBg } = getCategoryStyle(task.category);
     const submission = getTaskSubmission(task.id);
     const metricsSubmission = getTaskMetricsSubmission(task.id);
     const steps = getTaskSteps(task, submission);
     const completedSteps = getCompletedStepsCount(task, submission, metricsSubmission);
     const Icon = CATEGORY_ICONS[task.category] || Target;
-    const accentText = accent === C.lime ? C.black : C.cream;
+    const accentText = accent === C.lime ? C.onAccent : C.cream;
     const isCampaignTask = task.category === 'campanha';
     const isPaidTask = task.category === 'campanha' || Number(task.offered_value || 0) > 0;
     const metricsStatus = String(metricsSubmission?.status || '').trim().toLowerCase();
@@ -368,7 +373,7 @@ export default function Tasks() {
         }}
         onMouseEnter={e => {
           if (isSidequestBlockedThisMonth) return;
-          e.currentTarget.style.borderColor = isScheduled ? "rgba(170,102,255,0.35)" : "rgba(204,255,68,0.25)";
+          e.currentTarget.style.borderColor = isScheduled ? "rgba(170,102,255,0.35)" : `${accent}40`;
           e.currentTarget.style.transform = "translateY(-2px)";
         }}
         onMouseLeave={e => {
@@ -559,8 +564,8 @@ export default function Tasks() {
             <SlidersHorizontal size={11} />
             <span style={{ fontSize: 12 }}>{filteredTasks.length} {filteredTasks.length === 1 ? 'tarefa' : 'tarefas'}</span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.black }}>
-            <Star size={11} fill={C.black} />
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.onAccent }}>
+            <Star size={11} fill={C.onAccent} />
             <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>{currentPoints} pts</span>
           </div>
         </div>
@@ -614,7 +619,7 @@ export default function Tasks() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredTasks.map((task, index) => (
-              <TaskCard key={task.id} task={task} index={index} />
+              <TaskCard key={task.id} task={task} />
             ))}
           </div>
         )}

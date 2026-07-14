@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React from "react";
 import { Music2, Mic, Users, PartyPopper } from "lucide-react";
 import { useGroupProgress } from "@/hooks/useScores";

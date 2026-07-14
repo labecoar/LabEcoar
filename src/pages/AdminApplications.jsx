@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React, { useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePendingSubmissions, useApproveSubmission, useRejectSubmission, useResetSubmissionReview } from "@/hooks/useSubmissions";
@@ -329,7 +329,7 @@ export default function AdminApplications() {
                         onClick={(e) => { e.stopPropagation(); handleApprove(submission); }}
                         disabled={approveSubmission.isPending}
                         className="h-10 rounded-xl flex items-center justify-center gap-2 transition-all hover:brightness-110 disabled:opacity-50"
-                        style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 13 }}
+                        style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontWeight: 700, fontSize: 13 }}
                       >
                         <CheckCircle size={14} /> Selecionar
                       </button>
@@ -379,7 +379,7 @@ export default function AdminApplications() {
                         onClick={(e) => { e.stopPropagation(); handleApprove(submission); }}
                         disabled={approveSubmission.isPending}
                         className="h-10 rounded-xl flex items-center justify-center gap-2 transition-all hover:brightness-110 disabled:opacity-50"
-                        style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 13 }}
+                        style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontWeight: 700, fontSize: 13 }}
                       >
                         <CheckCircle size={14} /> Selecionar Agora
                       </button>

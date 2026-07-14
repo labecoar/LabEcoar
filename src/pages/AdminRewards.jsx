@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React, { useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useAdminRewards, useCreateReward, useDeleteReward, useUpdateReward } from '@/hooks/useRewards'
@@ -292,7 +292,7 @@ export default function AdminRewards() {
               type="submit"
               disabled={createReward.isPending || uploadFile.isPending}
               className="flex items-center gap-2 px-6 h-11 rounded-xl transition-all hover:brightness-110 disabled:opacity-50"
-              style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}
+              style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontWeight: 700, fontSize: 14 }}
             >
               <Plus size={15} />
               {(createReward.isPending || uploadFile.isPending) ? 'Salvando...' : 'Cadastrar item'}

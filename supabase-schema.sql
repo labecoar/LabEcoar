@@ -1455,6 +1455,23 @@ CREATE INDEX IF NOT EXISTS idx_reward_claims_status ON reward_claims(status);
 CREATE INDEX IF NOT EXISTS idx_reward_claims_claimed_at ON reward_claims(claimed_at DESC);
 
 -- ===================================
+-- REALTIME: fórum (alerta de nova mensagem)
+-- ===================================
+-- Habilita push instantâneo para a app (useForumRealtime).
+-- Se der erro de "already member of publication", pode ignorar.
+DO $$
+BEGIN
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE forum_topics;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE forum_posts;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+END $$;
+
+-- ===================================
 -- FIM DO SCHEMA
 -- ===================================
 

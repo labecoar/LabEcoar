@@ -10,6 +10,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
   </head>
   <body>
+    <script>
+      (function () {
+        try {
+          var mode = localStorage.getItem('labecoar-theme');
+          if (mode !== 'light' && mode !== 'dark') mode = 'dark';
+          document.documentElement.setAttribute('data-theme', mode);
+          document.documentElement.style.colorScheme = mode;
+        } catch (e) {}
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

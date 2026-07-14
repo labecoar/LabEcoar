@@ -24,9 +24,36 @@ export const forumService = {
       .order('last_activity', { ascending: false })
 
     if (error) throw error
-    return (data || []).map(topic => ({
+
+    const topics = data || []
+    const topicIds = topics.map((topic) => topic.id).filter(Boolean)
+
+    let lastPostByTopic = {}
+    if (topicIds.length > 0) {
+      const { data: recentPosts, error: postsError } = await supabase
+        .from('forum_posts')
+        .select('topic_id, content, author_name, author_id, author_email, created_at')
+        .in('topic_id', topicIds)
+        .order('created_at', { ascending: false })
+
+      if (!postsError && Array.isArray(recentPosts)) {
+        recentPosts.forEach((post) => {
+          if (!post?.topic_id || lastPostByTopic[post.topic_id]) return
+          lastPostByTopic[post.topic_id] = {
+            content: post.content || '',
+            author_name: post.author_name || 'Comunidade',
+            author_id: post.author_id || null,
+            author_email: post.author_email || null,
+            created_at: post.created_at,
+          }
+        })
+      }
+    }
+
+    return topics.map((topic) => ({
       ...topic,
       total_posts: Number(topic.forum_posts?.[0]?.count ?? topic.total_posts ?? 0),
+      last_post: lastPostByTopic[topic.id] || null,
       forum_posts: undefined,
     }))
   },

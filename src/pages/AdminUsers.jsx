@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React, { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
@@ -465,7 +465,7 @@ export default function AdminUsers() {
                   type="submit"
                   disabled={updateUserMutation.isPending}
                   className="flex-1 h-12 rounded-xl transition-all hover:brightness-110 disabled:opacity-50 flex items-center justify-center gap-2"
-                  style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}
+                  style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontWeight: 700, fontSize: 14 }}
                 >
                   <Save size={15} />
                   {updateUserMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}

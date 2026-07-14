@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
@@ -441,7 +441,7 @@ export default function Profile() {
                 <button type="button" onClick={closeAvatarCropDialog} disabled={uploadFileMutation.isPending} className="flex-1 h-12 rounded-xl transition-all hover:bg-[rgba(255,255,222,0.05)]" style={{ color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}>
                   Cancelar
                 </button>
-                <button type="button" onClick={handleConfirmAvatarCrop} disabled={uploadFileMutation.isPending} className="flex-1 h-12 rounded-xl transition-all hover:brightness-110 disabled:opacity-50" style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}>
+                <button type="button" onClick={handleConfirmAvatarCrop} disabled={uploadFileMutation.isPending} className="flex-1 h-12 rounded-xl transition-all hover:brightness-110 disabled:opacity-50" style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontWeight: 700, fontSize: 14 }}>
                   {uploadFileMutation.isPending ? 'Salvando foto...' : 'Usar esta foto'}
                 </button>
               </div>
@@ -456,8 +456,8 @@ export default function Profile() {
           <User size={16} style={{ color: C.lime }} />
           <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", textTransform: "uppercase" }}>Perfil</span>
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.black }}>
-          <Star size={11} fill={C.black} />
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.onAccent }}>
+          <Star size={11} fill={C.onAccent} />
           <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>{totalPoints} pts</span>
         </div>
       </div>
@@ -681,7 +681,7 @@ export default function Profile() {
                     type="submit"
                     disabled={!hasChanges || updateProfileMutation.isPending || isUploadingAvatar}
                     className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl transition-all hover:brightness-110 disabled:opacity-50 mt-2"
-                    style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}
+                    style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontWeight: 700, fontSize: 14 }}
                   >
                     <Check size={15} /> {updateProfileMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
                   </button>

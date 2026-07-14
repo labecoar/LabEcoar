@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminMetricsByStatus, useApproveMetricsSubmission, useRejectMetricsSubmission, useRevertMetricsSubmission } from "@/hooks/useMetrics";
@@ -246,7 +246,7 @@ export default function AdminMetrics() {
               onClick={() => handleApprove(submission)}
               disabled={approveMetricsMutation.isPending}
               className="flex-1 h-11 rounded-xl flex items-center justify-center gap-2 transition-all hover:brightness-110 disabled:opacity-50"
-              style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}
+              style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontWeight: 700, fontSize: 14 }}
             >
               <CheckCircle size={15} />
               {approveMetricsMutation.isPending ? 'Aprovando...' : 'Aprovar'}
@@ -447,7 +447,7 @@ export default function AdminMetrics() {
                     onClick={handleReject}
                     disabled={!rejectionReason.trim() || rejectMetricsMutation.isPending}
                     className="flex-1 h-12 rounded-xl flex items-center justify-center gap-2 transition-all hover:brightness-110 disabled:opacity-50"
-                    style={{ backgroundColor: '#f87171', color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}
+                    style={{ backgroundColor: '#f87171', color: C.onAccent, ...heading, fontWeight: 700, fontSize: 14 }}
                   >
                     {rejectMetricsMutation.isPending ? 'Rejeitando...' : 'Confirmar Rejeição'}
                   </button>

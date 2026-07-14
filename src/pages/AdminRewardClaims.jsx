@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React, { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useAdminRewardClaims, useUpdateRewardClaim } from '@/hooks/useRewards'
@@ -371,7 +371,7 @@ export default function AdminRewardClaims() {
                     onClick={handleUpdateClaim}
                     disabled={updateClaim.isPending}
                     className="flex-1 h-12 rounded-xl flex items-center justify-center gap-2 transition-all hover:brightness-110 disabled:opacity-50"
-                    style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}
+                    style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontWeight: 700, fontSize: 14 }}
                   >
                     {updateClaim.isPending ? 'Salvando...' : 'Salvar Alterações'}
                   </button>

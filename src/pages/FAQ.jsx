@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React, { useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserScore } from "@/hooks/useScores";
@@ -192,9 +192,9 @@ export default function FAQ() {
         </div>
         <div
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-          style={{ backgroundColor: C.lime, color: C.black }}
+          style={{ backgroundColor: C.lime, color: C.onAccent }}
         >
-          <Star size={11} fill={C.black} />
+          <Star size={11} fill={C.onAccent} />
           <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>
             {userScore?.total_points || 0} pts
           </span>
@@ -354,7 +354,7 @@ export default function FAQ() {
           <a
             href="mailto:comunidade@agenciacuica.com"
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all hover:brightness-110 shrink-0"
-            style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 13 }}
+            style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontWeight: 700, fontSize: 13 }}
           >
             <Mail size={14} />
             comunidade@agenciacuica.com

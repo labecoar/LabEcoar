@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { Eye, EyeOff, Instagram, Lock, Mail, Users } from 'lucide-react'
@@ -318,8 +318,8 @@ export default function Login() {
 
   const inputCls = 'flex items-center pl-4 pr-1 h-[50px] rounded-xl bg-white'
   const inputStyle = { border: `1.5px solid ${error ? '#FF2255' : '#d9d9d6'}`, boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }
-  const labelStyle = { ...body, fontSize: 11, fontWeight: 700,  color: C.black, letterSpacing: '0.05em' }
-  const textInputStyle = { ...body, fontSize: 14, color: C.black }
+  const labelStyle = { ...body, fontSize: 11, fontWeight: 700,  color: C.onAccent, letterSpacing: '0.05em' }
+  const textInputStyle = { ...body, fontSize: 14, color: C.onAccent }
 
   const PasswordToggle = ({ visible, onToggle }) => (
     <button
@@ -348,7 +348,7 @@ export default function Login() {
             <img src={cuicaLogin} alt="CuícaLab logo" className="w-80 aspect-[288/312] object-contain drop-shadow-2xl" />
           </div>
           <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center" style={{ backgroundColor: C.lime, height: 72 }}>
-            <span style={{ ...heading, fontSize: 26, fontWeight: 800, color: C.black, letterSpacing: "-0.01em" }}>
+            <span style={{ ...heading, fontSize: 26, fontWeight: 800, color: C.onAccent, letterSpacing: "-0.01em" }}>
               Conecte. Influencie. Cresça.
             </span>
           </div>
@@ -371,7 +371,7 @@ export default function Login() {
             {mode === 'login' ? (
               <>
                 <div className="flex flex-col gap-2">
-                  <h1 style={{ ...heading, fontWeight: 800, fontSize: 34, color: C.black, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+                  <h1 style={{ ...heading, fontWeight: 800, fontSize: 34, color: C.onAccent, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
                     Que bom ter você aqui!
                   </h1>
                   <p style={{ ...body, fontSize: 14, color: '#6b6b69' }}>Entre na sua conta para continuar.</p>
@@ -494,7 +494,7 @@ export default function Login() {
             ) : (
               <>
                 <div className="flex flex-col gap-1.5">
-                  <h1 style={{ ...heading, fontWeight: 800, fontSize: 32, color: C.black, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+                  <h1 style={{ ...heading, fontWeight: 800, fontSize: 32, color: C.onAccent, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
                     Crie sua conta
                   </h1>
                   <p style={{ ...body, fontSize: 14, color: '#6b6b69' }}>Junte-se à rede de influenciadores CuícaLab.</p>

@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserScore } from "@/hooks/useScores";
@@ -153,7 +153,7 @@ export default function Rewards() {
     );
   }
 
-  const inputStyle = { backgroundColor: "#2E2E2C", border: `1px solid rgba(255,255,222,0.1)`, color: C.cream, ...body, fontSize: 14 };
+  const inputStyle = { backgroundColor: C.black_light, border: `1px solid rgba(255,255,222,0.1)`, color: C.cream, ...body, fontSize: 14 };
   const labelStyle = { ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", display: "block", marginBottom: 6 };
 
   return (
@@ -164,8 +164,8 @@ export default function Rewards() {
           <Gift size={16} style={{ color: C.lime }} />
           <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", textTransform: "uppercase" }}>Recompensas</span>
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.black }}>
-          <Star size={11} fill={C.black} />
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.onAccent }}>
+          <Star size={11} fill={C.onAccent} />
           <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>{currentPoints} pts</span>
         </div>
       </div>
@@ -347,7 +347,7 @@ export default function Rewards() {
                       disabled={!hasEnoughPoints(selectedReward) || !isAvailable(selectedReward)}
                       onClick={() => handleClaim(selectedReward)}
                       className="flex-1 h-12 rounded-xl transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}
+                      style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontWeight: 700, fontSize: 14 }}
                     >
                       {claimRewardMutation.isPending ? "Processando..." : "Resgatar Agora"}
                     </button>
@@ -479,7 +479,7 @@ export default function Rewards() {
                     onClick={handleConfirmClaim}
                     disabled={claimRewardMutation.isPending}
                     className="flex-1 h-12 rounded-xl transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ backgroundColor: C.lime, color: C.black, ...heading, fontWeight: 700, fontSize: 14 }}
+                    style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontWeight: 700, fontSize: 14 }}
                   >
                     {claimRewardMutation.isPending ? "Confirmando..." : "Confirmar Resgate"}
                   </button>
