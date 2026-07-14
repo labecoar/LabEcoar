@@ -40,7 +40,7 @@ export default function AdminPayments() {
   if (profile?.role !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: C.black }}>
-        <div className="max-w-md p-8 rounded-2xl text-center" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.08)` }}>
+        <div className="max-w-md p-8 rounded-2xl text-center" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.08)` }}>
           <AlertCircle size={36} style={{ color: '#f87171', margin: '0 auto 16px' }} />
           <h2 style={{ ...heading, fontSize: 20, fontWeight: 800, color: C.cream }}>Acesso Negado</h2>
           <p style={{ color: `${C.cream}60`, fontSize: 14 }}>Apenas administradores podem acessar esta página.</p>
@@ -105,8 +105,8 @@ export default function AdminPayments() {
     <div className="min-h-screen" style={{ backgroundColor: C.black, ...body }}>
 
       {/* Header fixo */}
-      <div className="flex items-center px-8 py-4 sticky top-0 z-10"
-        style={{ backgroundColor: `${C.black}F5`, backdropFilter: 'blur(16px)', borderBottom: `1px solid rgba(255,255,222,0.05)` }}>
+      <div className="hidden md:flex items-center px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10"
+        style={{ backgroundColor: `${C.black}F5`, backdropFilter: 'blur(16px)', borderBottom: `1px solid rgba(var(--ink),0.05)` }}>
         <div className="flex items-center gap-3">
           <DollarSign size={16} style={{ color: C.lime }} />
           <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
@@ -115,7 +115,7 @@ export default function AdminPayments() {
         </div>
       </div>
 
-      <div className="px-4 md:px-8 pt-7 pb-10 max-w-6xl mx-auto space-y-8">
+      <div className="px-4 sm:px-6 md:px-8 pt-5 md:pt-7 pb-8 md:pb-10 max-w-6xl mx-auto w-full min-w-0 space-y-6 md:space-y-8">
 
         {/* Hero */}
         <div>
@@ -141,7 +141,7 @@ export default function AdminPayments() {
             {tabs.map((t) => (
               <button key={t.key} type="button" onClick={() => setActiveTab(t.key)}
                 className="shrink-0 px-4 py-2 rounded-xl transition-all duration-150"
-                style={{ backgroundColor: activeTab === t.key ? C.lime : 'rgba(255,255,222,0.06)', color: activeTab === t.key ? C.black : `${C.cream}70`, fontWeight: activeTab === t.key ? 700 : 400, ...heading, fontSize: 13 }}>
+                style={{ backgroundColor: activeTab === t.key ? C.lime : 'rgba(var(--ink),0.06)', color: activeTab === t.key ? C.black : `${C.cream}70`, fontWeight: activeTab === t.key ? 700 : 400, ...heading, fontSize: 13 }}>
                 {t.label}
               </button>
             ))}
@@ -153,7 +153,7 @@ export default function AdminPayments() {
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Buscar por ecoante, email, campanha..."
             className="w-full md:w-80 px-4 py-2.5 rounded-xl outline-none transition-all"
-            style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.12)`, color: C.cream, fontSize: 13, ...body }}
+            style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.12)`, color: C.cream, fontSize: 13, ...body }}
           />
         </div>
 
@@ -188,7 +188,7 @@ export default function AdminPayments() {
 
               return (
                 <div key={payment.id} className="p-5 rounded-2xl"
-                  style={{ backgroundColor: C.card, border: `1px solid ${isError ? 'rgba(248,113,113,0.2)' : 'rgba(255,255,222,0.07)'}` }}>
+                  style={{ backgroundColor: C.card, border: `1px solid ${isError ? 'rgba(248,113,113,0.2)' : 'rgba(var(--ink),0.07)'}` }}>
 
                   {/* Top */}
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-4">
@@ -234,7 +234,7 @@ export default function AdminPayments() {
                   </div>
 
                   {/* Ações */}
-                  <div className="flex flex-wrap gap-2 pt-4" style={{ borderTop: `1px solid rgba(255,255,222,0.06)` }}>
+                  <div className="flex flex-wrap gap-2 pt-4" style={{ borderTop: `1px solid rgba(var(--ink),0.06)` }}>
                     {(isPending || isError) && (
                       <button onClick={() => handleStatusUpdate(payment, 'processando')} disabled={updatePaymentStatus.isPending}
                         className="flex items-center gap-2 px-4 h-9 rounded-xl transition-all hover:brightness-110 disabled:opacity-50"
@@ -286,7 +286,7 @@ function StatusCard({ title, status }) {
 
   return (
     <div className="flex items-center gap-4 p-5 rounded-2xl"
-      style={{ backgroundColor: 'rgba(255,255,222,0.03)', border: `1px solid rgba(255,255,222,0.06)` }}>
+      style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: `1px solid rgba(var(--ink),0.06)` }}>
       <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: iconBg }}>
         <Icon size={16} style={{ color }} />
       </div>
@@ -300,7 +300,7 @@ function StatusCard({ title, status }) {
 
 function InfoChip({ label, value, hasIcon = false }) {
   return (
-    <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.07)` }}>
+    <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)` }}>
       <p style={{ fontSize: 10, color: `${C.cream}50`, marginBottom: 4 }}>{label}</p>
       <p className="flex items-center gap-1" style={{ fontSize: 13, fontWeight: 700, color: C.cream }}>
         {hasIcon && <Calendar size={11} style={{ color: `${C.cream}50` }} />}

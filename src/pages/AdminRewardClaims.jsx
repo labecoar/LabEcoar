@@ -51,7 +51,7 @@ export default function AdminRewardClaims() {
   if (profile?.role !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: C.black }}>
-        <div className="max-w-md p-8 rounded-2xl text-center" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.08)` }}>
+        <div className="max-w-md p-8 rounded-2xl text-center" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.08)` }}>
           <XCircle size={36} style={{ color: '#f87171', margin: '0 auto 16px' }} />
           <h2 style={{ ...heading, fontSize: 20, fontWeight: 800, color: C.cream }}>Acesso Negado</h2>
           <p style={{ color: `${C.cream}60`, fontSize: 14 }}>Você não tem permissão para acessar esta página.</p>
@@ -105,7 +105,7 @@ export default function AdminRewardClaims() {
     <div
       onClick={() => handleOpenClaim(claim)}
       className="p-5 rounded-2xl cursor-pointer transition-all hover:brightness-110"
-      style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.07)` }}
+      style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.07)` }}
     >
       {/* Top */}
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -144,14 +144,14 @@ export default function AdminRewardClaims() {
       {/* Notas */}
       {claim.notes && (
         <div className="px-3 py-2.5 rounded-xl mb-3"
-          style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.07)` }}>
+          style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)` }}>
           <p style={{ fontSize: 10, fontWeight: 700, color: `${C.cream}50`, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 4 }}>Observações</p>
           <p style={{ fontSize: 13, color: `${C.cream}70`, lineHeight: 1.5 }} className="line-clamp-2">{claim.notes}</p>
         </div>
       )}
 
       {/* Footer */}
-      <div className="flex flex-col gap-1.5 pt-3" style={{ borderTop: `1px solid rgba(255,255,222,0.06)` }}>
+      <div className="flex flex-col gap-1.5 pt-3" style={{ borderTop: `1px solid rgba(var(--ink),0.06)` }}>
         <span className="flex items-center gap-1.5" style={{ fontSize: 11, color: `${C.cream}40` }}>
           <Calendar size={11} />
           Resgatado em {format(new Date(claim.claimed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
@@ -198,8 +198,8 @@ export default function AdminRewardClaims() {
     <div className="min-h-screen" style={{ backgroundColor: C.black, ...body }}>
 
       {/* Header fixo */}
-      <div className="flex items-center px-8 py-4 sticky top-0 z-10"
-        style={{ backgroundColor: `${C.black}F5`, backdropFilter: 'blur(16px)', borderBottom: `1px solid rgba(255,255,222,0.05)` }}>
+      <div className="hidden md:flex items-center px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10"
+        style={{ backgroundColor: `${C.black}F5`, backdropFilter: 'blur(16px)', borderBottom: `1px solid rgba(var(--ink),0.05)` }}>
         <div className="flex items-center gap-3">
           <Gift size={16} style={{ color: C.lime }} />
           <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
@@ -208,7 +208,7 @@ export default function AdminRewardClaims() {
         </div>
       </div>
 
-      <div className="px-4 md:px-8 pt-7 pb-10 max-w-6xl mx-auto space-y-8">
+      <div className="px-4 sm:px-6 md:px-8 pt-5 md:pt-7 pb-8 md:pb-10 max-w-6xl mx-auto w-full min-w-0 space-y-6 md:space-y-8">
 
         {/* Hero */}
         <div>
@@ -229,7 +229,7 @@ export default function AdminRewardClaims() {
             { label: 'Cancelados', value: canceladosClaims.length, status: 'cancelado', icon: XCircle },
           ].map(({ label, value, status, icon: Icon }) => (
             <div key={label} className="flex items-center gap-4 p-5 rounded-2xl"
-              style={{ backgroundColor: 'rgba(255,255,222,0.03)', border: `1px solid rgba(255,255,222,0.06)` }}>
+              style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: `1px solid rgba(var(--ink),0.06)` }}>
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                 style={{ backgroundColor: statusBg(status) }}>
                 <Icon size={16} style={{ color: statusColor(status) }} />
@@ -247,7 +247,7 @@ export default function AdminRewardClaims() {
           {tabs.map((t) => (
             <button key={t.key} type="button" onClick={() => setActiveTab(t.key)}
               className="shrink-0 px-4 py-2 rounded-xl transition-all duration-150"
-              style={{ backgroundColor: activeTab === t.key ? C.lime : 'rgba(255,255,222,0.06)', color: activeTab === t.key ? C.black : `${C.cream}70`, fontWeight: activeTab === t.key ? 700 : 400, ...heading, fontSize: 13 }}>
+              style={{ backgroundColor: activeTab === t.key ? C.lime : 'rgba(var(--ink),0.06)', color: activeTab === t.key ? C.black : `${C.cream}70`, fontWeight: activeTab === t.key ? 700 : 400, ...heading, fontSize: 13 }}>
               {t.label}
             </button>
           ))}
@@ -266,10 +266,10 @@ export default function AdminRewardClaims() {
         <Dialog open={!!selectedClaim} onOpenChange={(open) => !open && setSelectedClaim(null)}>
           <DialogContent aria-describedby={undefined} className="sm:max-w-2xl p-0 border-0 bg-transparent overflow-hidden shadow-none">
             <DialogTitle className="sr-only">Detalhes do Resgate</DialogTitle>
-            <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.1)` }}>
+            <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.1)` }}>
 
               {/* Modal header */}
-              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
                 <div className="flex items-center gap-2">
                   <Gift size={15} style={{ color: C.lime }} />
                   <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream }}>{selectedClaim.reward_title}</span>
@@ -282,7 +282,7 @@ export default function AdminRewardClaims() {
               <div className="p-6 flex flex-col gap-4 max-h-[75vh] overflow-y-auto">
 
                 {/* Ecoante */}
-                <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.07)` }}>
+                <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)` }}>
                   <p style={{ fontSize: 10, color: `${C.cream}50`, marginBottom: 6 }}>Ecoante</p>
                   <p style={{ fontSize: 14, fontWeight: 700, color: C.cream }}>{selectedClaim.user_name}</p>
                   <p style={{ fontSize: 12, color: `${C.cream}50`, marginTop: 2 }}>{selectedClaim.user_email}</p>
@@ -306,9 +306,9 @@ export default function AdminRewardClaims() {
                         onClick={() => setNewStatus(key)}
                         className="px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:brightness-110"
                         style={{
-                          backgroundColor: newStatus === key ? statusBg(key) : 'rgba(255,255,222,0.04)',
+                          backgroundColor: newStatus === key ? statusBg(key) : 'rgba(var(--ink),0.04)',
                           color: newStatus === key ? statusColor(key) : `${C.cream}50`,
-                          border: `1px solid ${newStatus === key ? statusColor(key) + '40' : 'rgba(255,255,222,0.08)'}`,
+                          border: `1px solid ${newStatus === key ? statusColor(key) + '40' : 'rgba(var(--ink),0.08)'}`,
                           fontWeight: newStatus === key ? 700 : 400,
                         }}
                       >
@@ -320,7 +320,7 @@ export default function AdminRewardClaims() {
 
                 {/* Endereço */}
                 {(selectedClaim.cep || selectedClaim.endereco) && (
-                  <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.07)` }}>
+                  <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)` }}>
                     <div className="flex items-center gap-2 mb-3">
                       <MapPin size={13} style={{ color: C.lime }} />
                       <p style={{ fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Endereço de Entrega</p>
@@ -350,7 +350,7 @@ export default function AdminRewardClaims() {
                   </label>
                   <textarea
                     className="w-full px-4 py-3 rounded-xl outline-none resize-none"
-                    style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.12)`, color: C.cream, fontSize: 13, ...body }}
+                    style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.12)`, color: C.cream, fontSize: 13, ...body }}
                     rows={4}
                     placeholder="Adicione observações sobre este resgate..."
                     value={notes}
@@ -363,7 +363,7 @@ export default function AdminRewardClaims() {
                   <button
                     onClick={() => setSelectedClaim(null)}
                     className="flex-1 h-12 rounded-xl flex items-center justify-center transition-all hover:brightness-110"
-                    style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.07)`, color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}
+                    style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)`, color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}
                   >
                     Cancelar
                   </button>

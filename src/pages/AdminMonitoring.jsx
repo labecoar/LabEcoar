@@ -87,8 +87,8 @@ const formatShortDate = (value) => {
 
 const aInputCls = 'w-full px-4 py-2.5 rounded-xl outline-none transition-all'
 const aInputStyle = {
-  border: '1px solid rgba(255,255,222,0.12)',
-  backgroundColor: 'rgba(255,255,222,0.04)',
+  border: '1px solid rgba(var(--ink),0.12)',
+  backgroundColor: 'rgba(var(--ink),0.04)',
   color: C.cream,
   fontSize: 13,
   ...body,
@@ -120,7 +120,7 @@ const exportCsv = (headers, rows, filename) => {
 function StatusBadge({ status }) {
   const normalized = normalizeSubmissionStatus(status)
   const label = SUBMISSION_STATUS_LABELS[normalized] || status || '—'
-  const colors = SUBMISSION_STATUS_COLORS[normalized] || { bg: 'rgba(255,255,222,0.08)', color: `${C.cream}70` }
+  const colors = SUBMISSION_STATUS_COLORS[normalized] || { bg: 'rgba(var(--ink),0.08)', color: `${C.cream}70` }
   return (
     <span className="px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap" style={{ backgroundColor: colors.bg, color: colors.color }}>
       {label}
@@ -131,7 +131,7 @@ function StatusBadge({ status }) {
 function Pagination({ page, totalPages, onPageChange }) {
   if (totalPages <= 1) return null
   return (
-    <div className="flex items-center justify-between px-6 py-4" style={{ borderTop: '1px solid rgba(255,255,222,0.07)' }}>
+    <div className="flex items-center justify-between px-6 py-4" style={{ borderTop: '1px solid rgba(var(--ink),0.07)' }}>
       <span style={{ fontSize: 12, color: `${C.cream}50` }}>
         Página {page} de {totalPages}
       </span>
@@ -141,7 +141,7 @@ function Pagination({ page, totalPages, onPageChange }) {
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
           className="h-8 w-8 rounded-lg flex items-center justify-center transition-all disabled:opacity-30"
-          style={{ border: '1px solid rgba(255,255,222,0.12)', color: C.cream }}
+          style={{ border: '1px solid rgba(var(--ink),0.12)', color: C.cream }}
         >
           <ChevronLeft size={14} />
         </button>
@@ -150,7 +150,7 @@ function Pagination({ page, totalPages, onPageChange }) {
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
           className="h-8 w-8 rounded-lg flex items-center justify-center transition-all disabled:opacity-30"
-          style={{ border: '1px solid rgba(255,255,222,0.12)', color: C.cream }}
+          style={{ border: '1px solid rgba(var(--ink),0.12)', color: C.cream }}
         >
           <ChevronRight size={14} />
         </button>
@@ -409,7 +409,7 @@ export default function AdminMonitoring() {
   if (profile?.role !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: C.black }}>
-        <div className="max-w-md p-8 rounded-2xl text-center" style={{ backgroundColor: C.card, border: '1px solid rgba(255,255,222,0.08)' }}>
+        <div className="max-w-md p-8 rounded-2xl text-center" style={{ backgroundColor: C.card, border: '1px solid rgba(var(--ink),0.08)' }}>
           <Shield size={36} style={{ color: '#f87171', margin: '0 auto 16px' }} />
           <h2 style={{ ...heading, fontSize: 20, fontWeight: 800, color: C.cream }} className="mb-2">Acesso Negado</h2>
           <p style={{ color: `${C.cream}60`, fontSize: 14 }}>Apenas administradores podem acessar o painel de monitoramento.</p>
@@ -427,8 +427,8 @@ export default function AdminMonitoring() {
     <div className="min-h-screen" style={{ backgroundColor: C.black, ...body }}>
 
       {/* Header fixo */}
-      <div className="flex items-center justify-between px-8 py-4 sticky top-0 z-10"
-        style={{ backgroundColor: `${C.black}F5`, backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,222,0.05)' }}>
+      <div className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10"
+        style={{ backgroundColor: `${C.black}F5`, backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(var(--ink),0.05)' }}>
         <div className="flex items-center gap-3">
           <Activity size={16} style={{ color: C.lime }} />
           <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
@@ -437,20 +437,20 @@ export default function AdminMonitoring() {
         </div>
       </div>
 
-      <div className="px-4 md:px-8 pt-7 pb-10 max-w-7xl mx-auto space-y-8">
+      <div className="px-4 sm:px-6 md:px-8 pt-4 md:pt-7 pb-8 md:pb-10 max-w-7xl mx-auto w-full min-w-0 space-y-5 md:space-y-8">
 
         {/* Hero */}
         <div>
-          <h1 style={{ ...heading, fontSize: 40, fontWeight: 900, color: C.cream, letterSpacing: '-0.03em', lineHeight: 1 }}>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-none" style={{ ...heading, color: C.cream }}>
             Monitoramento
           </h1>
-          <p style={{ fontSize: 14, color: `${C.cream}50`, marginTop: 6 }}>
+          <p className="text-sm mt-1.5 md:mt-2 leading-relaxed" style={{ color: `${C.cream}50` }}>
             Visão completa de tarefas, inscrições e participação dos usuários no sistema.
           </p>
         </div>
 
         {/* Stats principais */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
           {[
             { label: 'Usuários', value: overview.totalUsers, color: C.cream },
             { label: 'Ecoantes ativos', value: overview.activeUsers, color: C.lime },
@@ -459,16 +459,16 @@ export default function AdminMonitoring() {
             { label: 'Inscrições', value: overview.totalSubmissions, color: C.orange },
             { label: 'Concluídas', value: overview.completedSubmissions, color: C.lime },
           ].map(({ label, value, color }) => (
-            <div key={label} className="p-5 rounded-2xl" style={{ backgroundColor: 'rgba(255,255,222,0.03)', border: '1px solid rgba(255,255,222,0.06)' }}>
+            <div key={label} className="p-4 sm:p-5 rounded-2xl" style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: '1px solid rgba(var(--ink),0.06)' }}>
               <div style={{ fontSize: 11, color: `${C.cream}50`, marginBottom: 6 }}>{label}</div>
-              <div style={{ ...heading, fontSize: 28, fontWeight: 900, color, lineHeight: 1, letterSpacing: '-0.02em' }}>{value}</div>
+              <div className="text-xl sm:text-2xl md:text-3xl font-black leading-none tracking-tight" style={{ ...heading, color }}>{value}</div>
             </div>
           ))}
         </div>
 
         {/* Insights */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="p-5 rounded-2xl" style={{ backgroundColor: 'rgba(255,255,222,0.02)', border: '1px solid rgba(255,255,222,0.07)' }}>
+          <div className="p-5 rounded-2xl" style={{ backgroundColor: 'rgba(var(--ink),0.02)', border: '1px solid rgba(var(--ink),0.07)' }}>
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp size={14} style={{ color: C.lime }} />
               <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: C.cream }}>Tarefas mais populares</span>
@@ -493,7 +493,7 @@ export default function AdminMonitoring() {
             )}
           </div>
 
-          <div className="p-5 rounded-2xl" style={{ backgroundColor: 'rgba(255,255,222,0.02)', border: '1px solid rgba(255,255,222,0.07)' }}>
+          <div className="p-5 rounded-2xl" style={{ backgroundColor: 'rgba(var(--ink),0.02)', border: '1px solid rgba(var(--ink),0.07)' }}>
             <div className="flex items-center gap-2 mb-4">
               <Users size={14} style={{ color: C.orange }} />
               <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: C.cream }}>Usuários mais ativos</span>
@@ -530,9 +530,9 @@ export default function AdminMonitoring() {
               onClick={() => setActiveTab(id)}
               className="flex items-center gap-2 px-5 py-2.5 rounded-full transition-all"
               style={{
-                backgroundColor: activeTab === id ? C.lime : 'rgba(255,255,222,0.04)',
+                backgroundColor: activeTab === id ? C.lime : 'rgba(var(--ink),0.04)',
                 color: activeTab === id ? C.black : `${C.cream}70`,
-                border: `1px solid ${activeTab === id ? C.lime : 'rgba(255,255,222,0.08)'}`,
+                border: `1px solid ${activeTab === id ? C.lime : 'rgba(var(--ink),0.08)'}`,
                 fontSize: 13,
                 fontWeight: 700,
                 ...heading,
@@ -546,9 +546,9 @@ export default function AdminMonitoring() {
 
         {/* Tab: Por Tarefas */}
         {activeTab === 'tasks' && (
-          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'rgba(255,255,222,0.02)', border: '1px solid rgba(255,255,222,0.07)' }}>
+          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'rgba(var(--ink),0.02)', border: '1px solid rgba(var(--ink),0.07)' }}>
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 px-6 py-4"
-              style={{ borderBottom: '1px solid rgba(255,255,222,0.07)' }}>
+              style={{ borderBottom: '1px solid rgba(var(--ink),0.07)' }}>
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: C.lime }} />
                 <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>Tarefas</span>
@@ -591,7 +591,7 @@ export default function AdminMonitoring() {
                   type="button"
                   onClick={handleExportTasks}
                   className="h-10 px-4 rounded-xl flex items-center gap-2 transition-all hover:brightness-110 shrink-0"
-                  style={{ border: '1px solid rgba(255,255,222,0.12)', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
+                  style={{ border: '1px solid rgba(var(--ink),0.12)', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
                 >
                   <Download size={13} /> Exportar
                 </button>
@@ -610,7 +610,7 @@ export default function AdminMonitoring() {
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead>
-                      <tr style={{ borderBottom: '1px solid rgba(255,255,222,0.06)' }}>
+                      <tr style={{ borderBottom: '1px solid rgba(var(--ink),0.06)' }}>
                         <th className="text-left px-5 py-3">
                           <SortButton label="TAREFA" field="title" sortField={taskSort.field} sortDir={taskSort.dir} onSort={handleTaskSort} />
                         </th>
@@ -633,8 +633,8 @@ export default function AdminMonitoring() {
                         <tr
                           key={task.id}
                           style={{
-                            backgroundColor: i % 2 === 0 ? 'transparent' : 'rgba(255,255,222,0.015)',
-                            borderBottom: '1px solid rgba(255,255,222,0.04)',
+                            backgroundColor: i % 2 === 0 ? 'transparent' : 'rgba(var(--ink),0.015)',
+                            borderBottom: '1px solid rgba(var(--ink),0.04)',
                           }}
                         >
                           <td className="px-5 py-3">
@@ -648,7 +648,7 @@ export default function AdminMonitoring() {
                           </td>
                           <td className="px-5 py-3">
                             <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{
-                              backgroundColor: task.status === 'active' ? `${C.lime}18` : 'rgba(255,255,222,0.08)',
+                              backgroundColor: task.status === 'active' ? `${C.lime}18` : 'rgba(var(--ink),0.08)',
                               color: task.status === 'active' ? C.lime : `${C.cream}50`,
                             }}>
                               {TASK_STATUS_LABELS[task.status] || task.status}
@@ -665,7 +665,7 @@ export default function AdminMonitoring() {
                               type="button"
                               onClick={() => setSelectedTask(task)}
                               className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110"
-                              style={{ border: '1px solid rgba(255,255,222,0.12)', backgroundColor: 'transparent', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
+                              style={{ border: '1px solid rgba(var(--ink),0.12)', backgroundColor: 'transparent', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
                             >
                               <Eye size={12} /> Detalhes
                             </button>
@@ -683,9 +683,9 @@ export default function AdminMonitoring() {
 
         {/* Tab: Por Usuários */}
         {activeTab === 'users' && (
-          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'rgba(255,255,222,0.02)', border: '1px solid rgba(255,255,222,0.07)' }}>
+          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'rgba(var(--ink),0.02)', border: '1px solid rgba(var(--ink),0.07)' }}>
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 px-6 py-4"
-              style={{ borderBottom: '1px solid rgba(255,255,222,0.07)' }}>
+              style={{ borderBottom: '1px solid rgba(var(--ink),0.07)' }}>
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: C.orange }} />
                 <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>Usuários</span>
@@ -726,7 +726,7 @@ export default function AdminMonitoring() {
                   type="button"
                   onClick={handleExportUsers}
                   className="h-10 px-4 rounded-xl flex items-center gap-2 transition-all hover:brightness-110 shrink-0"
-                  style={{ border: '1px solid rgba(255,255,222,0.12)', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
+                  style={{ border: '1px solid rgba(var(--ink),0.12)', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
                 >
                   <Download size={13} /> Exportar
                 </button>
@@ -745,7 +745,7 @@ export default function AdminMonitoring() {
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead>
-                      <tr style={{ borderBottom: '1px solid rgba(255,255,222,0.06)' }}>
+                      <tr style={{ borderBottom: '1px solid rgba(var(--ink),0.06)' }}>
                         <th className="text-left px-5 py-3">
                           <SortButton label="USUÁRIO" field="name" sortField={userSort.field} sortDir={userSort.dir} onSort={handleUserSort} />
                         </th>
@@ -766,8 +766,8 @@ export default function AdminMonitoring() {
                         <tr
                           key={user.id}
                           style={{
-                            backgroundColor: i % 2 === 0 ? 'transparent' : 'rgba(255,255,222,0.015)',
-                            borderBottom: '1px solid rgba(255,255,222,0.04)',
+                            backgroundColor: i % 2 === 0 ? 'transparent' : 'rgba(var(--ink),0.015)',
+                            borderBottom: '1px solid rgba(var(--ink),0.04)',
                           }}
                         >
                           <td className="px-5 py-3">
@@ -803,7 +803,7 @@ export default function AdminMonitoring() {
                               type="button"
                               onClick={() => setSelectedUser(user)}
                               className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110"
-                              style={{ border: '1px solid rgba(255,255,222,0.12)', backgroundColor: 'transparent', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
+                              style={{ border: '1px solid rgba(var(--ink),0.12)', backgroundColor: 'transparent', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
                             >
                               <Eye size={12} /> Detalhes
                             </button>
@@ -825,8 +825,8 @@ export default function AdminMonitoring() {
         <DialogContent aria-describedby={undefined} className="sm:max-w-3xl p-0 border-0 bg-transparent overflow-hidden shadow-none max-h-[90vh]">
           <DialogTitle className="sr-only">Detalhes da Tarefa</DialogTitle>
           {selectedTask && (
-            <div className="w-full rounded-2xl overflow-hidden flex flex-col max-h-[90vh]" style={{ backgroundColor: C.card, border: '1px solid rgba(255,255,222,0.1)' }}>
-              <div className="flex items-center gap-3 px-6 py-4 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,222,0.07)' }}>
+            <div className="w-full rounded-2xl overflow-hidden flex flex-col max-h-[90vh]" style={{ backgroundColor: C.card, border: '1px solid rgba(var(--ink),0.1)' }}>
+              <div className="flex items-center gap-3 px-6 py-4 shrink-0" style={{ borderBottom: '1px solid rgba(var(--ink),0.07)' }}>
                 <Target size={15} style={{ color: C.lime }} />
                 <div className="min-w-0">
                   <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream }} className="block truncate">{selectedTask.title}</span>
@@ -847,7 +847,7 @@ export default function AdminMonitoring() {
                     { label: 'Prazo prova', value: formatShortDate(selectedTask.delivery_deadline || selectedTask.posting_deadline) },
                     { label: 'Inscrições', value: selectedTaskParticipants.length },
                   ].map(({ label, value }) => (
-                    <div key={label} className="p-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,222,0.03)', border: '1px solid rgba(255,255,222,0.06)' }}>
+                    <div key={label} className="p-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: '1px solid rgba(var(--ink),0.06)' }}>
                       <div style={{ fontSize: 10, color: `${C.cream}40`, marginBottom: 4, fontWeight: 700, letterSpacing: '0.05em' }}>{label.toUpperCase()}</div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: C.cream }}>{value}</div>
                     </div>
@@ -873,10 +873,10 @@ export default function AdminMonitoring() {
                   {selectedTaskParticipants.length === 0 ? (
                     <p style={{ fontSize: 13, color: `${C.cream}40` }}>Nenhum usuário inscrito nesta tarefa.</p>
                   ) : (
-                    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,222,0.07)' }}>
+                    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(var(--ink),0.07)' }}>
                       <table className="min-w-full text-sm">
                         <thead>
-                          <tr style={{ backgroundColor: 'rgba(255,255,222,0.03)', borderBottom: '1px solid rgba(255,255,222,0.06)' }}>
+                          <tr style={{ backgroundColor: 'rgba(var(--ink),0.03)', borderBottom: '1px solid rgba(var(--ink),0.06)' }}>
                             {['Usuário', 'Instagram', 'Seguidores', 'Status', 'Inscrição'].map((h) => (
                               <th key={h} className="text-left px-4 py-2.5" style={{ fontSize: 10, fontWeight: 700, color: `${C.cream}40`, letterSpacing: '0.06em' }}>{h}</th>
                             ))}
@@ -884,7 +884,7 @@ export default function AdminMonitoring() {
                         </thead>
                         <tbody>
                           {selectedTaskParticipants.map((sub, i) => (
-                            <tr key={sub.id} style={{ borderBottom: '1px solid rgba(255,255,222,0.04)', backgroundColor: i % 2 === 0 ? 'transparent' : 'rgba(255,255,222,0.015)' }}>
+                            <tr key={sub.id} style={{ borderBottom: '1px solid rgba(var(--ink),0.04)', backgroundColor: i % 2 === 0 ? 'transparent' : 'rgba(var(--ink),0.015)' }}>
                               <td className="px-4 py-2.5">
                                 <p style={{ fontSize: 13, fontWeight: 600, color: C.cream }}>
                                   {sub.profile?.display_name || sub.profile?.full_name || '—'}
@@ -917,8 +917,8 @@ export default function AdminMonitoring() {
         <DialogContent aria-describedby={undefined} className="sm:max-w-3xl p-0 border-0 bg-transparent overflow-hidden shadow-none max-h-[90vh]">
           <DialogTitle className="sr-only">Detalhes do Usuário</DialogTitle>
           {selectedUser && (
-            <div className="w-full rounded-2xl overflow-hidden flex flex-col max-h-[90vh]" style={{ backgroundColor: C.card, border: '1px solid rgba(255,255,222,0.1)' }}>
-              <div className="flex items-center gap-3 px-6 py-4 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,222,0.07)' }}>
+            <div className="w-full rounded-2xl overflow-hidden flex flex-col max-h-[90vh]" style={{ backgroundColor: C.card, border: '1px solid rgba(var(--ink),0.1)' }}>
+              <div className="flex items-center gap-3 px-6 py-4 shrink-0" style={{ borderBottom: '1px solid rgba(var(--ink),0.07)' }}>
                 <UserRound size={15} style={{ color: C.orange }} />
                 <div className="min-w-0">
                   <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream }} className="block truncate">
@@ -937,7 +937,7 @@ export default function AdminMonitoring() {
                     { label: 'Pendentes', value: selectedUser.pendingCount, icon: Clock, color: C.purple },
                     { label: 'Rejeitadas', value: selectedUser.rejectedCount, icon: XCircle, color: '#f87171' },
                   ].map(({ label, value, icon: Icon, color }) => (
-                    <div key={label} className="p-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,222,0.03)', border: '1px solid rgba(255,255,222,0.06)' }}>
+                    <div key={label} className="p-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: '1px solid rgba(var(--ink),0.06)' }}>
                       <div className="flex items-center gap-1.5 mb-2">
                         <Icon size={12} style={{ color }} />
                         <span style={{ fontSize: 10, color: `${C.cream}40`, fontWeight: 700, letterSpacing: '0.05em' }}>{label.toUpperCase()}</span>
@@ -957,7 +957,7 @@ export default function AdminMonitoring() {
                     { label: 'Trimestre', value: selectedUser.current_quarter || '—' },
                     { label: 'Membro desde', value: formatShortDate(selectedUser.created_at) },
                   ].map(({ label, value }) => (
-                    <div key={label} className="p-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,222,0.03)', border: '1px solid rgba(255,255,222,0.06)' }}>
+                    <div key={label} className="p-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: '1px solid rgba(var(--ink),0.06)' }}>
                       <div style={{ fontSize: 10, color: `${C.cream}40`, marginBottom: 4, fontWeight: 700, letterSpacing: '0.05em' }}>{label.toUpperCase()}</div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: C.cream }}>{value}</div>
                     </div>
@@ -976,10 +976,10 @@ export default function AdminMonitoring() {
                   {!selectedUser.submissions?.length ? (
                     <p style={{ fontSize: 13, color: `${C.cream}40` }}>Este usuário ainda não participou de nenhuma tarefa.</p>
                   ) : (
-                    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,222,0.07)' }}>
+                    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(var(--ink),0.07)' }}>
                       <table className="min-w-full text-sm">
                         <thead>
-                          <tr style={{ backgroundColor: 'rgba(255,255,222,0.03)', borderBottom: '1px solid rgba(255,255,222,0.06)' }}>
+                          <tr style={{ backgroundColor: 'rgba(var(--ink),0.03)', borderBottom: '1px solid rgba(var(--ink),0.06)' }}>
                             {['Tarefa', 'Categoria', 'Status', 'Pontos', 'Inscrição', 'Atualização'].map((h) => (
                               <th key={h} className="text-left px-4 py-2.5" style={{ fontSize: 10, fontWeight: 700, color: `${C.cream}40`, letterSpacing: '0.06em' }}>{h}</th>
                             ))}
@@ -987,7 +987,7 @@ export default function AdminMonitoring() {
                         </thead>
                         <tbody>
                           {selectedUser.submissions.map((sub, i) => (
-                            <tr key={sub.id} style={{ borderBottom: '1px solid rgba(255,255,222,0.04)', backgroundColor: i % 2 === 0 ? 'transparent' : 'rgba(255,255,222,0.015)' }}>
+                            <tr key={sub.id} style={{ borderBottom: '1px solid rgba(var(--ink),0.04)', backgroundColor: i % 2 === 0 ? 'transparent' : 'rgba(var(--ink),0.015)' }}>
                               <td className="px-4 py-2.5">
                                 <p style={{ fontSize: 13, fontWeight: 600, color: C.cream }} className="max-w-[180px] truncate">
                                   {sub.task?.title || '—'}

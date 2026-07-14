@@ -7,7 +7,7 @@ import { useUserScore } from '@/hooks/useScores'
 import { useMySubmissions } from '@/hooks/useSubmissions'
 import { useMyPayments } from '@/hooks/usePayments'
 import { storageService } from '@/services/storage.service'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { User, Instagram, Trophy, Award, Star, Users, Upload, Check, XCircle, Edit3 } from 'lucide-react'
 import { notifyError, notifySuccess } from '@/lib/toast'
 import { C, heading, body } from '@/lib/theme'
@@ -377,9 +377,10 @@ export default function Profile() {
   return (
     <main className="flex-1 overflow-y-auto" style={{ backgroundColor: C.black, ...body }}>
       <Dialog open={avatarCropOpen} onOpenChange={(open) => { if (!open) closeAvatarCropDialog() }}>
-        <DialogContent className="sm:max-w-xl p-0 border-0 bg-transparent overflow-hidden shadow-none">
-          <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.1)` }}>
-            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+        <DialogContent aria-describedby={undefined} className="sm:max-w-xl p-0 border-0 bg-transparent overflow-hidden shadow-none">
+          <DialogTitle className="sr-only">Ajustar foto de perfil</DialogTitle>
+          <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.1)` }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
               <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream }}>Ajustar foto de perfil</span>
               <button onClick={closeAvatarCropDialog} style={{ color: `${C.cream}50` }} className="hover:opacity-100 transition-opacity"><XCircle size={18} /></button>
             </div>
@@ -438,7 +439,7 @@ export default function Profile() {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={closeAvatarCropDialog} disabled={uploadFileMutation.isPending} className="flex-1 h-12 rounded-xl transition-all hover:bg-[rgba(255,255,222,0.05)]" style={{ color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}>
+                <button type="button" onClick={closeAvatarCropDialog} disabled={uploadFileMutation.isPending} className="flex-1 h-12 rounded-xl transition-all hover:bg-[rgba(var(--ink),0.05)]" style={{ color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}>
                   Cancelar
                 </button>
                 <button type="button" onClick={handleConfirmAvatarCrop} disabled={uploadFileMutation.isPending} className="flex-1 h-12 rounded-xl transition-all hover:brightness-110 disabled:opacity-50" style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontWeight: 700, fontSize: 14 }}>
@@ -451,7 +452,7 @@ export default function Profile() {
       </Dialog>
 
       {/* Topbar */}
-      <div className="flex items-center justify-between px-8 py-4 sticky top-0 z-10" style={{ backgroundColor: `${C.black}F5`, backdropFilter: "blur(16px)", borderBottom: `1px solid rgba(255,255,222,0.05)` }}>
+      <div className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10" style={{ backgroundColor: `${C.black}F5`, backdropFilter: "blur(16px)", borderBottom: `1px solid rgba(var(--ink),0.05)` }}>
         <div className="flex items-center gap-3">
           <User size={16} style={{ color: C.lime }} />
           <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", textTransform: "uppercase" }}>Perfil</span>
@@ -462,11 +463,11 @@ export default function Profile() {
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6 px-8 pt-7 pb-10 max-w-6xl mx-auto" style={{ minHeight: 0 }}>
+      <div className="flex flex-col md:flex-row gap-6 px-4 sm:px-6 md:px-8 pt-5 md:pt-7 pb-8 md:pb-10 max-w-6xl mx-auto w-full min-w-0" style={{ minHeight: 0 }}>
         {/* ── LEFT: sidebar card ── */}
         <div className="shrink-0 flex flex-col gap-4 w-full md:w-[280px]">
           {/* Avatar + identity */}
-          <div className="p-6 rounded-2xl flex flex-col items-center text-center gap-4" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
+          <div className="p-6 rounded-2xl flex flex-col items-center text-center gap-4" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.06)` }}>
             <div className="relative">
               {formData.avatar_url ? (
                 <img
@@ -504,12 +505,12 @@ export default function Profile() {
           </div>
 
           {/* Stats panel */}
-          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
+          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.06)` }}>
             {[
               { icon: Star, label: "Pontos", value: totalPoints, valueColor: C.lime },
               { icon: Award, label: "Ganhos", value: `R$ ${totalEarnings.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, valueColor: C.lime },
             ].map(({ icon: IconComponent, label, value, valueColor }, i, arr) => (
-              <div key={label} className="flex items-center justify-between px-5 py-4" style={{ borderBottom: i < arr.length - 1 ? `1px solid rgba(255,255,222,0.06)` : "none" }}>
+              <div key={label} className="flex items-center justify-between px-5 py-4" style={{ borderBottom: i < arr.length - 1 ? `1px solid rgba(var(--ink),0.06)` : "none" }}>
                 <div className="flex items-center gap-2.5">
                   <IconComponent size={14} style={{ color: `${C.cream}40` }} />
                   <span style={{ fontSize: 13, color: `${C.cream}60` }}>{label}</span>
@@ -522,9 +523,9 @@ export default function Profile() {
 
         {/* ── RIGHT: form + social ── */}
         <div className="flex-1 min-w-0 flex flex-col gap-5">
-          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
+          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.06)` }}>
             {/* Card header */}
-            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
               <div className="flex items-center gap-2.5">
                 <User size={15} style={{ color: C.lime }} />
                 <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>Informações do Ecoante</span>
@@ -548,7 +549,7 @@ export default function Profile() {
                   }}
                   disabled={updateProfileMutation.isPending || isUploadingAvatar}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all hover:brightness-110 disabled:opacity-50"
-                  style={{ backgroundColor: "rgba(255,255,222,0.07)", color: `${C.cream}70`, ...body, fontSize: 12 }}
+                  style={{ backgroundColor: "rgba(var(--ink),0.07)", color: `${C.cream}70`, ...body, fontSize: 12 }}
                 >
                   <XCircle size={12} /> Cancelar
                 </button>
@@ -567,8 +568,8 @@ export default function Profile() {
                       readOnly={!isEditing}
                       className="w-full px-4 py-3 rounded-xl outline-none"
                       style={{
-                        backgroundColor: "rgba(255,255,222,0.04)",
-                        border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`,
+                        backgroundColor: "rgba(var(--ink),0.04)",
+                        border: `1px solid ${isEditing ? "rgba(var(--ink),0.14)" : "rgba(var(--ink),0.07)"}`,
                         color: isEditing ? C.cream : `${C.cream}80`,
                         ...body, fontSize: 13
                       }}
@@ -583,8 +584,8 @@ export default function Profile() {
                       readOnly
                       className="w-full px-4 py-3 rounded-xl outline-none"
                       style={{
-                        backgroundColor: "rgba(255,255,222,0.04)",
-                        border: "1px solid rgba(255,255,222,0.07)",
+                        backgroundColor: "rgba(var(--ink),0.04)",
+                        border: "1px solid rgba(var(--ink),0.07)",
                         color: `${C.cream}60`,
                         ...body,
                         fontSize: 13
@@ -601,7 +602,7 @@ export default function Profile() {
                     value={user?.email || ''}
                     readOnly
                     className="w-full px-4 py-3 rounded-xl outline-none"
-                    style={{ backgroundColor: "rgba(255,255,222,0.04)", border: "1px solid rgba(255,255,222,0.07)", color: `${C.cream}60`, ...body, fontSize: 13 }}
+                    style={{ backgroundColor: "rgba(var(--ink),0.04)", border: "1px solid rgba(var(--ink),0.07)", color: `${C.cream}60`, ...body, fontSize: 13 }}
                   />
                 </div>
 
@@ -615,8 +616,8 @@ export default function Profile() {
                     rows={4}
                     className="w-full px-4 py-3 rounded-xl outline-none"
                     style={{
-                      backgroundColor: "rgba(255,255,222,0.04)",
-                      border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`,
+                      backgroundColor: "rgba(var(--ink),0.04)",
+                      border: `1px solid ${isEditing ? "rgba(var(--ink),0.14)" : "rgba(var(--ink),0.07)"}`,
                       color: isEditing ? C.cream : `${C.cream}80`,
                       resize: isEditing ? "vertical" : "none",
                       ...body, fontSize: 13
@@ -637,8 +638,8 @@ export default function Profile() {
                         className="w-full py-3 pr-4 rounded-xl outline-none"
                         style={{
                           paddingLeft: 36,
-                          backgroundColor: "rgba(255,255,222,0.04)",
-                          border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`,
+                          backgroundColor: "rgba(var(--ink),0.04)",
+                          border: `1px solid ${isEditing ? "rgba(var(--ink),0.14)" : "rgba(var(--ink),0.07)"}`,
                           color: isEditing ? C.cream : `${C.cream}80`,
                           ...body, fontSize: 13
                         }}
@@ -665,8 +666,8 @@ export default function Profile() {
                         className="w-full py-3 pr-4 rounded-xl outline-none"
                         style={{
                           paddingLeft: 36,
-                          backgroundColor: "rgba(255,255,222,0.04)",
-                          border: `1px solid ${isEditing ? "rgba(255,255,222,0.14)" : "rgba(255,255,222,0.07)"}`,
+                          backgroundColor: "rgba(var(--ink),0.04)",
+                          border: `1px solid ${isEditing ? "rgba(var(--ink),0.14)" : "rgba(var(--ink),0.07)"}`,
                           color: isEditing ? C.cream : `${C.cream}80`,
                           ...body, fontSize: 13
                         }}
@@ -691,13 +692,13 @@ export default function Profile() {
           </div>
 
           {/* Redes Sociais */}
-          <div className="p-5 rounded-2xl" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
+          <div className="p-5 rounded-2xl" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.06)` }}>
             <span style={{ ...heading, fontSize: 13, fontWeight: 700, color: C.cream, display: "block", marginBottom: 14 }}>Redes Sociais</span>
             <div className="flex flex-col gap-3">
               {[
                 { Icon: Instagram, label: formData.instagram_handle || 'Não informado', platform: "Instagram", color: "#E1306C" },
               ].map(({ Icon: SocialIcon, label, platform, color }) => (
-                <div key={platform} className="flex items-center gap-3 px-4 py-3 rounded-xl" style={{ backgroundColor: C.surface, border: `1px solid rgba(255,255,222,0.07)` }}>
+                <div key={platform} className="flex items-center gap-3 px-4 py-3 rounded-xl" style={{ backgroundColor: C.surface, border: `1px solid rgba(var(--ink),0.07)` }}>
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}18`, color }}>
                     <SocialIcon size={14} />
                   </div>

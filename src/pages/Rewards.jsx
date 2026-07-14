@@ -153,13 +153,13 @@ export default function Rewards() {
     );
   }
 
-  const inputStyle = { backgroundColor: C.black_light, border: `1px solid rgba(255,255,222,0.1)`, color: C.cream, ...body, fontSize: 14 };
+  const inputStyle = { backgroundColor: C.black_light, border: `1px solid rgba(var(--ink),0.1)`, color: C.cream, ...body, fontSize: 14 };
   const labelStyle = { ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", display: "block", marginBottom: 6 };
 
   return (
     <div style={{ minHeight: "100vh", background: C.black, ...body }}>
       {/* Header Fixo */}
-      <div className="flex items-center justify-between px-8 py-4 sticky top-0 z-10" style={{ backgroundColor: `${C.black}F5`, backdropFilter: "blur(16px)", borderBottom: `1px solid rgba(255,255,222,0.05)` }}>
+      <div className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10" style={{ backgroundColor: `${C.black}F5`, backdropFilter: "blur(16px)", borderBottom: `1px solid rgba(var(--ink),0.05)` }}>
         <div className="flex items-center gap-3">
           <Gift size={16} style={{ color: C.lime }} />
           <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", textTransform: "uppercase" }}>Recompensas</span>
@@ -170,23 +170,23 @@ export default function Rewards() {
         </div>
       </div>
 
-      <div className="px-8 pt-7 pb-10 max-w-6xl mx-auto">
+      <div className="px-4 sm:px-6 md:px-8 pt-5 md:pt-7 pb-8 md:pb-10 max-w-6xl mx-auto w-full min-w-0">
         {/* Hero */}
-        <div className="mb-8">
-          <h1 style={{ ...heading, fontSize: 40, fontWeight: 900, color: C.cream, letterSpacing: "-0.03em", lineHeight: 1 }}>Recompensas</h1>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-none" style={{ ...heading, color: C.cream }}>Recompensas</h1>
           <p style={{ fontSize: 14, color: `${C.cream}50`, marginTop: 6 }}>Converta seus pontos em prêmios reais.</p>
         </div>
 
         {/* Balance Card */}
-        <div className="p-6 rounded-2xl mb-8 flex flex-col md:flex-row md:items-center gap-8" style={{ background: `linear-gradient(135deg, ${C.darkGreen} 0%, ${C.black} 100%)`, border: `1px solid ${C.lime}22` }}>
+        <div className="p-4 sm:p-6 rounded-2xl mb-6 md:mb-8 flex flex-col md:flex-row md:items-center gap-6 md:gap-8" style={{ background: `linear-gradient(135deg, ${C.darkGreen} 0%, ${C.black} 100%)`, border: `1px solid ${C.lime}22` }}>
           <div>
             <div style={{ fontSize: 11, color: `${C.cream}50`, marginBottom: 4 }}>Saldo disponível</div>
-            <div style={{ ...heading, fontSize: 56, fontWeight: 900, color: C.lime, lineHeight: 1, letterSpacing: "-0.04em" }}>{currentPoints}</div>
+            <div className="text-4xl sm:text-5xl font-black leading-none tracking-tighter" style={{ ...heading, color: C.lime }}>{currentPoints}</div>
             <div style={{ fontSize: 13, color: `${C.cream}40`, marginTop: 2 }}>pontos</div>
           </div>
           <div className="flex-1 w-full max-w-md ml-auto">
             <div style={{ fontSize: 12, color: `${C.cream}50`, marginBottom: 10 }}>Seu saldo em conta</div>
-            <div className="relative h-2 rounded-full w-full" style={{ backgroundColor: "rgba(255,255,222,0.07)" }}>
+            <div className="relative h-2 rounded-full w-full" style={{ backgroundColor: "rgba(var(--ink),0.07)" }}>
               <div className="absolute left-0 top-0 h-full rounded-full" style={{ width: `${Math.min(100, (currentPoints / (currentPoints + 500)) * 100)}%`, background: `linear-gradient(90deg, ${C.lime} 0%, ${C.blue} 100%)` }} />
             </div>
             <div className="flex justify-between mt-2">
@@ -201,9 +201,9 @@ export default function Rewards() {
             <h2 style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream, marginBottom: 16 }}>Meus Resgates Recentes</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {myClaims.slice(0, 4).map((claim) => (
-                <div key={claim.id} className="p-4 rounded-2xl flex items-center justify-between" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
+                <div key={claim.id} className="p-4 rounded-2xl flex items-center justify-between" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.06)` }}>
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(255,255,222,0.04)", color: C.cream }}>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(var(--ink),0.04)", color: C.cream }}>
                       <ShoppingCart size={16} />
                     </div>
                     <div>
@@ -228,7 +228,7 @@ export default function Rewards() {
           {[{ key: "todas", name: "Todas" }, ...Object.entries(CATEGORY_INFO).map(([k, v]) => ({ key: k, name: v.name }))].map((c) => {
             const active = c.key === selectedCategory;
             return (
-              <button key={c.key} onClick={() => setSelectedCategory(c.key)} className="shrink-0 px-4 py-2 rounded-xl text-sm transition-all duration-150" style={{ backgroundColor: active ? C.lime : "rgba(255,255,222,0.06)", color: active ? C.black : `${C.cream}70`, fontWeight: active ? 700 : 400, ...heading, fontSize: 13 }}>
+              <button key={c.key} onClick={() => setSelectedCategory(c.key)} className="shrink-0 px-4 py-2 rounded-xl text-sm transition-all duration-150" style={{ backgroundColor: active ? C.lime : "rgba(var(--ink),0.06)", color: active ? C.black : `${C.cream}70`, fontWeight: active ? 700 : 400, ...heading, fontSize: 13 }}>
                 {c.name}
               </button>
             );
@@ -242,8 +242,8 @@ export default function Rewards() {
             const canClaim = hasEnoughPoints(reward) && isAvailable(reward);
 
             return (
-              <div key={reward.id} className="flex flex-col rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:brightness-110 cursor-pointer" onClick={() => setSelectedReward(reward)} style={{ backgroundColor: C.card, border: `1px solid ${canClaim ? `${C.lime}18` : "rgba(255,255,222,0.06)"}`, opacity: canClaim ? 1 : 0.7 }}>
-                <div className="h-1 w-full" style={{ backgroundColor: canClaim ? C.lime : "rgba(255,255,222,0.1)" }} />
+              <div key={reward.id} className="flex flex-col rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:brightness-110 cursor-pointer" onClick={() => setSelectedReward(reward)} style={{ backgroundColor: C.card, border: `1px solid ${canClaim ? `${C.lime}18` : "rgba(var(--ink),0.06)"}`, opacity: canClaim ? 1 : 0.7 }}>
+                <div className="h-1 w-full" style={{ backgroundColor: canClaim ? C.lime : "rgba(var(--ink),0.1)" }} />
 
                 {reward.image_url && (
                   <div className="h-40 w-full bg-black/40 overflow-hidden">
@@ -265,13 +265,13 @@ export default function Rewards() {
                     <h3 style={{ ...heading, fontSize: 16, fontWeight: 800, color: canClaim ? C.cream : `${C.cream}70`, marginBottom: 6 }}>{reward.title}</h3>
                     <p style={{ fontSize: 12, color: `${C.cream}45`, lineHeight: 1.5 }} className="line-clamp-2">{reward.description}</p>
                   </div>
-                  <div className="flex items-center justify-between pt-4 mt-2" style={{ borderTop: `1px solid rgba(255,255,222,0.06)` }}>
+                  <div className="flex items-center justify-between pt-4 mt-2" style={{ borderTop: `1px solid rgba(var(--ink),0.06)` }}>
                     <div>
                       <div style={{ ...heading, fontSize: 20, fontWeight: 900, color: canClaim ? C.lime : `${C.cream}35`, lineHeight: 1 }}>{reward.points_required} pts</div>
                     </div>
                     <button
                       className="px-4 py-2 rounded-xl text-xs font-bold transition-all"
-                      style={{ backgroundColor: canClaim ? C.lime : "rgba(255,255,222,0.06)", color: canClaim ? C.black : `${C.cream}30`, ...heading, cursor: canClaim ? "pointer" : "not-allowed" }}
+                      style={{ backgroundColor: canClaim ? C.lime : "rgba(var(--ink),0.06)", color: canClaim ? C.black : `${C.cream}30`, ...heading, cursor: canClaim ? "pointer" : "not-allowed" }}
                       disabled={!canClaim}
                       onClick={(e) => { e.stopPropagation(); if (canClaim) handleClaim(reward); }}
                     >
@@ -294,10 +294,10 @@ export default function Rewards() {
         {/* Modal de Detalhes da Recompensa */}
         {selectedReward && (
           <Dialog open={!!selectedReward && !showAddressModal} onOpenChange={() => setSelectedReward(null)}>
-            <DialogContent className="sm:max-w-xl p-0 border-0 bg-transparent overflow-hidden shadow-none [&>button]:text-[rgba(255,255,222,0.5)] [&>button]:hover:opacity-100 [&>button]:top-4 [&>button]:right-5 [&>button]:scale-125" aria-describedby={undefined} >
+            <DialogContent className="sm:max-w-xl p-0 border-0 bg-transparent overflow-hidden shadow-none [&>button]:text-[rgba(var(--ink),0.5)] [&>button]:hover:opacity-100 [&>button]:top-4 [&>button]:right-5 [&>button]:scale-125" aria-describedby={undefined} >
               <DialogTitle className="sr-only">Detalhes da Recompensa</DialogTitle>
-              <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.1)` }}>
-                <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+              <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.1)` }}>
+                <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
                   <span style={{ ...heading, fontSize: 18, fontWeight: 700, color: C.cream }}>{selectedReward?.title}</span>
                 </div>
 
@@ -311,7 +311,7 @@ export default function Rewards() {
                       <img
                         src={selectedReward.image_url}
                         alt={selectedReward.title}
-                        className="w-full h-48 object-cover rounded-xl border border-[rgba(255,255,222,0.1)] hover:brightness-110 transition-all"
+                        className="w-full h-48 object-cover rounded-xl border border-[rgba(var(--ink),0.1)] hover:brightness-110 transition-all"
                       />
                     </div>
                   )}
@@ -328,7 +328,7 @@ export default function Rewards() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: "rgba(255,255,222,0.04)", border: `1px solid rgba(255,255,222,0.08)` }}>
+                  <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: "rgba(var(--ink),0.04)", border: `1px solid rgba(var(--ink),0.08)` }}>
                     <div>
                       <span style={{ fontSize: 11, color: `${C.cream}50`, block: "block", marginBottom: 2 }}>Custo da Recompensa</span>
                       <div style={{ ...heading, fontSize: 24, fontWeight: 900, color: C.lime }}>{selectedReward?.points_required} pts</div>
@@ -340,7 +340,7 @@ export default function Rewards() {
                   </div>
 
                   <div className="flex gap-3 pt-2">
-                    <button onClick={() => setSelectedReward(null)} className="flex-1 h-12 rounded-xl transition-all hover:bg-[rgba(255,255,222,0.05)]" style={{ color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}>
+                    <button onClick={() => setSelectedReward(null)} className="flex-1 h-12 rounded-xl transition-all hover:bg-[rgba(var(--ink),0.05)]" style={{ color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}>
                       Voltar
                     </button>
                     <button
@@ -360,10 +360,10 @@ export default function Rewards() {
 
         {/* MODAL DE ENDEREÇO */}
         <Dialog open={showAddressModal} onOpenChange={() => setShowAddressModal(false)}>
-          <DialogContent className="sm:max-w-xl p-0 border-0 bg-transparent overflow-hidden shadow-none [&>button]:text-[rgba(255,255,222,0.5)] [&>button]:hover:opacity-100 [&>button]:top-4 [&>button]:right-5 [&>button]:scale-125" aria-describedby={undefined}>
+          <DialogContent className="sm:max-w-xl p-0 border-0 bg-transparent overflow-hidden shadow-none [&>button]:text-[rgba(var(--ink),0.5)] [&>button]:hover:opacity-100 [&>button]:top-4 [&>button]:right-5 [&>button]:scale-125" aria-describedby={undefined}>
             <DialogTitle className="sr-only">Endereço de Entrega</DialogTitle>
-            <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.1)` }}>
-              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+            <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.1)` }}>
+              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
                 <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream }}>Endereço de Entrega</span>
               </div>
 
@@ -393,7 +393,7 @@ export default function Rewards() {
                       maxLength="9"
                     />
                     {isCepLoading && (
-                      <Loader2 className="absolute right-3 top-3 w-5 h-5 text-[rgba(255,255,222,0.5)] animate-spin" />
+                      <Loader2 className="absolute right-3 top-3 w-5 h-5 text-[rgba(var(--ink),0.5)] animate-spin" />
                     )}
                   </div>
                 </div>
@@ -472,7 +472,7 @@ export default function Rewards() {
                 </div>
 
                 <div className="flex gap-3">
-                  <button onClick={() => setShowAddressModal(false)} className="flex-1 h-12 rounded-xl transition-all hover:bg-[rgba(255,255,222,0.05)]" style={{ color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}>
+                  <button onClick={() => setShowAddressModal(false)} className="flex-1 h-12 rounded-xl transition-all hover:bg-[rgba(var(--ink),0.05)]" style={{ color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}>
                     Voltar
                   </button>
                   <button

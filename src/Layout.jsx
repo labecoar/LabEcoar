@@ -291,6 +291,15 @@ export default function Layout({ children, currentPageName }) {
         ? user.full_name
         : 'Ecoante');
 
+  const getPageTitle = (pageName) => {
+    if (!pageName) return 'Cuíca Lab';
+    if (pageName === 'ForumTopic') return 'Fórum';
+    const match = [...navigationItems, ...adminNavigationItems].find(
+      (item) => item.url === createPageUrl(pageName)
+    );
+    return match?.title ?? pageName;
+  };
+
   return (
     <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
       <MobileSidebarAutoCloseOnRouteChange pathname={location.pathname} />
@@ -478,30 +487,28 @@ export default function Layout({ children, currentPageName }) {
           </SidebarFooter>
         </Sidebar>
 
-        <main className="flex-1 flex flex-col">
+        <main className="flex-1 flex flex-col min-w-0">
           <header
-            className="backdrop-blur-sm border-b px-6 py-4"
+            className="sticky top-0 z-20 md:relative backdrop-blur-sm border-b px-4 sm:px-6 py-3 md:py-4"
             style={{
               borderColor: colors.border,
               background: colors.black,
             }}
           >
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between gap-3 min-w-0">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
                 <SidebarTrigger
-                  className="p-2 rounded-lg transition-colors duration-200 md:hidden hover:opacity-80"
+                  className="p-2 rounded-lg transition-colors duration-200 md:hidden hover:opacity-80 shrink-0"
                   style={{ color: colors.cream }}
                 />
-                <div className="md:hidden flex items-center gap-2">
-                  <img
-                    src={logoCuica}
-                    alt="Cuíca Lab"
-                    className="w-7 h-7 rounded-lg object-cover"
-                  />
-                  <h1 className="text-xl font-bold" style={{ color: colors.cream }}>Cuíca Lab</h1>
-                </div>
+                <h1
+                  className="md:hidden text-base font-bold truncate min-w-0"
+                  style={{ ...heading, color: colors.cream }}
+                >
+                  {getPageTitle(currentPageName)}
+                </h1>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <NotificationBell />
               </div>
             </div>
@@ -509,7 +516,7 @@ export default function Layout({ children, currentPageName }) {
 
           <div
             key={mode}
-            className="flex-1 overflow-auto forum-typography"
+            className="flex-1 overflow-auto overflow-x-hidden forum-typography min-w-0"
             style={{ backgroundColor: colors.black }}
           >
             {children}

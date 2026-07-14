@@ -101,7 +101,7 @@ export default function Forum() {
 
   return (
     <div style={{ minHeight: "100vh", background: C.black, ...body }}>
-      <div className="flex items-center justify-between px-8 py-4 sticky top-0 z-10" style={{ backgroundColor: `${C.black}F5`, backdropFilter: "blur(16px)", borderBottom: `1px solid rgba(255,255,222,0.05)` }}>
+      <div className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10" style={{ backgroundColor: `${C.black}F5`, backdropFilter: "blur(16px)", borderBottom: `1px solid rgba(var(--ink),0.05)` }}>
         <div className="flex items-center gap-3">
           <MessageSquare size={16} style={{ color: C.lime }} />
           <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", textTransform: "uppercase" }}>Fórum</span>
@@ -120,10 +120,10 @@ export default function Forum() {
         </div>
       </div>
 
-      <div className="px-8 pt-7 pb-10 max-w-6xl mx-auto">
-        <div className="flex items-end justify-between mb-8">
+      <div className="px-4 sm:px-6 md:px-8 pt-5 md:pt-7 pb-8 md:pb-10 max-w-6xl mx-auto w-full min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6 md:mb-8">
           <div>
-            <h1 style={{ ...heading, fontSize: 40, fontWeight: 900, color: C.cream, letterSpacing: "-0.03em", lineHeight: 1 }}>Fórum</h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-none" style={{ ...heading, color: C.cream }}>Fórum</h1>
             <p style={{ fontSize: 14, color: `${C.cream}50`, marginTop: 6 }}>
               Salas com ponto vermelho têm mensagem nova — sem precisar abrir uma por uma.
             </p>
@@ -143,7 +143,7 @@ export default function Forum() {
             { label: "Respostas totais", value: totalReplies, icon: MessageCircle },
             { label: "Visualizações totais", value: totalViews, icon: Eye },
           ].map(({ label, value, icon: Icon }) => (
-            <div key={label} className="p-4 rounded-2xl flex items-center gap-4" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
+            <div key={label} className="p-4 rounded-2xl flex items-center gap-4" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.06)` }}>
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: C.lime_back, color: C.lime }}>
                 <Icon size={16} />
               </div>
@@ -160,7 +160,7 @@ export default function Forum() {
             onClick={() => setShowUnreadOnly((v) => !v)}
             className="shrink-0 px-4 py-2 rounded-xl text-sm transition-all duration-150 flex items-center gap-2"
             style={{
-              backgroundColor: showUnreadOnly ? "rgba(206,22,28,0.18)" : "rgba(255,255,222,0.06)",
+              backgroundColor: showUnreadOnly ? "rgba(206,22,28,0.18)" : "rgba(var(--ink),0.06)",
               color: showUnreadOnly ? "#ff6b6b" : `${C.cream}70`,
               fontWeight: showUnreadOnly ? 700 : 400,
               ...heading,
@@ -179,7 +179,7 @@ export default function Forum() {
                 onClick={() => setSelectedCategory(c.key)}
                 className="shrink-0 px-4 py-2 rounded-xl text-sm transition-all duration-150"
                 style={{
-                  backgroundColor: active ? C.lime : "rgba(255,255,222,0.06)",
+                  backgroundColor: active ? C.lime : "rgba(var(--ink),0.06)",
                   color: active ? C.onAccent : `${C.cream}70`,
                   fontWeight: active ? 700 : 400,
                   ...heading,
@@ -226,7 +226,7 @@ export default function Forum() {
                   className="rounded-2xl transition-all hover:brightness-110 cursor-pointer relative overflow-hidden"
                   style={{
                     backgroundColor: C.card,
-                    border: `1px solid ${unread ? "rgba(206,22,28,0.4)" : isPinned ? `${C.lime}22` : "rgba(255,255,222,0.06)"}`,
+                    border: `1px solid ${unread ? "rgba(206,22,28,0.4)" : isPinned ? `${C.lime}22` : "rgba(var(--ink),0.06)"}`,
                   }}
                 >
                   {unread && (
@@ -281,8 +281,8 @@ export default function Forum() {
                         <div
                           className="rounded-xl px-3 py-2.5 mb-3"
                           style={{
-                            backgroundColor: unread ? "rgba(206,22,28,0.06)" : "rgba(255,255,222,0.04)",
-                            border: `1px solid ${unread ? "rgba(206,22,28,0.12)" : "rgba(255,255,222,0.06)"}`,
+                            backgroundColor: unread ? "rgba(206,22,28,0.06)" : "rgba(var(--ink),0.04)",
+                            border: `1px solid ${unread ? "rgba(206,22,28,0.12)" : "rgba(var(--ink),0.06)"}`,
                           }}
                         >
                           <p style={{ fontSize: 11, color: unread ? "#ff6b6b" : `${C.cream}45`, fontWeight: 700, marginBottom: 4 }}>
@@ -320,22 +320,22 @@ export default function Forum() {
       <Dialog open={showNewTopicDialog} onOpenChange={setShowNewTopicDialog}>
         <DialogContent aria-describedby={undefined} className="sm:max-w-lg p-0 border-0 bg-transparent overflow-hidden shadow-none">
           <DialogTitle className="sr-only">Novo Tópico</DialogTitle>
-          <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.1)` }}>
-            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+          <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.1)` }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
               <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream }}>Novo Tópico</span>
               <button onClick={() => setShowNewTopicDialog(false)} style={{ color: `${C.cream}50` }} className="hover:opacity-100 transition-opacity"><XCircle size={18} /></button>
             </div>
             <form onSubmit={handleCreateTopic} className="p-6 flex flex-col gap-4">
               <div>
                 <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>TÍTULO</label>
-                <input className="mt-2 w-full px-4 py-3 rounded-xl outline-none" style={{ backgroundColor: C.black_light, border: `1px solid rgba(255,255,222,0.1)`, color: C.cream, ...body, fontSize: 14 }} placeholder="O que você quer discutir?" value={newTopic.title} onChange={(e) => setNewTopic({ ...newTopic, title: e.target.value })} required />
+                <input className="mt-2 w-full px-4 py-3 rounded-xl outline-none" style={{ backgroundColor: C.black_light, border: `1px solid rgba(var(--ink),0.1)`, color: C.cream, ...body, fontSize: 14 }} placeholder="O que você quer discutir?" value={newTopic.title} onChange={(e) => setNewTopic({ ...newTopic, title: e.target.value })} required />
               </div>
               <div>
                 <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>CATEGORIA</label>
                 <div className="relative mt-2">
                   <select
                     className="w-full px-4 py-3 rounded-xl outline-none appearance-none pr-10"
-                    style={{ backgroundColor: C.black_light, border: `1px solid rgba(255,255,222,0.1)`, color: newTopic.category ? C.cream : `${C.cream}40`, ...body, fontSize: 14 }}
+                    style={{ backgroundColor: C.black_light, border: `1px solid rgba(var(--ink),0.1)`, color: newTopic.category ? C.cream : `${C.cream}40`, ...body, fontSize: 14 }}
                     value={newTopic.category}
                     onChange={(e) => setNewTopic({ ...newTopic, category: e.target.value })}
                   >
@@ -348,7 +348,7 @@ export default function Forum() {
               </div>
               <div>
                 <label style={{ ...body, fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em" }}>MENSAGEM</label>
-                <textarea className="mt-2 w-full px-4 py-3 rounded-xl outline-none resize-none" rows={4} style={{ backgroundColor: C.black_light, border: `1px solid rgba(255,255,222,0.1)`, color: C.cream, ...body, fontSize: 14 }} placeholder="Compartilhe seus pensamentos..." value={newTopic.description} onChange={(e) => setNewTopic({ ...newTopic, description: e.target.value })} required />
+                <textarea className="mt-2 w-full px-4 py-3 rounded-xl outline-none resize-none" rows={4} style={{ backgroundColor: C.black_light, border: `1px solid rgba(var(--ink),0.1)`, color: C.cream, ...body, fontSize: 14 }} placeholder="Compartilhe seus pensamentos..." value={newTopic.description} onChange={(e) => setNewTopic({ ...newTopic, description: e.target.value })} required />
               </div>
               <button type="submit" disabled={createTopicMutation.isPending} className="flex items-center justify-center gap-2 w-full h-12 rounded-xl transition-all hover:brightness-110 mt-2 disabled:opacity-50" style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontWeight: 700, fontSize: 14 }}>
                 <Send size={15} /> {createTopicMutation.isPending ? 'Publicando...' : 'Publicar'}

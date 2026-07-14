@@ -50,8 +50,8 @@ const formatShortDate = (value) => {
 
 const aInputCls = "w-full px-4 py-2.5 rounded-xl outline-none transition-all"
 const aInputStyle = (C, body) => ({
-  border: `1px solid rgba(255,255,222,0.12)`,
-  backgroundColor: 'rgba(255,255,222,0.04)',
+  border: `1px solid rgba(var(--ink),0.12)`,
+  backgroundColor: 'rgba(var(--ink),0.04)',
   color: C.cream,
   fontSize: 13,
   ...body,
@@ -179,7 +179,7 @@ export default function AdminUsers() {
   if (profile?.role !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: C.black }}>
-        <div className="max-w-md p-8 rounded-2xl text-center" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.08)` }}>
+        <div className="max-w-md p-8 rounded-2xl text-center" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.08)` }}>
           <Shield size={36} style={{ color: '#f87171', margin: '0 auto 16px' }} />
           <h2 style={{ ...heading, fontSize: 20, fontWeight: 800, color: C.cream }} className="mb-2">Acesso Negado</h2>
           <p style={{ color: `${C.cream}60`, fontSize: 14 }}>Apenas administradores podem controlar usuários.</p>
@@ -192,8 +192,8 @@ export default function AdminUsers() {
     <div className="min-h-screen" style={{ backgroundColor: C.black, ...body }}>
 
       {/* Header fixo */}
-      <div className="flex items-center justify-between px-8 py-4 sticky top-0 z-10"
-        style={{ backgroundColor: `${C.black}F5`, backdropFilter: 'blur(16px)', borderBottom: `1px solid rgba(255,255,222,0.05)` }}>
+      <div className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10"
+        style={{ backgroundColor: `${C.black}F5`, backdropFilter: 'blur(16px)', borderBottom: `1px solid rgba(var(--ink),0.05)` }}>
         <div className="flex items-center gap-3">
           <Users size={16} style={{ color: C.lime }} />
           <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
@@ -202,7 +202,7 @@ export default function AdminUsers() {
         </div>
       </div>
 
-      <div className="px-4 md:px-8 pt-7 pb-10 max-w-6xl mx-auto space-y-8">
+      <div className="px-4 sm:px-6 md:px-8 pt-5 md:pt-7 pb-8 md:pb-10 max-w-6xl mx-auto w-full min-w-0 space-y-6 md:space-y-8">
 
         {/* Hero */}
         <div>
@@ -222,7 +222,7 @@ export default function AdminUsers() {
             { label: 'Inativos', value: totals.inactive, color: `${C.cream}50` },
             { label: 'Admins', value: totals.admins, color: C.orange },
           ].map(({ label, value, color }) => (
-            <div key={label} className="p-5 rounded-2xl" style={{ backgroundColor: 'rgba(255,255,222,0.03)', border: `1px solid rgba(255,255,222,0.06)` }}>
+            <div key={label} className="p-5 rounded-2xl" style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: `1px solid rgba(var(--ink),0.06)` }}>
               <div style={{ fontSize: 11, color: `${C.cream}50`, marginBottom: 6 }}>{label}</div>
               <div style={{ ...heading, fontSize: 32, fontWeight: 900, color, lineHeight: 1, letterSpacing: '-0.02em' }}>{value}</div>
             </div>
@@ -230,11 +230,11 @@ export default function AdminUsers() {
         </div>
 
         {/* Tabela */}
-        <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'rgba(255,255,222,0.02)', border: `1px solid rgba(255,255,222,0.07)` }}>
+        <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'rgba(var(--ink),0.02)', border: `1px solid rgba(var(--ink),0.07)` }}>
 
           {/* Card header + busca */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-6 py-4"
-            style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+            style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: C.lime }} />
               <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>Lista de Usuários</span>
@@ -269,7 +269,7 @@ export default function AdminUsers() {
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead>
-                    <tr style={{ borderBottom: `1px solid rgba(255,255,222,0.06)` }}>
+                    <tr style={{ borderBottom: `1px solid rgba(var(--ink),0.06)` }}>
                       {['Usuário', 'Email', 'Função', 'Status', 'Criado em', ''].map((h) => (
                         <th key={h} className="text-left px-5 py-3" style={{ fontSize: 10, fontWeight: 700, color: `${C.cream}40`, letterSpacing: '0.08em' }}>
                           {h}
@@ -282,8 +282,8 @@ export default function AdminUsers() {
                       <tr
                         key={user.id}
                         style={{
-                          backgroundColor: i % 2 === 0 ? 'transparent' : 'rgba(255,255,222,0.015)',
-                          borderBottom: `1px solid rgba(255,255,222,0.04)`,
+                          backgroundColor: i % 2 === 0 ? 'transparent' : 'rgba(var(--ink),0.015)',
+                          borderBottom: `1px solid rgba(var(--ink),0.04)`,
                         }}
                       >
                         <td className="px-5 py-3">
@@ -331,7 +331,7 @@ export default function AdminUsers() {
                             <button
                               onClick={() => openEdit(user)}
                               className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110"
-                              style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: 'transparent', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
+                              style={{ border: `1px solid rgba(var(--ink),0.12)`, backgroundColor: 'transparent', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
                             >
                               <Pencil size={12} /> Editar
                             </button>
@@ -370,8 +370,8 @@ export default function AdminUsers() {
       <Dialog open={Boolean(selectedUser)} onOpenChange={(open) => !open && setSelectedUser(null)}>
         <DialogContent aria-describedby={undefined} className="sm:max-w-2xl p-0 border-0 bg-transparent overflow-hidden shadow-none">
           <DialogTitle className="sr-only">Editar Usuário</DialogTitle>
-          <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.1)` }}>
-            <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+          <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.1)` }}>
+            <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
               <UserRound size={15} style={{ color: C.lime }} />
               <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream }}>Editar Usuário</span>
             </div>
@@ -457,7 +457,7 @@ export default function AdminUsers() {
                   type="button"
                   onClick={() => setSelectedUser(null)}
                   className="flex-1 h-12 rounded-xl transition-all hover:brightness-110"
-                  style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.07)`, color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}
+                  style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)`, color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}
                 >
                   Cancelar
                 </button>
@@ -480,8 +480,8 @@ export default function AdminUsers() {
       <Dialog open={Boolean(selectedInactiveUser)} onOpenChange={(open) => !open && setSelectedInactiveUser(null)}>
         <DialogContent aria-describedby={undefined} className="sm:max-w-sm p-0 border-0 bg-transparent overflow-hidden shadow-none">
           <DialogTitle className="sr-only">Status do Usuário</DialogTitle>
-          <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.1)` }}>
-            <div className="px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+          <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.1)` }}>
+            <div className="px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
               <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream }}>Status do Usuário</span>
             </div>
             {selectedInactiveUser && (
@@ -491,7 +491,7 @@ export default function AdminUsers() {
                   { label: 'Status', value: 'Inativo' },
                   { label: 'Inativado em', value: formatDate(selectedInactiveUser.deleted_at) },
                 ].map(({ label, value }) => (
-                  <div key={label} className="flex items-center justify-between py-2" style={{ borderBottom: `1px solid rgba(255,255,222,0.05)` }}>
+                  <div key={label} className="flex items-center justify-between py-2" style={{ borderBottom: `1px solid rgba(var(--ink),0.05)` }}>
                     <span style={{ fontSize: 12, color: `${C.cream}50` }}>{label}</span>
                     <span style={{ fontSize: 13, fontWeight: 600, color: C.cream }}>{value}</span>
                   </div>
@@ -499,7 +499,7 @@ export default function AdminUsers() {
                 <button
                   onClick={() => setSelectedInactiveUser(null)}
                   className="w-full h-11 rounded-xl transition-all hover:brightness-110 mt-2"
-                  style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.07)`, color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}
+                  style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)`, color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}
                 >
                   Fechar
                 </button>

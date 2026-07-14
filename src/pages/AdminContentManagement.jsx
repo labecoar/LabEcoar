@@ -222,7 +222,7 @@ export default function AdminContentManagement() {
   // ── Dark-theme input styles (from design v2) ──────────────────────────────
   const aInputCls = "w-full px-4 py-2.5 rounded-xl outline-none transition-all"
   const aInputStyle = {
-    border: `1px solid rgba(255,255,222,0.12)`,
+    border: `1px solid rgba(var(--ink),0.12)`,
     backgroundColor: C.black_light,
     color: C.cream,
     fontSize: 13,
@@ -268,7 +268,7 @@ export default function AdminContentManagement() {
   if (profile?.role !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: C.black }}>
-        <div className="max-w-md p-8 rounded-2xl text-center" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.08)` }}>
+        <div className="max-w-md p-8 rounded-2xl text-center" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.08)` }}>
           <h2 style={{ ...heading, fontSize: 20, fontWeight: 800, color: C.cream }} className="mb-2">Acesso Negado</h2>
           <p style={{ color: `${C.cream}60`, fontSize: 14 }}>Você não tem permissão para acessar esta página.</p>
         </div>
@@ -598,11 +598,11 @@ export default function AdminContentManagement() {
       `}</style>
 
       <div
-        className="flex items-center justify-between px-8 py-4 sticky top-0 z-10"
+        className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10"
         style={{
           backgroundColor: `${C.black}F5`,
           backdropFilter: 'blur(16px)',
-          borderBottom: `1px solid rgba(255,255,222,0.05)`,
+          borderBottom: `1px solid rgba(var(--ink),0.05)`,
         }}
       >
         <div className="flex items-center gap-3">
@@ -623,16 +623,16 @@ export default function AdminContentManagement() {
       </div>
 
       <div
-        className="flex items-center justify-between px-8 py-0 sticky top-0 z-10"
+        className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-0 sticky top-0 z-10"
         style={{
           backgroundColor: `${C.black}F5`,
           backdropFilter: 'blur(16px)',
-          borderBottom: `1px solid rgba(255,255,222,0.05)`,
+          borderBottom: `1px solid rgba(var(--ink),0.05)`,
         }}
       >
       </div>
 
-      <div className="px-4 md:px-8 pt-7 pb-10 max-w-6xl mx-auto space-y-8">
+      <div className="px-4 sm:px-6 md:px-8 pt-5 md:pt-7 pb-8 md:pb-10 max-w-6xl mx-auto w-full min-w-0 space-y-6 md:space-y-8">
 
         {/* ── Hero ── */}
         <div>
@@ -655,7 +655,7 @@ export default function AdminContentManagement() {
               className="flex items-center gap-4 p-5 rounded-2xl"
               style={{
                 backgroundColor: C.black_back,
-                border: `1px solid rgba(255,255,222,0.06)`
+                border: `1px solid rgba(var(--ink),0.06)`
               }}
             >
               <div
@@ -702,7 +702,7 @@ export default function AdminContentManagement() {
               onClick={() => setActiveTab(t.key)}
               className="shrink-0 px-4 py-2 rounded-xl transition-all duration-150"
               style={{
-                backgroundColor: activeTab === t.key ? C.lime : 'rgba(255,255,222,0.06)',
+                backgroundColor: activeTab === t.key ? C.lime : 'rgba(var(--ink),0.06)',
                 color: activeTab === t.key ? C.black : `${C.cream}70`,
                 fontWeight: activeTab === t.key ? 700 : 400,
                 ...heading,
@@ -717,10 +717,10 @@ export default function AdminContentManagement() {
         {/*  TAB: CRIAR TAREFA */}
         {activeTab === 'create' && (
           <div className="flex flex-col gap-5 w-full">
-            <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.black_back, border: `1px solid rgba(255,255,222,0.07)` }}>
+            <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.black_back, border: `1px solid rgba(var(--ink),0.07)` }}>
 
               {/* Card header */}
-              <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+              <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: C.lime }} />
                 <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>
                   {editingTask ? 'Editar Tarefa' : 'Nova Tarefa'}
@@ -811,7 +811,7 @@ export default function AdminContentManagement() {
                   </div>
 
                   {/* Tipo de conteúdo */}
-                  <div className="rounded-xl p-5 flex flex-col" style={{ border: `1px solid rgba(255,255,222,0.10)`, backgroundColor: 'rgba(255,255,222,0.03)' }}>
+                  <div className="rounded-xl p-5 flex flex-col" style={{ border: `1px solid rgba(var(--ink),0.10)`, backgroundColor: 'rgba(var(--ink),0.03)' }}>
                     <div style={{ ...heading, fontSize: 13, fontWeight: 700, color: C.cream, marginBottom: 4 }}>Tipo de Conteúdo a Produzir</div>
                     <div style={{ fontSize: 12, color: `${C.cream}50`, marginBottom: 12 }}>Selecione um ou mais formatos</div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-8">
@@ -990,7 +990,7 @@ export default function AdminContentManagement() {
 
                   {/* Requisitos de inscrição */}
                   {formData.requires_application && (
-                    <div className="rounded-xl p-5 flex flex-col gap-4" style={{ border: `1px solid rgba(255,255,222,0.10)`, backgroundColor: 'rgba(255,255,222,0.03)' }}>
+                    <div className="rounded-xl p-5 flex flex-col gap-4" style={{ border: `1px solid rgba(var(--ink),0.10)`, backgroundColor: 'rgba(var(--ink),0.03)' }}>
                       <div style={{ ...heading, fontSize: 13, fontWeight: 700, color: C.cream }}>Requisitos de Inscrição</div>
                       <div>
                         <label style={labelStyle}>REQUISITOS DE PERFIL</label>
@@ -1044,7 +1044,7 @@ export default function AdminContentManagement() {
                         type="button"
                         onClick={resetForm}
                         className="flex-1 h-[52px] rounded-xl transition-all"
-                        style={{ border: `1px solid rgba(255,255,222,0.15)`, backgroundColor: 'transparent', color: `${C.cream}80`, ...heading, fontSize: 15, fontWeight: 700 }}
+                        style={{ border: `1px solid rgba(var(--ink),0.15)`, backgroundColor: 'transparent', color: `${C.cream}80`, ...heading, fontSize: 15, fontWeight: 700 }}
                       >
                         Cancelar
                       </button>
@@ -1071,8 +1071,8 @@ export default function AdminContentManagement() {
             TAB: ATIVAS
         ══════════════════════════════════════════ */}
         {activeTab === 'active' && (
-          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.07)` }}>
-            <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.07)` }}>
+            <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: C.lime }} />
               <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>Tarefas Ativas</span>
             </div>
@@ -1081,7 +1081,7 @@ export default function AdminContentManagement() {
                 <div style={{ color: `${C.cream}50`, textAlign: 'center', padding: '40px 0' }}>Carregando tarefas...</div>
               ) : activeTasks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-4">
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.08)` }}>
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.08)` }}>
                     <Target size={24} style={{ color: `${C.cream}30` }} />
                   </div>
                   <p style={{ ...heading, fontSize: 16, color: `${C.cream}50`, textAlign: 'center' }}>Nenhuma tarefa ativa no momento.</p>
@@ -1120,8 +1120,8 @@ export default function AdminContentManagement() {
             TAB: CONCLUÍDAS
         ══════════════════════════════════════════ */}
         {activeTab === 'completed' && (
-          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.07)` }}>
-            <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.07)` }}>
+            <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: `${C.cream}30` }} />
               <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>Tarefas Concluídas / Expiradas</span>
             </div>
@@ -1130,7 +1130,7 @@ export default function AdminContentManagement() {
                 <div style={{ color: `${C.cream}50`, textAlign: 'center', padding: '40px 0' }}>Carregando tarefas...</div>
               ) : completedTasks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-4">
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.08)` }}>
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.08)` }}>
                     <Archive size={24} style={{ color: `${C.cream}30` }} />
                   </div>
                   <p style={{ ...heading, fontSize: 16, color: `${C.cream}50`, textAlign: 'center' }}>Nenhuma tarefa concluída ou expirada.</p>
@@ -1168,8 +1168,8 @@ export default function AdminContentManagement() {
         ══════════════════════════════════════════ */}
         {activeTab === 'forum' && (
           <div className="flex flex-col gap-5 w-full">
-            <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.07)` }}>
-              <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+            <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.07)` }}>
+              <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: C.lime }} />
                 <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>
                   {editingForumTopic ? 'Editar Tópico do Fórum' : 'Criar Tópico do Fórum'}
@@ -1224,7 +1224,7 @@ export default function AdminContentManagement() {
                         type="button"
                         onClick={resetForumForm}
                         className="flex-1 h-[52px] rounded-xl transition-all"
-                        style={{ border: `1px solid rgba(255,255,222,0.15)`, backgroundColor: 'transparent', color: `${C.cream}80`, ...heading, fontSize: 15, fontWeight: 700 }}
+                        style={{ border: `1px solid rgba(var(--ink),0.15)`, backgroundColor: 'transparent', color: `${C.cream}80`, ...heading, fontSize: 15, fontWeight: 700 }}
                       >
                         Cancelar
                       </button>
@@ -1246,8 +1246,8 @@ export default function AdminContentManagement() {
             </div>
 
             {/* Lista / gerenciar tópicos */}
-            <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.07)` }}>
-              <div className="flex items-center justify-between gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+            <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.07)` }}>
+              <div className="flex items-center justify-between gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
                 <div className="flex items-center gap-3">
                   <MessageSquare size={16} style={{ color: C.orange }} />
                   <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>
@@ -1270,7 +1270,7 @@ export default function AdminContentManagement() {
                       <div
                         key={topic.id}
                         className="rounded-2xl p-5"
-                        style={{ border: `1px solid rgba(255,255,222,0.07)`, backgroundColor: 'rgba(255,255,222,0.02)' }}
+                        style={{ border: `1px solid rgba(var(--ink),0.07)`, backgroundColor: 'rgba(var(--ink),0.02)' }}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
@@ -1296,7 +1296,7 @@ export default function AdminContentManagement() {
                                 type="button"
                                 onClick={() => handleEditForumTopic(topic)}
                                 className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110"
-                                style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: 'transparent', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
+                                style={{ border: `1px solid rgba(var(--ink),0.12)`, backgroundColor: 'transparent', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
                               >
                                 <Pencil size={12} /> Editar
                               </button>
@@ -1331,8 +1331,8 @@ function TaskCard({ task, Icon, categoryMeta, deadline, scheduled = false, launc
     <div
       className="relative rounded-2xl p-5 transition-all"
       style={{
-        border: `1px solid ${scheduled ? 'rgba(170,102,255,0.25)' : 'rgba(255,255,222,0.07)'}`,
-        backgroundColor: scheduled ? 'rgba(170,102,255,0.06)' : dimmed ? 'rgba(255,255,222,0.01)' : 'rgba(255,255,222,0.03)',
+        border: `1px solid ${scheduled ? 'rgba(170,102,255,0.25)' : 'rgba(var(--ink),0.07)'}`,
+        backgroundColor: scheduled ? 'rgba(170,102,255,0.06)' : dimmed ? 'rgba(var(--ink),0.01)' : 'rgba(var(--ink),0.03)',
         opacity: dimmed ? 0.75 : 1,
       }}
     >
@@ -1367,7 +1367,7 @@ function TaskCard({ task, Icon, categoryMeta, deadline, scheduled = false, launc
             backgroundColor: deadline.isExpired
               ? 'rgba(248,113,113,0.12)' : deadline.isCritical
                 ? 'rgba(251,146,60,0.12)' : deadline.isWarning
-                  ? 'rgba(250,204,21,0.10)' : 'rgba(255,255,222,0.06)',
+                  ? 'rgba(250,204,21,0.10)' : 'rgba(var(--ink),0.06)',
             color: deadline.isExpired
               ? '#f87171' : deadline.isCritical
                 ? '#fb923c' : deadline.isWarning
@@ -1391,7 +1391,7 @@ function TaskCard({ task, Icon, categoryMeta, deadline, scheduled = false, launc
         <button
           onClick={() => onEdit(task)}
           className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110"
-          style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: 'transparent', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
+          style={{ border: `1px solid rgba(var(--ink),0.12)`, backgroundColor: 'transparent', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
         >
           <Pencil size={12} /> Editar
         </button>

@@ -39,7 +39,7 @@ export default function AdminMetrics() {
   if (profile?.role !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: C.black }}>
-        <div className="max-w-md p-8 rounded-2xl text-center" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.08)` }}>
+        <div className="max-w-md p-8 rounded-2xl text-center" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.08)` }}>
           <XCircle size={36} style={{ color: '#f87171', margin: '0 auto 16px' }} />
           <h2 style={{ ...heading, fontSize: 20, fontWeight: 800, color: C.cream }}>Acesso Negado</h2>
           <p style={{ color: `${C.cream}60`, fontSize: 14 }}>Apenas administradores podem acessar esta página.</p>
@@ -109,7 +109,7 @@ export default function AdminMetrics() {
         className="p-5 rounded-2xl transition-all hover:brightness-110"
         style={{
           backgroundColor: C.card,
-          border: `1px solid ${submission.status === 'rejected' ? 'rgba(248,113,113,0.2)' : isLatePosting ? `${C.orange}25` : 'rgba(255,255,222,0.07)'}`,
+          border: `1px solid ${submission.status === 'rejected' ? 'rgba(248,113,113,0.2)' : isLatePosting ? `${C.orange}25` : 'rgba(var(--ink),0.07)'}`,
         }}
       >
         {/* Top */}
@@ -173,7 +173,7 @@ export default function AdminMetrics() {
           )}
           {submission.quarter && (
             <span className="px-2.5 py-1 rounded-full text-xs font-semibold"
-              style={{ backgroundColor: 'rgba(255,255,222,0.06)', color: `${C.cream}60` }}>
+              style={{ backgroundColor: 'rgba(var(--ink),0.06)', color: `${C.cream}60` }}>
               {submission.quarter}
             </span>
           )}
@@ -181,7 +181,7 @@ export default function AdminMetrics() {
 
         {/* Observação */}
         {submission.description && (
-          <div className="px-3 py-2.5 rounded-xl mb-3" style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.07)` }}>
+          <div className="px-3 py-2.5 rounded-xl mb-3" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)` }}>
             <p style={{ fontSize: 10, fontWeight: 700, color: `${C.cream}50`, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 4 }}>Observações</p>
             <p style={{ fontSize: 13, color: `${C.cream}70`, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }} className="line-clamp-3">
               {submission.description}
@@ -194,7 +194,7 @@ export default function AdminMetrics() {
           {submission.metrics_link && (
             <a href={submission.metrics_link} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:brightness-110"
-              style={{ backgroundColor: 'rgba(255,255,222,0.03)', border: `1px solid rgba(255,255,222,0.08)` }}>
+              style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: `1px solid rgba(var(--ink),0.08)` }}>
               <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${C.lime}14`, color: C.lime }}>
                 <ExternalLink size={15} />
               </div>
@@ -211,7 +211,7 @@ export default function AdminMetrics() {
           ).map((url, i) => (
             <a key={i} href={url} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:brightness-110"
-              style={{ backgroundColor: 'rgba(255,255,222,0.03)', border: `1px solid rgba(255,255,222,0.08)` }}>
+              style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: `1px solid rgba(var(--ink),0.08)` }}>
               <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${C.blue}18`, color: C.blue }}>
                 <Download size={15} />
               </div>
@@ -232,7 +232,7 @@ export default function AdminMetrics() {
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-3" style={{ borderTop: `1px solid rgba(255,255,222,0.06)` }}>
+        <div className="flex items-center justify-between pt-3" style={{ borderTop: `1px solid rgba(var(--ink),0.06)` }}>
           <span className="flex items-center gap-1.5" style={{ fontSize: 11, color: `${C.cream}40` }}>
             <Calendar size={11} />
             {format(new Date(submission.submitted_at || submission.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
@@ -297,8 +297,8 @@ export default function AdminMetrics() {
     <div className="min-h-screen" style={{ backgroundColor: C.black, ...body }}>
 
       {/* Header fixo */}
-      <div className="flex items-center justify-between px-8 py-4 sticky top-0 z-10"
-        style={{ backgroundColor: `${C.black}F5`, backdropFilter: 'blur(16px)', borderBottom: `1px solid rgba(255,255,222,0.05)` }}>
+      <div className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10"
+        style={{ backgroundColor: `${C.black}F5`, backdropFilter: 'blur(16px)', borderBottom: `1px solid rgba(var(--ink),0.05)` }}>
         <div className="flex items-center gap-3">
           <BarChart2 size={16} style={{ color: C.lime }} />
           <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
@@ -307,7 +307,7 @@ export default function AdminMetrics() {
         </div>
       </div>
 
-      <div className="px-4 md:px-8 pt-7 pb-10 max-w-6xl mx-auto space-y-8">
+      <div className="px-4 sm:px-6 md:px-8 pt-5 md:pt-7 pb-8 md:pb-10 max-w-6xl mx-auto w-full min-w-0 space-y-6 md:space-y-8">
 
         {/* Hero */}
         <div>
@@ -327,7 +327,7 @@ export default function AdminMetrics() {
             { icon: XCircle, label: 'Rejeitadas', value: rejectedMetrics.length, color: '#f87171', iconBg: 'rgba(248,113,113,0.10)' },
           ].map(({ icon: Icon, label, value, color, iconBg }) => (
             <div key={label} className="flex items-center gap-4 p-5 rounded-2xl"
-              style={{ backgroundColor: 'rgba(255,255,222,0.03)', border: `1px solid rgba(255,255,222,0.06)` }}>
+              style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: `1px solid rgba(var(--ink),0.06)` }}>
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: iconBg }}>
                 <Icon size={16} style={{ color }} />
               </div>
@@ -344,7 +344,7 @@ export default function AdminMetrics() {
           {tabs.map((t) => (
             <button key={t.key} type="button" onClick={() => setActiveTab(t.key)}
               className="shrink-0 px-4 py-2 rounded-xl transition-all duration-150"
-              style={{ backgroundColor: activeTab === t.key ? C.lime : 'rgba(255,255,222,0.06)', color: activeTab === t.key ? C.black : `${C.cream}70`, fontWeight: activeTab === t.key ? 700 : 400, ...heading, fontSize: 13 }}>
+              style={{ backgroundColor: activeTab === t.key ? C.lime : 'rgba(var(--ink),0.06)', color: activeTab === t.key ? C.black : `${C.cream}70`, fontWeight: activeTab === t.key ? 700 : 400, ...heading, fontSize: 13 }}>
               {t.label}
             </button>
           ))}
@@ -381,10 +381,10 @@ export default function AdminMetrics() {
         <Dialog open={!!selectedSubmission} onOpenChange={() => { setSelectedSubmission(null); setRejectionReason(''); }}>
           <DialogContent aria-describedby={undefined} className="sm:max-w-lg p-0 border-0 bg-transparent overflow-hidden shadow-none">
             <DialogTitle className="sr-only">Rejeitar Métricas</DialogTitle>
-            <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.1)` }}>
+            <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.1)` }}>
 
               {/* Modal header */}
-              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
                 <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream }}>Rejeitar Métricas</span>
                 <button onClick={() => { setSelectedSubmission(null); setRejectionReason(''); }}
                   style={{ color: `${C.cream}50` }} className="hover:opacity-100 transition-opacity">
@@ -395,7 +395,7 @@ export default function AdminMetrics() {
               <div className="p-6 flex flex-col gap-4">
 
                 {/* Info da submissão */}
-                <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.07)` }}>
+                <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)` }}>
                   <p style={{ fontSize: 13, fontWeight: 700, color: C.cream }}>
                     {selectedSubmission.task_title || selectedSubmission.task?.title}
                   </p>
@@ -426,7 +426,7 @@ export default function AdminMetrics() {
                   <label style={{ fontSize: 11, fontWeight: 700, color: '#f87171', letterSpacing: '0.05em' }}>MOTIVO DA REJEIÇÃO *</label>
                   <textarea
                     className="w-full px-4 py-3 rounded-xl outline-none resize-none"
-                    style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.12)`, color: C.cream, fontSize: 13, ...body }}
+                    style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.12)`, color: C.cream, fontSize: 13, ...body }}
                     rows={4}
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
@@ -439,7 +439,7 @@ export default function AdminMetrics() {
                   <button
                     onClick={() => { setSelectedSubmission(null); setRejectionReason(''); }}
                     className="flex-1 h-12 rounded-xl flex items-center justify-center transition-all hover:brightness-110"
-                    style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.07)`, color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}
+                    style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)`, color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}
                   >
                     Cancelar
                   </button>

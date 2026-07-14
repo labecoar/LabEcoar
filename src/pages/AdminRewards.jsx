@@ -34,8 +34,8 @@ const DEFAULT_FORM = {
 }
 
 const inputStyle = {
-  backgroundColor: 'rgba(255,255,222,0.04)',
-  border: `1px solid rgba(255,255,222,0.12)`,
+  backgroundColor: 'rgba(var(--ink),0.04)',
+  border: `1px solid rgba(var(--ink),0.12)`,
   color: C.cream,
   fontSize: 13,
   borderRadius: 12,
@@ -152,7 +152,7 @@ export default function AdminRewards() {
   if (profile?.role !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: C.black }}>
-        <div className="max-w-md p-8 rounded-2xl text-center" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.08)` }}>
+        <div className="max-w-md p-8 rounded-2xl text-center" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.08)` }}>
           <XCircle size={36} style={{ color: '#f87171', margin: '0 auto 16px' }} />
           <h2 style={{ ...heading, fontSize: 20, fontWeight: 800, color: C.cream }}>Acesso Negado</h2>
           <p style={{ color: `${C.cream}60`, fontSize: 14 }}>Apenas administradores podem gerenciar recompensas.</p>
@@ -165,8 +165,8 @@ export default function AdminRewards() {
     <div className="min-h-screen" style={{ backgroundColor: C.black, ...body }}>
 
       {/* Header fixo */}
-      <div className="flex items-center px-8 py-4 sticky top-0 z-10"
-        style={{ backgroundColor: `${C.black}F5`, backdropFilter: 'blur(16px)', borderBottom: `1px solid rgba(255,255,222,0.05)` }}>
+      <div className="hidden md:flex items-center px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10"
+        style={{ backgroundColor: `${C.black}F5`, backdropFilter: 'blur(16px)', borderBottom: `1px solid rgba(var(--ink),0.05)` }}>
         <div className="flex items-center gap-3">
           <Gift size={16} style={{ color: C.lime }} />
           <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
@@ -175,7 +175,7 @@ export default function AdminRewards() {
         </div>
       </div>
 
-      <div className="px-4 md:px-8 pt-7 pb-10 max-w-6xl mx-auto space-y-8">
+      <div className="px-4 sm:px-6 md:px-8 pt-5 md:pt-7 pb-8 md:pb-10 max-w-6xl mx-auto w-full min-w-0 space-y-6 md:space-y-8">
 
         {/* Hero */}
         <div>
@@ -195,7 +195,7 @@ export default function AdminRewards() {
             { label: 'Itens inativos', value: Math.max(0, rewards.length - totalActive), color: `${C.cream}60` },
           ].map(({ label, value, color }) => (
             <div key={label} className="flex items-center gap-4 p-5 rounded-2xl"
-              style={{ backgroundColor: 'rgba(255,255,222,0.03)', border: `1px solid rgba(255,255,222,0.06)` }}>
+              style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: `1px solid rgba(var(--ink),0.06)` }}>
               <div>
                 <div style={{ ...heading, fontSize: 28, fontWeight: 900, color, lineHeight: 1, letterSpacing: '-0.02em' }}>{value}</div>
                 <div style={{ fontSize: 11, color: `${C.cream}50`, marginTop: 4 }}>{label}</div>
@@ -205,7 +205,7 @@ export default function AdminRewards() {
         </div>
 
         {/* Formulário de cadastro */}
-        <div className="p-6 rounded-2xl" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.08)` }}>
+        <div className="p-6 rounded-2xl" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.08)` }}>
           <div className="flex items-center gap-2 mb-5">
             <Plus size={15} style={{ color: C.lime }} />
             <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>Cadastrar novo item</span>
@@ -301,7 +301,7 @@ export default function AdminRewards() {
         </div>
 
         {/* Lista de itens */}
-        <div className="p-6 rounded-2xl" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.08)` }}>
+        <div className="p-6 rounded-2xl" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.08)` }}>
           <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream, display: 'block', marginBottom: 20 }}>
             Itens cadastrados
           </span>
@@ -335,7 +335,7 @@ export default function AdminRewards() {
 
                 return (
                   <div key={reward.id} className="p-4 rounded-xl"
-                    style={{ backgroundColor: 'rgba(255,255,222,0.03)', border: `1px solid rgba(255,255,222,0.07)` }}>
+                    style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: `1px solid rgba(var(--ink),0.07)` }}>
                     <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
 
                       {/* Info do item */}
@@ -343,10 +343,10 @@ export default function AdminRewards() {
                         {reward.image_url ? (
                           <img src={reward.image_url} alt={reward.title}
                             className="w-16 h-16 rounded-xl object-cover shrink-0"
-                            style={{ border: `1px solid rgba(255,255,222,0.1)` }} />
+                            style={{ border: `1px solid rgba(var(--ink),0.1)` }} />
                         ) : (
                           <div className="w-16 h-16 rounded-xl flex items-center justify-center shrink-0"
-                            style={{ backgroundColor: 'rgba(255,255,222,0.06)', border: `1px solid rgba(255,255,222,0.1)` }}>
+                            style={{ backgroundColor: 'rgba(var(--ink),0.06)', border: `1px solid rgba(var(--ink),0.1)` }}>
                             <Gift size={20} style={{ color: `${C.cream}40` }} />
                           </div>
                         )}
@@ -356,11 +356,11 @@ export default function AdminRewards() {
                           <p style={{ fontSize: 11, color: `${C.cream}40`, marginTop: 2 }}>Disponivel: {quantityLeft}</p>
                           <div className="flex flex-wrap items-center gap-2 mt-2">
                             <span className="px-2.5 py-1 rounded-full text-xs font-semibold"
-                              style={{ backgroundColor: 'rgba(255,255,222,0.06)', color: `${C.cream}60` }}>
+                              style={{ backgroundColor: 'rgba(var(--ink),0.06)', color: `${C.cream}60` }}>
                               {CATEGORY_LABELS[reward.category] || 'Outros'}
                             </span>
                             <span className="px-2.5 py-1 rounded-full text-xs font-semibold"
-                              style={{ backgroundColor: reward.is_active ? C.lime_back : 'rgba(255,255,222,0.06)', color: reward.is_active ? C.lime : C.orange }}>
+                              style={{ backgroundColor: reward.is_active ? C.lime_back : 'rgba(var(--ink),0.06)', color: reward.is_active ? C.lime : C.orange }}>
                               {reward.is_active ? 'Ativo' : 'Inativo'}
                             </span>
                             <span className="px-2.5 py-1 rounded-full text-xs font-semibold"
@@ -375,7 +375,7 @@ export default function AdminRewards() {
                       <div className="flex flex-col gap-2 w-full lg:w-auto lg:min-w-72">
                         <div className="flex gap-2">
                           <div className="flex items-center gap-2 flex-1 px-3 h-10 rounded-xl"
-                            style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.12)` }}>
+                            style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.12)` }}>
                             <span style={{ fontSize: 11, fontWeight: 700, color: `${C.cream}50`, whiteSpace: 'nowrap' }}>Pts</span>
                             <input
                               type="number"
@@ -395,7 +395,7 @@ export default function AdminRewards() {
                           </div>
 
                           <div className="flex items-center gap-2 flex-1 px-3 h-10 rounded-xl"
-                            style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.12)` }}>
+                            style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.12)` }}>
                             <span style={{ fontSize: 11, fontWeight: 700, color: `${C.cream}50`, whiteSpace: 'nowrap' }}>Qtd</span>
                             <input
                               type="number"
@@ -416,7 +416,7 @@ export default function AdminRewards() {
                         </div>
 
 
-                        <div className="flex gap-2 mt-3 pt-3" style={{ borderTop: `1px solid rgba(255,255,222,0.06)` }}>
+                        <div className="flex gap-2 mt-3 pt-3" style={{ borderTop: `1px solid rgba(var(--ink),0.06)` }}>
                           <button
                             type="button"
                             onClick={() => handleToggleActive(reward)}

@@ -17,10 +17,11 @@ import TaskDetailsModal from "../components/tasks/TaskDetailsModal";
 import { getProofMetricsWindowFromSubmission, getMetricsResubmissionDeadline } from '@/lib/metrics-window';
 import { C, heading, body } from '@/lib/theme';
 import { formatLaunchDateTime, isTaskScheduled } from '@/lib/task-scheduling';
+import { PageShell, PageHeader, PageContent, PageTitle } from "@/components/layout/PageShell";
 
-const BORDER_COLOR = "rgba(255,255,222,0.07)";
-const MUTED_COLOR = "rgba(255,255,222,0.45)";
-const GHOST_BG = "rgba(255,255,222,0.06)";
+const BORDER_COLOR = "rgba(var(--ink),0.07)";
+const MUTED_COLOR = "rgba(var(--ink),0.45)";
+const GHOST_BG = "rgba(var(--ink),0.06)";
 
 // ─── Mapeamentos de categoria ────────────────────────────────────────────────
 const CATEGORY_ICONS = {
@@ -33,19 +34,19 @@ const CATEGORY_ICONS = {
 };
 
 export const CATEGORY_ACCENT = {
-  campanha: C.orange,
+  campanha: C.red,
   resposta_rapida: C.red,
   oficina: C.purple,
   folhetim: C.cyan,
   compartilhar_ecoante: C.pink,
-  sidequest_teste: C.cyan,
+  sidequest_teste: C.orange,
 };
 
 /** Fundo suave do acento por categoria (campanha = verde, missão = laranja) */
 export const CATEGORY_ACCENT_BG = {
   campanha: C.orange_back,
   resposta_rapida: C.red_back,
-  sidequest_teste: C.cyan_back,
+  sidequest_teste: C.orange_back,
 };
 
 export const getCategoryStyle = (category) => ({
@@ -318,7 +319,7 @@ export default function Tasks() {
       };
 
       if (isSidequestBlockedThisMonth)
-        return <span style={{ ...base, background: "rgba(255,255,216,0.07)", color: "white" }}>
+        return <span style={{ ...base, background: "rgba(var(--ink),0.07)", color: C.cream }}>
           <CheckCircle2 size={11} /> Missão concluída
         </span>;
 
@@ -335,7 +336,7 @@ export default function Tasks() {
         return <span style={{ ...base, background: "rgba(204,255,68,0.12)", color: C.lime }}><CheckCircle2 size={11} /> Concluída</span>;
       }
       if (isExpiredByRule)
-        return <span style={{ ...base, background: "rgba(255,255,216,0.07)", color: MUTED_COLOR }}>Expirada</span>;
+        return <span style={{ ...base, background: "rgba(var(--ink),0.07)", color: MUTED_COLOR }}>Expirada</span>;
       if (submissionStatus === 'proof_pending')
         return <span style={{ ...base, background: "rgba(68,102,255,0.12)", color: "#8899FF" }}><Clock size={11} /> Prova em Análise</span>;
       if (submissionStatus === 'application_approved')
@@ -351,7 +352,7 @@ export default function Tasks() {
       if (rejected && !reopenedByDateChange)
         return <span style={{ ...base, background: "rgba(255,34,85,0.12)", color: "#FF2255" }}>Rejeitada</span>;
       if (submission && !reopenedByDateChange)
-        return <span style={{ ...base, background: "rgba(255,255,216,0.07)", color: MUTED_COLOR }}>Em andamento</span>;
+        return <span style={{ ...base, background: "rgba(var(--ink),0.07)", color: MUTED_COLOR }}>Em andamento</span>;
       if (isScheduled)
         return <span style={{ ...base, background: "rgba(170,102,255,0.12)", color: C.purple }}><Calendar size={11} /> Em breve</span>;
       return <span style={{ ...base, background: "rgba(204,255,68,0.12)", color: C.lime }}>Disponível</span>;
@@ -407,7 +408,7 @@ export default function Tasks() {
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               {task.min_followers && (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 999, background: "rgba(255,255,216,0.06)", color: MUTED_COLOR, fontSize: 12, fontWeight: 500 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 999, background: "rgba(var(--ink),0.06)", color: MUTED_COLOR, fontSize: 12, fontWeight: 500 }}>
                   <Users size={11} /> {formatFollowersCount(task.min_followers)}+ seguidores
                 </span>
               )}
@@ -445,7 +446,7 @@ export default function Tasks() {
             <div style={{ fontSize: 15, fontWeight: 500, color: C.cream, letterSpacing: "-0.01em", lineHeight: 1.3, marginBottom: 6 }}>
               {task.title}
             </div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,216,0.45)", lineHeight: 1.55, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+            <div style={{ fontSize: 12, color: "rgba(var(--ink),0.45)", lineHeight: 1.55, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
               {task.description}
             </div>
           </div>
@@ -479,7 +480,7 @@ export default function Tasks() {
                 <span style={{ fontSize: 10, color: MUTED_COLOR, textTransform: "uppercase", letterSpacing: "0.1em" }}>Cronograma</span>
                 <span style={{ fontSize: 10, color: MUTED_COLOR }}>{completedSteps}/{steps.length} etapas</span>
               </div>
-              <div style={{ height: 4, borderRadius: 999, background: "rgba(255,255,222,0.06)", marginBottom: 10, overflow: "hidden" }}>
+              <div style={{ height: 4, borderRadius: 999, background: "rgba(var(--ink),0.06)", marginBottom: 10, overflow: "hidden" }}>
                 <div style={{ height: "100%", borderRadius: 999, width: `${(completedSteps / steps.length) * 100}%`, background: accent, transition: "width 0.3s" }} />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -488,7 +489,7 @@ export default function Tasks() {
                     <div style={{
                       width: 16, height: 16, borderRadius: "50%", flexShrink: 0,
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      background: i < completedSteps ? accent : "rgba(255,255,222,0.07)",
+                      background: i < completedSteps ? accent : "rgba(var(--ink),0.07)",
                       border: i === completedSteps ? `1px solid ${accent}` : "none",
                     }}>
                       {i < completedSteps
@@ -550,43 +551,42 @@ export default function Tasks() {
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: C.black, ...body }}>
-      {/* Header fixo */}
-      <div className="flex items-center justify-between px-8 py-4 sticky top-0 z-10" style={{ backgroundColor: `${C.black}F5`, backdropFilter: "blur(16px)", borderBottom: `1px solid rgba(255,255,222,0.05)` }}>
-        <div className="flex items-center gap-3">
-          <Target size={16} style={{ color: C.lime }} />
-          <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+    <PageShell>
+      <PageHeader>
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <Target size={16} className="shrink-0" style={{ color: C.lime }} />
+          <span className="truncate" style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", textTransform: "uppercase" }}>
             Tarefas Disponíveis
           </span>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: "rgba(255,255,222,0.06)", color: `${C.cream}70` }}>
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full" style={{ backgroundColor: "rgba(var(--ink),0.06)", color: `${C.cream}70` }}>
             <SlidersHorizontal size={11} />
-            <span style={{ fontSize: 12 }}>{filteredTasks.length} {filteredTasks.length === 1 ? 'tarefa' : 'tarefas'}</span>
+            <span className="text-xs sm:text-sm whitespace-nowrap">{filteredTasks.length} {filteredTasks.length === 1 ? 'tarefa' : 'tarefas'}</span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.onAccent }}>
+          <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.onAccent }}>
             <Star size={11} fill={C.onAccent} />
             <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>{currentPoints} pts</span>
           </div>
         </div>
-      </div>
+      </PageHeader>
 
-      <div className="px-8 pt-7 pb-10 max-w-6xl mx-auto">
-        {/* Título */}
-        <div className="mb-6">
-          <h1 style={{ ...heading, fontSize: 40, fontWeight: 900, color: C.cream, letterSpacing: "-0.03em", lineHeight: 1 }}>
-            Tarefas Disponíveis
-          </h1>
-          <p style={{ fontSize: 14, color: `${C.cream}50`, marginTop: 6 }} className="flex items-center gap-2">
-            Escolha uma tarefa e ganhe pontos!
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ backgroundColor: `${C.lime_back}`, color: C.lime }}>
-              +{filteredTasks.reduce((a, t) => a + (Number(t.points) || 0), 0)} pts disponíveis
+      <PageContent>
+        <PageTitle
+          subtitle={
+            <span className="flex flex-wrap items-center gap-2">
+              Escolha uma tarefa e ganhe pontos!
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ backgroundColor: `${C.lime_back}`, color: C.lime }}>
+                +{filteredTasks.reduce((a, t) => a + (Number(t.points) || 0), 0)} pts disponíveis
+              </span>
             </span>
-          </p>
-        </div>
+          }
+        >
+          Tarefas Disponíveis
+        </PageTitle>
 
         {/* Filtros */}
-        <div className="flex items-center gap-2 mb-7 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+        <div className="flex items-center gap-2 mb-6 md:mb-7 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: "none" }}>
           {FILTER_TABS.map(tab => {
             const active = selectedCategory === tab.value;
             return (
@@ -595,7 +595,7 @@ export default function Tasks() {
                 onClick={() => setSelectedCategory(tab.value)}
                 className="shrink-0 px-4 py-2 rounded-xl transition-all duration-150"
                 style={{
-                  backgroundColor: active ? C.lime : "rgba(255,255,222,0.06)",
+                  backgroundColor: active ? C.lime : "rgba(var(--ink),0.06)",
                   color: active ? C.black : `${C.cream}70`,
                   fontWeight: active ? 700 : 400,
                   ...heading,
@@ -611,7 +611,7 @@ export default function Tasks() {
         {/* Grid ou empty state */}
         {filteredTasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <Target size={56} color="rgba(255,255,216,0.2)" />
+            <Target size={56} color="rgba(var(--ink),0.2)" />
             <p style={{ ...heading, fontSize: 18, fontWeight: 700, color: `${C.cream}40` }}>
               {selectedCategory === "todas" ? "Nenhuma tarefa disponível no momento." : "Nenhuma tarefa nessa categoria."}
             </p>
@@ -623,7 +623,7 @@ export default function Tasks() {
             ))}
           </div>
         )}
-      </div>
+      </PageContent>
 
       {/* Modal */}
       {selectedTask && (
@@ -636,6 +636,6 @@ export default function Tasks() {
           cardIndex={filteredTasks.findIndex(t => t.id === selectedTask.id)}
         />
       )}
-    </div>
+    </PageShell>
   );
 }

@@ -65,21 +65,25 @@ export default function NotificationBell() {
     <>
       <div onClick={() => setIsOpen(false)} className="fixed inset-0 z-40" />
       <div
-        className="fixed mt-2 w-[22rem] max-w-[90vw] rounded-2xl border border-white/10 bg-white shadow-2xl z-50 overflow-hidden"
-        style={(() => {
-          if (!popoverPos) return { right: 8, top: 0 }
-          const s = { top: popoverPos.top + 'px' }
-          if (popoverPos.left !== undefined) s.left = popoverPos.left + 'px'
-          if (popoverPos.right !== undefined) s.right = popoverPos.right + 'px'
-          if (popoverPos.width) s.width = popoverPos.width + 'px'
-          return s
-        })()}
+        className="fixed mt-2 w-[22rem] max-w-[90vw] rounded-2xl shadow-2xl z-50 overflow-hidden"
+        style={{
+          backgroundColor: C.card,
+          border: `1px solid rgba(var(--ink),0.1)`,
+          ...(() => {
+            if (!popoverPos) return { right: 8, top: 0 }
+            const s = { top: popoverPos.top + 'px' }
+            if (popoverPos.left !== undefined) s.left = popoverPos.left + 'px'
+            if (popoverPos.right !== undefined) s.right = popoverPos.right + 'px'
+            if (popoverPos.width) s.width = popoverPos.width + 'px'
+            return s
+          })(),
+        }}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10 bg-black">
+        <div className="flex items-center justify-between gap-3 px-4 py-3" style={{ borderBottom: `1px solid rgba(var(--ink),0.1)` }}>
           <div>
-            <p className="text-sm font-extrabold text-white font-size-16">Notificações</p>
-            <p className="text-xs text-white/60">
+            <p className="text-sm font-extrabold font-size-16" style={{ color: C.cream }}>Notificações</p>
+            <p className="text-xs" style={{ color: `${C.cream}99` }}>
               {unreadCount > 0 ? `${unreadCount} não lidas` : 'Tudo em dia por aqui'}
             </p>
           </div>
@@ -87,7 +91,7 @@ export default function NotificationBell() {
             <button
               type="button"
               onClick={markAllAsRead}
-              className="inline-flex items-center gap-1 text-xs font-medium hover:text-emerald-400"
+              className="inline-flex items-center gap-1 text-xs font-medium hover:opacity-80"
               title="Marcar todas como lidas"
               style={{ color: C.lime }}
             >
@@ -97,7 +101,8 @@ export default function NotificationBell() {
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="p-1.5 rounded-full hover:bg-white/10 text-white/60"
+              className="p-1.5 rounded-full hover:opacity-70"
+              style={{ color: `${C.cream}99` }}
               aria-label="Fechar notificações"
             >
               <X className="w-4 h-4" />
@@ -105,11 +110,11 @@ export default function NotificationBell() {
           </div>
         </div>
 
-        <div className="max-h-[70vh] overflow-y-auto bg-black">
+        <div className="max-h-[70vh] overflow-y-auto" style={{ backgroundColor: C.card }}>
           {loading ? (
-            <div className="p-4 text-sm text-white/50">Carregando notificações...</div>
+            <div className="p-4 text-sm" style={{ color: `${C.cream}80` }}>Carregando notificações...</div>
           ) : notifications.length === 0 ? (
-            <div className="p-6 text-center text-sm text-white/50">
+            <div className="p-6 text-center text-sm" style={{ color: `${C.cream}80` }}>
               Nenhuma notificação no momento.
             </div>
           ) : (

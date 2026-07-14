@@ -4,6 +4,18 @@ import { Music2, Mic, Users, PartyPopper } from "lucide-react";
 import { useGroupProgress } from "@/hooks/useScores";
 import { GROUP_TARGET_FACTOR, MAX_JOURNEY_POINTS } from "@/services/scores.service";
 import { C, heading, body } from "@/lib/theme";
+import { useThemeMode } from "@/contexts/ThemeContext";
+
+/** Texto secundário — `${C.cream}30` fica invisível no tema claro */
+function useInkText() {
+  const { isLight } = useThemeMode();
+  return {
+    faint: isLight ? "rgba(var(--ink),0.52)" : `${C.cream}30`,
+    muted: isLight ? "rgba(var(--ink),0.45)" : `${C.cream}25`,
+    disabled: isLight ? "rgba(var(--ink),0.38)" : `${C.cream}15`,
+    subtle: isLight ? "rgba(var(--ink),0.65)" : `${C.cream}55`,
+  };
+}
 
 export const LEVEL_THRESHOLDS = [
   { key: "voz_e_violao", name: "Voz e Violão", min: 0, max: 200, icon: Music2 },
@@ -40,6 +52,7 @@ export function getGroupCategory(collectivePoints = 0, activeEcoantes = 1) {
 }
 
 function GroupProgressBar({ groupPct, targetPoints }) {
+  const ink = useInkText();
   const rounded = Math.round(groupPct);
   const dotLeft = `clamp(0px, calc(${groupPct}% - 8px), calc(100% - 16px))`;
 
@@ -48,7 +61,7 @@ function GroupProgressBar({ groupPct, targetPoints }) {
       <div className="relative w-full mb-2 py-[3px]">
         <div
           className="relative h-2.5 rounded-full w-full overflow-hidden"
-          style={{ backgroundColor: "rgba(255,255,222,0.07)" }}
+          style={{ backgroundColor: "rgba(var(--ink),0.07)" }}
         >
           <div
             className="absolute left-0 top-0 h-full rounded-full transition-all duration-500 ease-out"
@@ -70,15 +83,16 @@ function GroupProgressBar({ groupPct, targetPoints }) {
       </div>
 
       <div className="flex justify-between mb-7">
-        <span style={{ fontSize: 10, color: `${C.cream}30` }}>0</span>
+        <span style={{ fontSize: 10, color: ink.faint }}>0</span>
         <span style={{ fontSize: 10, fontWeight: 700, color: C.lime }}>{rounded}% concluído</span>
-        <span style={{ fontSize: 10, color: `${C.cream}30` }}>{Number(targetPoints).toLocaleString("pt-BR")} pts</span>
+        <span style={{ fontSize: 10, color: ink.faint }}>{Number(targetPoints).toLocaleString("pt-BR")} pts</span>
       </div>
     </div>
   );
 }
 
 function LevelColumn({ level, collectivePoints, index, groupLevelIdx, activeEcoantes }) {
+  const ink = useInkText();
   const Icon = level.icon;
   const lvlThreshold = groupThreshold(level.pts, activeEcoantes);
   const completed = collectivePoints >= lvlThreshold;
@@ -86,9 +100,9 @@ function LevelColumn({ level, collectivePoints, index, groupLevelIdx, activeEcoa
   const isNext = index === groupLevelIdx + 1;
   const lvlPct = Math.min(100, Math.round((collectivePoints / lvlThreshold) * 100));
 
-  const iconBg = completed ? C.lime : isNext ? C.darkGreen : "rgba(255,255,222,0.05)";
-  const iconColor = completed ? C.black : isNext ? C.orange : `${C.cream}15`;
-  const nameColor = completed ? C.lime : isNext ? C.cream : `${C.cream}25`;
+  const iconBg = completed ? C.lime : isNext ? C.darkGreen : "rgba(var(--ink),0.05)";
+  const iconColor = completed ? C.onAccent : isNext ? C.orange : ink.disabled;
+  const nameColor = completed ? C.lime : isNext ? C.cream : ink.muted;
 
   return (
     <div className="flex flex-col items-center text-center">
@@ -96,7 +110,7 @@ function LevelColumn({ level, collectivePoints, index, groupLevelIdx, activeEcoa
         className="w-12 h-12 rounded-xl flex items-center justify-center mb-2.5 transition-all"
         style={{
           backgroundColor: iconBg,
-          border: !completed ? `1px solid rgba(255,255,222,0.07)` : "none",
+          border: !completed ? `1px solid rgba(var(--ink),0.07)` : "none",
           boxShadow: isCurrent ? `0 0 20px ${C.lime}44` : "none",
         }}
       >
@@ -107,11 +121,11 @@ function LevelColumn({ level, collectivePoints, index, groupLevelIdx, activeEcoa
         {level.name}
       </div>
 
-      <div style={{ fontSize: 10, color: `${C.cream}30` }}>
+      <div style={{ fontSize: 10, color: ink.faint }}>
         {lvlThreshold.toLocaleString("pt-BR")} pts
       </div>
 
-      <div className="h-0.5 w-12 rounded-full mt-2.5 overflow-hidden" style={{ backgroundColor: "rgba(255,255,222,0.06)" }}>
+      <div className="h-0.5 w-12 rounded-full mt-2.5 overflow-hidden" style={{ backgroundColor: "rgba(var(--ink),0.06)" }}>
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{
@@ -121,7 +135,7 @@ function LevelColumn({ level, collectivePoints, index, groupLevelIdx, activeEcoa
         />
       </div>
 
-      <div style={{ fontSize: 9, color: `${C.cream}30`, marginTop: 3 }}>
+      <div style={{ fontSize: 9, color: ink.faint, marginTop: 3 }}>
         {completed ? "100%" : isNext ? `${lvlPct}%` : "0%"}
       </div>
     </div>
@@ -129,6 +143,7 @@ function LevelColumn({ level, collectivePoints, index, groupLevelIdx, activeEcoa
 }
 
 export default function GroupProgress({ selectedQuarter }) {
+  const ink = useInkText();
   const { data, isLoading } = useGroupProgress(selectedQuarter);
 
   const activeEcoantes = data?.active_ecoantes ?? 0;
@@ -149,18 +164,18 @@ export default function GroupProgress({ selectedQuarter }) {
       <div
         aria-hidden
         className="absolute border border-solid inset-0 pointer-events-none rounded-2xl"
-        style={{ borderColor: "rgba(255,255,222,0.06)" }}
+        style={{ borderColor: "rgba(var(--ink),0.06)" }}
       />
 
-      <div className="flex flex-col gap-7 items-start pt-[25px] px-[25px] pb-[25px] relative w-full">
-        <div className="flex items-start justify-between w-full gap-4">
+      <div className="flex flex-col gap-5 sm:gap-7 items-start pt-4 sm:pt-[25px] px-4 sm:px-6 md:px-[25px] pb-4 sm:pb-[25px] relative w-full">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between w-full gap-3 sm:gap-4">
           <div>
             <span
               style={{
                 ...heading,
                 fontSize: 11,
                 fontWeight: 700,
-                color: "rgba(255,255,222,0.31)",
+                color: "rgba(var(--ink),0.31)",
                 textTransform: "uppercase",
                 letterSpacing: "0.12em",
               }}
@@ -170,7 +185,7 @@ export default function GroupProgress({ selectedQuarter }) {
 
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               <Users size={13} style={{ color: C.lime}} />
-              <span style={{ fontSize: 13, color: `${C.cream}55`, ...body }}>
+              <span style={{ fontSize: 13, color: ink.subtle, ...body }}>
                 {isLoading
                   ? "..."
                   : `${activeEcoantes} Ecoantes · ${formatPts(collectivePoints)} / ${formatPts(targetPoints)} pts coletivos`}
@@ -180,7 +195,7 @@ export default function GroupProgress({ selectedQuarter }) {
               style={{
                 fontSize: 12,
                 lineHeight: 1.55,
-                color: "rgba(255,255,222,0.35)",
+                color: "rgba(var(--ink),0.35)",
                 ...body,
                 marginTop: 10,
               }}
@@ -191,7 +206,7 @@ export default function GroupProgress({ selectedQuarter }) {
 
 
           {selectedQuarter && (
-            <span className="shrink-0" style={{ fontSize: 11, color: "rgba(255,255,222,0.19)" }}>
+            <span className="shrink-0" style={{ fontSize: 11, color: "rgba(var(--ink),0.19)" }}>
               {selectedQuarter}
             </span>
           )}
@@ -203,7 +218,8 @@ export default function GroupProgress({ selectedQuarter }) {
             targetPoints={targetPoints}
           />
 
-          <div className="grid grid-cols-4 gap-3 w-full">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 w-full">
+            
             {LEVELS.map((level, index) => (
               <LevelColumn
                 key={level.name}

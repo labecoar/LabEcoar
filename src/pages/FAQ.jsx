@@ -100,7 +100,7 @@ function FaqAccordionItem({ item, accent, accentBg, isOpen, onToggle }) {
       style={{
         borderRadius: 14,
         backgroundColor: C.card,
-        border: `1px solid ${isOpen ? `${accent}30` : "rgba(255,255,222,0.06)"}`,
+        border: `1px solid ${isOpen ? `${accent}30` : "rgba(var(--ink),0.06)"}`,
         overflow: "hidden",
         transition: "border-color 0.2s",
       }}
@@ -129,7 +129,7 @@ function FaqAccordionItem({ item, accent, accentBg, isOpen, onToggle }) {
         <div
           style={{
             padding: "0 16px 16px",
-            borderTop: `1px solid rgba(255,255,222,0.05)`,
+            borderTop: `1px solid rgba(var(--ink),0.05)`,
             paddingTop: 14,
           }}
         >
@@ -168,11 +168,11 @@ export default function FAQ() {
   return (
     <div style={{ minHeight: "100vh", background: C.black, ...body }}>
       <div
-        className="flex items-center justify-between px-8 py-4 sticky top-0 z-10"
+        className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10"
         style={{
           backgroundColor: `${C.black}F5`,
           backdropFilter: "blur(16px)",
-          borderBottom: "1px solid rgba(255,255,222,0.05)",
+          borderBottom: "1px solid rgba(var(--ink),0.05)",
         }}
       >
         <div className="flex items-center gap-3">
@@ -201,17 +201,11 @@ export default function FAQ() {
         </div>
       </div>
 
-      <div className="px-8 pt-7 pb-10 max-w-4xl mx-auto">
-        <div className="mb-8">
+      <div className="px-4 sm:px-6 md:px-8 pt-5 md:pt-7 pb-8 md:pb-10 max-w-4xl mx-auto w-full min-w-0">
+        <div className="mb-6 md:mb-8">
           <h1
-            style={{
-              ...heading,
-              fontSize: 40,
-              fontWeight: 900,
-              color: C.cream,
-              letterSpacing: "-0.03em",
-              lineHeight: 1,
-            }}
+            className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-none"
+            style={{ ...heading, color: C.cream }}
           >
             Perguntas Frequentes
           </h1>
@@ -222,7 +216,7 @@ export default function FAQ() {
 
         <div
           className="flex items-center gap-3 px-4 py-3 rounded-2xl mb-6"
-          style={{ backgroundColor: C.card, border: "1px solid rgba(255,255,222,0.06)" }}
+          style={{ backgroundColor: C.card, border: "1px solid rgba(var(--ink),0.06)" }}
         >
           <Search size={16} style={{ color: `${C.cream}40`, flexShrink: 0 }} />
           <input
@@ -243,7 +237,7 @@ export default function FAQ() {
             onClick={() => setActiveSection("todas")}
             className="shrink-0 px-4 py-2 rounded-xl transition-all duration-150"
             style={{
-              backgroundColor: activeSection === "todas" ? C.lime : "rgba(255,255,222,0.06)",
+              backgroundColor: activeSection === "todas" ? C.lime : "rgba(var(--ink),0.06)",
               color: activeSection === "todas" ? C.black : `${C.cream}70`,
               fontWeight: activeSection === "todas" ? 700 : 400,
               ...heading,
@@ -261,7 +255,7 @@ export default function FAQ() {
                 onClick={() => setActiveSection(section.id)}
                 className="shrink-0 px-4 py-2 rounded-xl transition-all duration-150"
                 style={{
-                  backgroundColor: active ? palette.color : "rgba(255,255,222,0.06)",
+                  backgroundColor: active ? palette.color : "rgba(var(--ink),0.06)",
                   color: active ? (palette.color === C.lime ? C.black : C.cream) : `${C.cream}70`,
                   fontWeight: active ? 700 : 400,
                   ...heading,
@@ -277,7 +271,7 @@ export default function FAQ() {
         {visibleCount === 0 ? (
           <div
             className="text-center py-16 rounded-2xl"
-            style={{ backgroundColor: C.card, border: "1px solid rgba(255,255,222,0.06)" }}
+            style={{ backgroundColor: C.card, border: "1px solid rgba(var(--ink),0.06)" }}
           >
             <HelpCircle size={36} style={{ color: `${C.cream}20`, margin: "0 auto 12px" }} />
             <p style={{ ...heading, fontSize: 16, fontWeight: 700, color: `${C.cream}40` }}>

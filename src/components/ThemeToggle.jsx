@@ -10,8 +10,8 @@ export default function ThemeToggle({ collapsed = false }) {
     <button
       type="button"
       onClick={toggleTheme}
-      title={isLight ? "Ativar modo noite" : "Ativar modo dia"}
-      aria-label={isLight ? "Ativar modo noite" : "Ativar modo dia"}
+      title={isLight ? "Ativar tema escuro" : "Ativar tema claro"}
+      aria-label={isLight ? "Ativar tema escuro" : "Ativar tema claro"}
       className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 hover:bg-white/10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
       style={{
         color: "rgba(255,255,255,0.85)",
@@ -26,7 +26,7 @@ export default function ThemeToggle({ collapsed = false }) {
         <Sun className="w-4 h-4 shrink-0" style={{ color: C.lime }} />
       )}
       <span className="group-data-[collapsible=icon]:hidden truncate">
-        {collapsed ? null : isLight ? "Modo noite" : "Modo dia"}
+        {collapsed ? null : isLight ? "Tema escuro" : "Tema claro"}
       </span>
       {!collapsed && (
         <span
@@ -37,7 +37,6 @@ export default function ThemeToggle({ collapsed = false }) {
             fontWeight: 700,
           }}
         >
-          {mode === "light" ? "dia" : "noite"}
         </span>
       )}
     </button>

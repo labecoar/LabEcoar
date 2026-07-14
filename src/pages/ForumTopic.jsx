@@ -26,7 +26,7 @@ const CATEGORY_INFO = {
 
 const inputStyle = {
   backgroundColor: C.black_light,
-  border: "1px solid rgba(255,255,222,0.1)",
+  border: "1px solid rgba(var(--ink),0.1)",
   color: C.cream,
   ...body,
   fontSize: 14,
@@ -84,11 +84,11 @@ export default function ForumTopic() {
 
   const renderHeader = () => (
     <div
-      className="flex items-center justify-between px-8 py-4 sticky top-0 z-10"
+      className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10"
       style={{
         backgroundColor: `${C.black}F5`,
         backdropFilter: "blur(16px)",
-        borderBottom: "1px solid rgba(255,255,222,0.05)",
+        borderBottom: "1px solid rgba(var(--ink),0.05)",
       }}
     >
       <div className="flex items-center gap-3">
@@ -139,7 +139,7 @@ export default function ForumTopic() {
     return (
       <div style={{ minHeight: "100vh", background: C.black, ...body }}>
         {renderHeader()}
-        <div className="px-8 pt-7 pb-10 max-w-4xl mx-auto flex flex-col items-center py-24 gap-4">
+        <div className="px-4 sm:px-6 md:px-8 pt-5 md:pt-7 pb-8 md:pb-10 max-w-4xl mx-auto w-full min-w-0 flex flex-col items-center py-24 gap-4">
           <MessageSquare size={36} style={{ color: `${C.cream}20` }} />
           <p style={{ ...heading, fontSize: 18, fontWeight: 700, color: `${C.cream}40` }}>
             Tópico não encontrado
@@ -166,12 +166,12 @@ export default function ForumTopic() {
     <div style={{ minHeight: "100vh", background: C.black, ...body }}>
       {renderHeader()}
 
-      <div className="px-8 pt-7 pb-10 max-w-4xl mx-auto">
+      <div className="px-4 sm:px-6 md:px-8 pt-5 md:pt-7 pb-8 md:pb-10 max-w-4xl mx-auto w-full min-w-0">
         <Link
           to={createPageUrl("Forum")}
           className="inline-flex items-center gap-2 mb-6 px-3 py-2 rounded-xl transition-all hover:brightness-110"
           style={{
-            backgroundColor: "rgba(255,255,222,0.06)",
+            backgroundColor: "rgba(var(--ink),0.06)",
             color: `${C.cream}70`,
             ...heading,
             fontWeight: 600,
@@ -184,10 +184,10 @@ export default function ForumTopic() {
 
         {/* Tópico principal */}
         <div
-          className="p-6 rounded-2xl mb-6"
+          className="p-4 sm:p-6 rounded-2xl mb-6"
           style={{
             backgroundColor: C.card,
-            border: `1px solid ${isPinned ? `${C.lime}22` : "rgba(255,255,222,0.06)"}`,
+            border: `1px solid ${isPinned ? `${C.lime}22` : "rgba(var(--ink),0.06)"}`,
           }}
         >
           {isPinned && (
@@ -248,7 +248,7 @@ export default function ForumTopic() {
 
           <div
             className="flex flex-wrap items-center gap-4 pt-4"
-            style={{ borderTop: "1px solid rgba(255,255,222,0.06)" }}
+            style={{ borderTop: "1px solid rgba(var(--ink),0.06)" }}
           >
             <div className="flex items-center gap-2">
               <div
@@ -283,7 +283,7 @@ export default function ForumTopic() {
           className="p-6 rounded-2xl mb-8"
           style={{
             backgroundColor: C.card,
-            border: "1px solid rgba(255,255,222,0.06)",
+            border: "1px solid rgba(var(--ink),0.06)",
           }}
         >
           <h2
@@ -345,7 +345,7 @@ export default function ForumTopic() {
               className="flex flex-col items-center justify-center py-16 rounded-2xl"
               style={{
                 backgroundColor: C.card,
-                border: "1px solid rgba(255,255,222,0.06)",
+                border: "1px solid rgba(var(--ink),0.06)",
               }}
             >
               <MessageSquare size={36} style={{ color: `${C.cream}20`, marginBottom: 12 }} />
@@ -370,7 +370,7 @@ export default function ForumTopic() {
                     className="p-5 rounded-2xl"
                     style={{
                       backgroundColor: C.card,
-                      border: "1px solid rgba(255,255,222,0.06)",
+                      border: "1px solid rgba(var(--ink),0.06)",
                     }}
                   >
                     <div className="flex items-start gap-4">
@@ -416,7 +416,7 @@ export default function ForumTopic() {
                           onClick={() => handleLike(post)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all hover:brightness-110"
                           style={{
-                            backgroundColor: hasLiked ? `${C.pink}18` : "rgba(255,255,222,0.06)",
+                            backgroundColor: hasLiked ? `${C.pink}18` : "rgba(var(--ink),0.06)",
                             color: hasLiked ? C.pink : `${C.cream}55`,
                             fontSize: 12,
                             fontWeight: 600,

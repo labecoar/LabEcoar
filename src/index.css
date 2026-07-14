@@ -28,26 +28,40 @@
   }
 
   [data-theme="light"] {
-    --background: #f4f6f5;
-    --foreground: #161616;
-    --card: #ffffff;
-    --card-foreground: #161616;
-    --popover: #ffffff;
-    --popover-foreground: #161616;
-    --primary: #8CBE00;
-    --primary-foreground: #161616;
-    --secondary: #0046DC;
+    --background: #e6e9e6;
+    --foreground: #1c1d1b;
+    --card: #f7f8f6;
+    --card-foreground: #1c1d1b;
+    --popover: #f7f8f6;
+    --popover-foreground: #1c1d1b;
+    --primary: #7DAE00;
+    --primary-foreground: #1c1d1b;
+    --secondary: #0041C8;
     --secondary-foreground: #ffffff;
-    --muted: #e8eae9;
+    --muted: #dadfd9;
     --muted-foreground: #5a5a55;
-    --accent: #DC4600;
+    --accent: #CD4100;
     --accent-foreground: #ffffff;
-    --destructive: #C81414;
+    --destructive: #BE1414;
     --destructive-foreground: #ffffff;
-    --border: rgba(22, 22, 22, 0.1);
-    --input: #e8eae9;
-    --ring: #8CBE00;
+    --border: rgba(22, 22, 22, 0.12);
+    --input: #d5d9d4;
+    --ring: #7DAE00;
     --radius: 0.5rem;
+  }
+
+  /*
+    --ink: componentes RGB do "texto/borda sobre superfície" do tema ativo.
+    Usado como rgba(var(--ink), alpha) em várias telas que antes tinham
+    branco-creme fixo (só funcionava no modo noite).
+  */
+  :root,
+  [data-theme="dark"] {
+    --ink: 255, 255, 222;
+  }
+
+  [data-theme="light"] {
+    --ink: 22, 22, 22;
   }
 }
 
@@ -59,6 +73,7 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: 'rlig' 1, 'calt' 1;
+    overflow-x: hidden;
   }
 }
 

@@ -14,7 +14,7 @@ import { ptBR } from "date-fns/locale";
 export default function SubmissionDetailsModal({ submission, isOpen, onClose }) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle className="text-2xl">{submission.task_title}</DialogTitle>
         </DialogHeader>

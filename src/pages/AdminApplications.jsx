@@ -62,7 +62,7 @@ export default function AdminApplications() {
   if (profile?.role !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: C.black }}>
-        <div className="max-w-md p-8 rounded-2xl text-center" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.08)` }}>
+        <div className="max-w-md p-8 rounded-2xl text-center" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.08)` }}>
           <XCircle size={36} style={{ color: '#f87171', margin: '0 auto 16px' }} />
           <h2 style={{ ...heading, fontSize: 20, fontWeight: 800, color: C.cream }} className="mb-2">Acesso Negado</h2>
           <p style={{ color: `${C.cream}60`, fontSize: 14 }}>Você não tem permissão para acessar esta página.</p>
@@ -177,8 +177,8 @@ export default function AdminApplications() {
     <div className="min-h-screen" style={{ backgroundColor: C.black, ...body }}>
 
       {/* Header fixo */}
-      <div className="flex items-center justify-between px-8 py-4 sticky top-0 z-10"
-        style={{ backgroundColor: `${C.black}F5`, backdropFilter: 'blur(16px)', borderBottom: `1px solid rgba(255,255,222,0.05)` }}>
+      <div className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10"
+        style={{ backgroundColor: `${C.black}F5`, backdropFilter: 'blur(16px)', borderBottom: `1px solid rgba(var(--ink),0.05)` }}>
         <div className="flex items-center gap-3">
           <Users size={16} style={{ color: C.lime }} />
           <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
@@ -187,7 +187,7 @@ export default function AdminApplications() {
         </div>
       </div>
 
-      <div className="px-4 md:px-8 pt-7 pb-10 max-w-6xl mx-auto space-y-8">
+      <div className="px-4 sm:px-6 md:px-8 pt-5 md:pt-7 pb-8 md:pb-10 max-w-6xl mx-auto w-full min-w-0 space-y-6 md:space-y-8">
 
         {/* Hero */}
         <div>
@@ -204,10 +204,10 @@ export default function AdminApplications() {
           {[
             { icon: Eye, label: 'Pendentes', value: pendingApplications.length, color: C.orange, iconBg: `${C.orange_back}` },
             { icon: CheckCircle, label: 'Selecionados', value: selectedApplications.length, color: C.lime, iconBg: `${C.lime_back}` },
-            { icon: XCircle, label: 'Não Selecionados', value: rejectedApplications.length, color: `${C.cream}50`, iconBg: `rgba(255,255,222,0.06)` },
+            { icon: XCircle, label: 'Não Selecionados', value: rejectedApplications.length, color: `${C.cream}50`, iconBg: `rgba(var(--ink),0.06)` },
           ].map(({ icon: Icon, label, value, color, iconBg }) => (
             <div key={label} className="flex items-center gap-4 p-5 rounded-2xl"
-              style={{ backgroundColor: 'rgba(255,255,222,0.03)', border: `1px solid rgba(255,255,222,0.06)` }}>
+              style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: `1px solid rgba(var(--ink),0.06)` }}>
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: iconBg }}>
                 <Icon size={16} style={{ color }} />
               </div>
@@ -228,7 +228,7 @@ export default function AdminApplications() {
               onClick={() => setActiveTab(t.key)}
               className="shrink-0 px-4 py-2 rounded-xl transition-all duration-150"
               style={{
-                backgroundColor: activeTab === t.key ? C.lime : 'rgba(255,255,222,0.06)',
+                backgroundColor: activeTab === t.key ? C.lime : 'rgba(var(--ink),0.06)',
                 color: activeTab === t.key ? C.black : `${C.cream}70`,
                 fontWeight: activeTab === t.key ? 700 : 400,
                 ...heading, fontSize: 13,
@@ -254,7 +254,7 @@ export default function AdminApplications() {
                   key={submission.id}
                   onClick={() => openTaskPreview(submission)}
                   className="p-5 rounded-2xl cursor-pointer transition-all hover:brightness-110"
-                  style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.07)` }}
+                  style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.07)` }}
                 >
                   {/* Top row */}
                   <div className="flex items-start justify-between gap-4 mb-3">
@@ -294,7 +294,7 @@ export default function AdminApplications() {
                     )}
                     {activeTab === 'rejected' && (
                       <span className="px-2.5 py-1 rounded-full text-xs font-semibold"
-                        style={{ backgroundColor: 'rgba(255,255,222,0.06)', color: `${C.cream}50` }}>Não Selecionado</span>
+                        style={{ backgroundColor: 'rgba(var(--ink),0.06)', color: `${C.cream}50` }}>Não Selecionado</span>
                     )}
                   </div>
 
@@ -311,7 +311,7 @@ export default function AdminApplications() {
                   </div>
 
                   {/* Footer */}
-                  <div className="flex items-center justify-between pt-3" style={{ borderTop: `1px solid rgba(255,255,222,0.06)` }}>
+                  <div className="flex items-center justify-between pt-3" style={{ borderTop: `1px solid rgba(var(--ink),0.06)` }}>
                     <span className="flex items-center gap-1.5" style={{ fontSize: 11, color: `${C.cream}40` }}>
                       <Calendar size={11} />
                       {format(new Date(submission.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
@@ -350,7 +350,7 @@ export default function AdminApplications() {
                         onClick={(e) => { e.stopPropagation(); handleResetReview(submission); }}
                         disabled={resetSubmissionReview.isPending}
                         className="h-10 rounded-xl flex items-center justify-center gap-2 transition-all hover:brightness-110 disabled:opacity-50"
-                        style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: 'transparent', color: `${C.cream}70`, ...heading, fontWeight: 700, fontSize: 13 }}
+                        style={{ border: `1px solid rgba(var(--ink),0.12)`, backgroundColor: 'transparent', color: `${C.cream}70`, ...heading, fontWeight: 700, fontSize: 13 }}
                       >
                         <RotateCcw size={14} /> Voltar p/ Análise
                       </button>
@@ -371,7 +371,7 @@ export default function AdminApplications() {
                         onClick={(e) => { e.stopPropagation(); handleResetReview(submission); }}
                         disabled={resetSubmissionReview.isPending}
                         className="h-10 rounded-xl flex items-center justify-center gap-2 transition-all hover:brightness-110 disabled:opacity-50"
-                        style={{ border: `1px solid rgba(255,255,222,0.12)`, backgroundColor: 'transparent', color: `${C.cream}70`, ...heading, fontWeight: 700, fontSize: 13 }}
+                        style={{ border: `1px solid rgba(var(--ink),0.12)`, backgroundColor: 'transparent', color: `${C.cream}70`, ...heading, fontWeight: 700, fontSize: 13 }}
                       >
                         <RotateCcw size={14} /> Reabrir Análise
                       </button>
@@ -396,8 +396,8 @@ export default function AdminApplications() {
       <Dialog open={!!selectedTaskPreview} onOpenChange={(open) => { if (!open) setSelectedTaskPreview(null) }}>
         <DialogContent aria-describedby={undefined} className="sm:max-w-xl p-0 border-0 bg-transparent overflow-hidden shadow-none">
           <DialogTitle className="sr-only">Detalhes da Tarefa</DialogTitle>
-          <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.1)` }}>
-            <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: `1px solid rgba(255,255,222,0.07)` }}>
+          <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.1)` }}>
+            <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
               <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream }}>
                 {selectedTaskPreview?.task?.title || 'Detalhes da Tarefa'}
               </span>
@@ -431,7 +431,7 @@ export default function AdminApplications() {
                     },
                     { label: 'Mín. Seguidores', value: Number(selectedTaskPreview.task?.min_followers || 0).toLocaleString('pt-BR'), color: `${C.cream}80` },
                   ].map(({ label, value, color }) => (
-                    <div key={label} className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.07)` }}>
+                    <div key={label} className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)` }}>
                       <p style={{ fontSize: 10, color: `${C.cream}50`, marginBottom: 4 }}>{label}</p>
                       <p style={{ fontSize: 14, fontWeight: 700, color }}>{value}</p>
                     </div>
@@ -439,7 +439,7 @@ export default function AdminApplications() {
                 </div>
 
                 {/* Descrição */}
-                <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.07)` }}>
+                <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)` }}>
                   <p style={{ fontSize: 10, color: `${C.cream}50`, marginBottom: 6 }}>Descrição</p>
                   <div className={isPreviewDescriptionExpanded ? '' : 'line-clamp-2'}
                     style={{ fontSize: 13, color: `${C.cream}70`, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
@@ -454,7 +454,7 @@ export default function AdminApplications() {
                 </div>
 
                 {/* Justificativa */}
-                <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.07)` }}>
+                <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)` }}>
                   <p style={{ fontSize: 10, color: `${C.cream}50`, marginBottom: 6 }}>Justificativa</p>
                   <div className={isPreviewJustificationExpanded ? '' : 'line-clamp-2'}
                     style={{ fontSize: 13, color: `${C.cream}70`, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
@@ -474,7 +474,7 @@ export default function AdminApplications() {
                     { label: 'Prazo de postagem', value: selectedTaskPreview.task?.posting_deadline ? format(new Date(selectedTaskPreview.task.posting_deadline), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '-' },
                     { label: 'Expira em', value: selectedTaskPreview.task?.expires_at ? format(new Date(selectedTaskPreview.task.expires_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '-' },
                   ].map(({ label, value }) => (
-                    <div key={label} className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: `1px solid rgba(255,255,222,0.07)` }}>
+                    <div key={label} className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)` }}>
                       <p style={{ fontSize: 10, color: `${C.cream}50`, marginBottom: 4 }}>{label}</p>
                       <p style={{ fontSize: 13, fontWeight: 600, color: C.cream }}>{value}</p>
                     </div>

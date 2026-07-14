@@ -162,7 +162,7 @@ export default function MySubmissions() {
 
   const getStatusDisplay = (submission) => {
     const isExpired = isExpiredSubmission(submission);
-    if (isExpired) return { bg: `rgba(255,255,216,0.07)`, color: `${C.cream}80`, label: 'Expirada', icon: Clock };
+    if (isExpired) return { bg: `rgba(var(--ink),0.07)`, color: `${C.cream}80`, label: 'Expirada', icon: Clock };
     
     const status = normalizeSubmissionStatus(submission.status);
     const isApprovedCampaign = status === 'approved' && submission?.task?.category === 'campanha';
@@ -220,7 +220,7 @@ export default function MySubmissions() {
   return (
     <div style={{ minHeight: "100vh", background: C.black, ...body }}>
       {/* Header Fixo */}
-      <div className="flex items-center justify-between px-8 py-4 sticky top-0 z-10" style={{ backgroundColor: `${C.black}F5`, backdropFilter: "blur(16px)", borderBottom: `1px solid rgba(255,255,222,0.05)` }}>
+      <div className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10" style={{ backgroundColor: `${C.black}F5`, backdropFilter: "blur(16px)", borderBottom: `1px solid rgba(var(--ink),0.05)` }}>
         <div className="flex items-center gap-3">
           <FileCheck size={16} style={{ color: C.lime }} />
           <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", textTransform: "uppercase" }}>Minhas Submissões</span>
@@ -231,11 +231,11 @@ export default function MySubmissions() {
         </div>
       </div>
 
-      <div className="px-8 pt-7 pb-10 max-w-6xl mx-auto">
+      <div className="px-4 sm:px-6 md:px-8 pt-5 md:pt-7 pb-8 md:pb-10 max-w-6xl mx-auto w-full min-w-0">
         {/* Hero */}
-        <div className="flex items-end justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6 md:mb-8">
           <div>
-            <h1 style={{ ...heading, fontSize: 40, fontWeight: 900, color: C.cream, letterSpacing: "-0.03em", lineHeight: 1 }}>Minhas Submissões</h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-none" style={{ ...heading, color: C.cream }}>Minhas Submissões</h1>
             <p style={{ fontSize: 14, color: `${C.cream}50`, marginTop: 6 }}>Acompanhe o status de cada envio.</p>
           </div>
           <button
@@ -255,8 +255,8 @@ export default function MySubmissions() {
             { label: "Em andamento",     value: pendingSubmissions.length, color: `${C.cream}80` },
             { label: "Pontos ganhos",    value: `${totalPts} pts`, color: C.lime   },
           ].map(({ label, value, color }) => (
-            <div key={label} className="p-5 rounded-2xl" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
-              <div style={{ ...heading, fontSize: 28, fontWeight: 900, color, lineHeight: 1, letterSpacing: "-0.02em" }}>{value}</div>
+            <div key={label} className="p-4 sm:p-5 rounded-2xl" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.06)` }}>
+              <div className="text-xl sm:text-2xl md:text-3xl font-black leading-none tracking-tight" style={{ ...heading, color }}>{value}</div>
               <div style={{ fontSize: 11, color: `${C.cream}45`, marginTop: 6 }}>{label}</div>
             </div>
           ))}
@@ -268,7 +268,7 @@ export default function MySubmissions() {
             const active = f === activeTab;
             const label = f.charAt(0).toUpperCase() + f.slice(1);
             return (
-              <button key={f} onClick={() => setActiveTab(f)} className="shrink-0 px-4 py-2 rounded-xl text-sm transition-all duration-150" style={{ backgroundColor: active ? C.lime : "rgba(255,255,222,0.06)", color: active ? C.black : `${C.cream}70`, fontWeight: active ? 700 : 400, ...heading, fontSize: 13 }}>
+              <button key={f} onClick={() => setActiveTab(f)} className="shrink-0 px-4 py-2 rounded-xl text-sm transition-all duration-150" style={{ backgroundColor: active ? C.lime : "rgba(var(--ink),0.06)", color: active ? C.black : `${C.cream}70`, fontWeight: active ? 700 : 400, ...heading, fontSize: 13 }}>
                 {label === "Andamento" ? "Em andamento" : label}
               </button>
             );
@@ -283,7 +283,7 @@ export default function MySubmissions() {
             const pointsOrValue = isPaid ? `R$ ${Number(sub.task?.offered_value || 0).toLocaleString('pt-BR')}` : `+${Number(sub.points_awarded || sub.task?.points || 0)}`;
 
             return (
-              <div key={sub.id} onClick={() => setSelectedSubmission(sub)} className="flex items-center gap-5 p-5 rounded-2xl transition-all hover:brightness-110 cursor-pointer" style={{ backgroundColor: C.card, border: `1px solid rgba(255,255,222,0.06)` }}>
+              <div key={sub.id} onClick={() => setSelectedSubmission(sub)} className="flex items-center gap-5 p-5 rounded-2xl transition-all hover:brightness-110 cursor-pointer" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.06)` }}>
                 {/* Status dot */}
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: bg, color }}>
                   <Icon size={16} />
@@ -293,7 +293,7 @@ export default function MySubmissions() {
                   <div style={{ fontSize: 14, fontWeight: 600, color: C.cream, marginBottom: 3 }} className="truncate">{sub.task?.title || 'Tarefa'}</div>
                   <div className="flex items-center gap-3">
                     <span style={{ fontSize: 11, color: `${C.cream}40` }}>{format(new Date(sub.created_at), "dd MMM yyyy", { locale: ptBR })}</span>
-                    <span className="px-2 py-0.5 rounded-full text-xs" style={{ backgroundColor: "rgba(255,255,222,0.06)", color: `${C.cream}55` }}>{CATEGORY_NAMES[sub.task?.category] || sub.task?.category}</span>
+                    <span className="px-2 py-0.5 rounded-full text-xs" style={{ backgroundColor: "rgba(var(--ink),0.06)", color: `${C.cream}55` }}>{CATEGORY_NAMES[sub.task?.category] || sub.task?.category}</span>
                   </div>
                 </div>
 
@@ -313,7 +313,7 @@ export default function MySubmissions() {
                             window.open(sub.proof_url, '_blank', 'noopener,noreferrer');
                         }}
                         className="w-8 h-8 rounded-lg flex items-center justify-center transition-opacity hover:opacity-100 opacity-40" 
-                        style={{ backgroundColor: "rgba(255,255,222,0.06)", color: C.cream }}
+                        style={{ backgroundColor: "rgba(var(--ink),0.06)", color: C.cream }}
                     >
                       <ExternalLink size={13} />
                     </button>

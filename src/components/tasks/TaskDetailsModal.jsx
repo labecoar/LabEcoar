@@ -175,11 +175,11 @@ const endOfDay = (date) => {
 };
 
 // ─── Estilo visual (paleta Figma Make) ──────────────────────────────────────
-const SURFACE_BG = 'rgba(255,255,222,0.06)';
-const SURFACE_BORDER = '1px solid rgba(255,255,222,0.07)';
-const DIVIDER = '1px solid rgba(255,255,222,0.07)';
+const SURFACE_BG = 'rgba(var(--ink),0.06)';
+const SURFACE_BORDER = '1px solid rgba(var(--ink),0.07)';
+const DIVIDER = '1px solid rgba(var(--ink),0.07)';
 
-const inputCls = "!bg-black !border-white/10 text-white placeholder:text-white/30 rounded-xl focus-visible:ring-1 focus-visible:ring-white/20";
+const inputCls = "!bg-[rgba(var(--ink),0.06)] !border-[rgba(var(--ink),0.12)] text-[rgb(var(--ink))] placeholder:text-[rgba(var(--ink),0.35)] rounded-xl focus-visible:ring-1 focus-visible:ring-[rgba(var(--ink),0.2)]";
 
 export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskApproved, currentSubmission, cardIndex = 0 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -517,12 +517,12 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   return (
     <Dialog open={!!task} onOpenChange={onClose}>
       <DialogContent
-        className="max-w-xl max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0 sm:rounded-2xl !bg-[#161616] !border-white/10 [&>button]:hidden"
-        style={{ color: C.cream }}
+        className="w-[calc(100vw-1rem)] sm:max-w-xl max-h-[90dvh] sm:max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0 rounded-2xl sm:rounded-2xl [&>button]:hidden"
+        style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.1)`, color: C.cream }}
       >
         {/* ── Header sticky ── */}
         <DialogHeader
-          className="shrink-0 flex flex-row items-start justify-between gap-3 px-6 pt-6 pb-4 space-y-0"
+          className="shrink-0 flex flex-row items-start justify-between gap-3 px-4 sm:px-6 pt-5 sm:pt-6 pb-4 space-y-0"
           style={{ borderBottom: DIVIDER }}
         >
           <div className="flex-1 min-w-0">
@@ -546,14 +546,14 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
             type="button"
             onClick={onClose}
             className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center hover:opacity-70 transition-opacity"
-            style={{ backgroundColor: 'rgba(255,255,222,0.07)', color: `${C.cream}60` }}
+            style={{ backgroundColor: 'rgba(var(--ink),0.07)', color: `${C.cream}60` }}
           >
             <X size={14} />
           </button>
         </DialogHeader>
 
         {/* ── Body scrollável ── */}
-        <div className="overflow-y-auto px-6 py-6 flex flex-col gap-5">
+        <div className="overflow-y-auto px-4 sm:px-6 py-5 sm:py-6 flex flex-col gap-5">
 
           {isScheduled && launchLabel && (
             <div className="rounded-xl p-4 text-sm" style={{ backgroundColor: 'rgba(170,102,255,0.12)', border: '1px solid rgba(170,102,255,0.2)', color: C.purple }}>
@@ -583,7 +583,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
               <div className="rounded-xl p-4" style={{ backgroundColor: SURFACE_BG, border: SURFACE_BORDER }}>
                 <p style={{ fontSize: 10, color: `${C.cream}45`, marginBottom: 6 }}>Vagas Preenchidas</p>
                 <div className="flex items-center gap-1.5">
-                  <p style={{ ...heading, fontSize: 22, fontWeight: 900, color: "white" }}>
+                  <p style={{ ...heading, fontSize: 22, fontWeight: 900, color: C.cream }}>
                     <span style={{ color: `${C.cream}70` }}>{task.current_participants || 0}</span>/{task.max_participants}
                   </p>
                 </div>
@@ -807,13 +807,13 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                             const combined = [...prev, ...novos];
                             return combined.slice(0, 2); // garante máximo de 2
                           });
-                        }} className="block w-full mt-1.5 text-sm file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold transition-all file:bg-white/10 file:text-white hover:file:bg-white/20 file:cursor-pointer cursor-pointer text-white/50" />
+                        }} className="block w-full mt-1.5 text-sm file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold transition-all file:bg-[rgba(var(--ink),0.1)] file:text-[rgb(var(--ink))] hover:file:bg-[rgba(var(--ink),0.2)] file:cursor-pointer cursor-pointer text-[rgba(var(--ink),0.5)]" />
                         {/* Lista dos arquivos selecionados */}
                         {proofFiles.length > 0 && (
                           <div className="flex flex-col gap-2 mt-2">
                             {proofFiles.map((file, i) => (
                               <div key={i} className="flex items-center justify-between px-3 py-2 rounded-xl"
-                                style={{ backgroundColor: 'rgba(255,255,222,0.04)', border: '1px solid rgba(255,255,222,0.08)' }}>
+                                style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: '1px solid rgba(var(--ink),0.08)' }}>
                                 <span style={{ fontSize: 12, color: `${C.cream}70` }} className="truncate">{file.name}</span>
                                 <button
                                   type="button"
@@ -854,7 +854,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                       {/* ... SEUS INPUTS ORIGINAIS DE MÉTRICAS CONTINUAM AQUI ... */}
                       <div>
                         <Label htmlFor="metrics-file" style={{ color: `${C.cream}70`, fontSize: 12 }}>Arquivo de métricas (Obrigatório)</Label>
-                        <input id="metrics-file" type="file" multiple onChange={(e) => setMetricsFiles(Array.from(e.target.files || []))} className="block w-full mt-1.5 text-sm file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold transition-all file:bg-white/10 file:text-white hover:file:bg-white/20 file:cursor-pointer cursor-pointer text-white/50" />
+                        <input id="metrics-file" type="file" multiple onChange={(e) => setMetricsFiles(Array.from(e.target.files || []))} className="block w-full mt-1.5 text-sm file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold transition-all file:bg-[rgba(var(--ink),0.1)] file:text-[rgb(var(--ink))] hover:file:bg-[rgba(var(--ink),0.2)] file:cursor-pointer cursor-pointer text-[rgba(var(--ink),0.5)]" />
                       </div>
                       <div title={metricsButtonTitle || undefined}>
                         <button
