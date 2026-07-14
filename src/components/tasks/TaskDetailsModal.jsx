@@ -334,8 +334,8 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
         : hasMetricsWindowPassed
           ? 'A janela de envio de métricas já foi encerrada.'
           : !isInsideMetricsWindow
-            ? (metricsWindowLabel
-              ? `Envio liberado entre ${metricsWindowLabel}.`
+            ? (metricsWindowStart
+              ? `Envio liberado a partir de ${metricsWindowStart.toLocaleDateString('pt-BR')} às ${metricsWindowStart.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.`
               : 'A janela de envio de métricas ainda não começou.')
             : '';
 
@@ -379,7 +379,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
       steps.push({
         label: "Enviar métricas",
         description: metricsWindowStart
-          ? `Disponível a partir de ${metricsWindowStart.toLocaleDateString('pt-BR')}`
+          ? `Disponível a partir de ${metricsWindowStart.toLocaleDateString('pt-BR')} às ${metricsWindowStart.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
           : `${METRICS_WAIT_AFTER_PROOF_DAYS} dias após a aprovação do conteúdo.`,
         dateInfo: null
       });
@@ -476,9 +476,13 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
   const handleSendMetrics = async (e) => {
     e.preventDefault();
-    if (!canSubmitMetrics || !metricsFiles || metricsFiles.length === 0) return;
-    if (!isInsideMetricsWindow) {
-      notifyWarning(`As métricas só podem ser enviadas após ${METRICS_WAIT_AFTER_PROOF_DAYS} dias da aprovação do conteúdo.`);
+    if (!metricsFiles || metricsFiles.length === 0) return;
+    if (!canSubmitMetrics || !isInsideMetricsWindow) {
+      notifyWarning(
+        metricsWindowStart
+          ? `As métricas só podem ser enviadas a partir de ${metricsWindowStart.toLocaleDateString('pt-BR')} às ${metricsWindowStart.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.`
+          : `As métricas só podem ser enviadas após ${METRICS_WAIT_AFTER_PROOF_DAYS} dias da aprovação do conteúdo.`
+      );
       return;
     }
 
@@ -864,13 +868,18 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                       <div title={metricsButtonTitle || undefined}>
                         <button
                           type="submit"
-                          disabled={isSubmitting || uploadFile.isPending || submitMetrics.isPending || !metricsFiles || metricsFiles.length === 0}
+                          disabled={isSubmitting || uploadFile.isPending || submitMetrics.isPending || !metricsFiles || metricsFiles.length === 0 || !canSubmitMetrics}
                           className="w-full flex justify-center items-center h-[48px] rounded-xl transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                           style={{ backgroundColor: C.orange, color: C.black, ...heading, fontSize: 14, fontWeight: 700 }}
                         >
                           <Upload className="w-4 h-4 mr-2" />
                           {isSubmitting || uploadFile.isPending || submitMetrics.isPending ? 'Enviando métricas...' : 'Enviar métricas'}
                         </button>
+                        {metricsInlineHint && (
+                          <p style={{ fontSize: 11, color: `${C.cream}50`, marginTop: 8, textAlign: 'center' }}>
+                            {metricsInlineHint}
+                          </p>
+                        )}
                       </div>
                     </form>
                   )}
