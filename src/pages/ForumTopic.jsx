@@ -184,7 +184,7 @@ export default function ForumTopic() {
 
         {/* Tópico principal */}
         <div
-          className="p-4 sm:p-6 rounded-2xl mb-6"
+          className="p-4 sm:p-6 rounded-2xl mb-6 min-w-0 overflow-hidden"
           style={{
             backgroundColor: C.card,
             border: `1px solid ${isPinned ? `${C.lime}22` : "rgba(var(--ink),0.06)"}`,
@@ -219,6 +219,7 @@ export default function ForumTopic() {
           </div>
 
           <h1
+            className="forum-break-text"
             style={{
               ...heading,
               fontSize: 28,
@@ -234,12 +235,12 @@ export default function ForumTopic() {
 
           {topic.description && (
             <p
+              className="forum-body-text whitespace-pre-wrap"
               style={{
                 fontSize: 14,
                 color: `${C.cream}65`,
                 lineHeight: 1.65,
                 marginBottom: 20,
-                whiteSpace: "pre-wrap",
               }}
             >
               {topic.description}
@@ -367,7 +368,7 @@ export default function ForumTopic() {
                 return (
                   <div
                     key={post.id}
-                    className="p-5 rounded-2xl"
+                    className="p-5 rounded-2xl min-w-0 overflow-hidden"
                     style={{
                       backgroundColor: C.card,
                       border: "1px solid rgba(var(--ink),0.06)",
@@ -401,11 +402,11 @@ export default function ForumTopic() {
                           </div>
                         </div>
                         <p
+                          className="forum-body-text whitespace-pre-wrap"
                           style={{
                             fontSize: 14,
                             color: `${C.cream}75`,
                             lineHeight: 1.65,
-                            whiteSpace: "pre-wrap",
                             marginBottom: 14,
                           }}
                         >

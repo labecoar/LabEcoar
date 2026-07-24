@@ -87,3 +87,16 @@ input[type="file"]::file-selector-button {
   font-size: 12px;
   cursor: pointer;
 }
+
+@layer utilities {
+  .forum-break-text {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .forum-body-text {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    text-align: justify;
+  }
+}

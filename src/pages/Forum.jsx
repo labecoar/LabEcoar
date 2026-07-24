@@ -274,7 +274,7 @@ export default function Forum() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 style={{ ...heading, fontSize: 15, fontWeight: unread ? 800 : 700, color: C.cream, letterSpacing: "-0.01em", marginBottom: 6 }}>
+                        <h3 className="forum-break-text" style={{ ...heading, fontSize: 15, fontWeight: unread ? 800 : 700, color: C.cream, letterSpacing: "-0.01em", marginBottom: 6 }}>
                           {topic.title}
                         </h3>
 
@@ -289,7 +289,7 @@ export default function Forum() {
                             {lastPost ? `Última mensagem · ${lastAuthor}` : `Tópico · ${lastAuthor}`}
                             {activityLabel ? ` · ${activityLabel}` : ""}
                           </p>
-                          <p style={{ fontSize: 13, color: unread ? `${C.cream}90` : `${C.cream}55`, lineHeight: 1.45 }} className="line-clamp-2">
+                          <p style={{ fontSize: 13, color: unread ? `${C.cream}90` : `${C.cream}55`, lineHeight: 1.45 }} className="line-clamp-2 forum-body-text">
                             {lastPreview || "Sem mensagens ainda."}
                           </p>
                         </div>
