@@ -742,4 +742,5 @@ export const FAQ_SECTIONS = [
   },
 ];
 
+export const DEFAULT_FAQ_SECTIONS = FAQ_SECTIONS;
 export const FAQ_TOTAL_COUNT = FAQ_SECTIONS.reduce((sum, s) => sum + s.items.length, 0);

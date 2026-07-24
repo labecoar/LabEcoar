@@ -50,7 +50,7 @@ const navigationItems = [
     icon: Target,
   },
   {
-    title: "Minhas Submissões",
+    title: "Minhas Tarefas",
     url: createPageUrl("MySubmissions"),
     icon: FileCheck,
   },

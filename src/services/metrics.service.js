@@ -6,6 +6,7 @@ import {
   METRICS_WAIT_AFTER_PROOF_DAYS,
   METRICS_SUBMISSION_WINDOW_DAYS,
 } from '@/lib/metrics-window'
+import { LATE_POSTING_SYSTEM_NOTE } from '@/lib/metrics-display'
 
 const METRICS_STATUS = {
   PENDING: 'pending',
@@ -221,9 +222,7 @@ export const metricsService = {
     const postingDeadlineDate = task?.posting_deadline ? new Date(task.posting_deadline) : null
     const hasValidPostingDeadline = postingDeadlineDate && !Number.isNaN(postingDeadlineDate.getTime())
     const postedLate = hasValidPostingDeadline ? postedAtDate > postingDeadlineDate : false
-    const latePostingNotice = postedLate
-      ? '[SISTEMA] Postagem informada fora do prazo planejado. Aplicar análise com plano B da equipe.'
-      : null
+    const latePostingNotice = postedLate ? LATE_POSTING_SYSTEM_NOTE : null
     const finalDescription = [trimmedDescription, latePostingNotice].filter(Boolean).join('\n\n') || null
 
     const { data: existing, error: existingError } = await supabase

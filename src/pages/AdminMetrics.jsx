@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminMetricsByStatus, useApproveMetricsSubmission, useRejectMetricsSubmission, useRevertMetricsSubmission } from "@/hooks/useMetrics";
 import {
-  CheckCircle, XCircle, Download, ExternalLink,
+  CheckCircle, XCircle, ExternalLink,
   Clock, User, Calendar, BarChart2, RotateCcw
 } from "lucide-react";
 import { format } from "date-fns";
@@ -12,6 +12,9 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
 import { C, heading, body } from '@/lib/theme';
 import { METRICS_ADMIN_REVIEW_BUFFER_DAYS, METRICS_SUBMISSION_WINDOW_DAYS } from '@/lib/metrics-window';
+import MetricsFilesList from '@/components/metrics/MetricsFilesList';
+import LatePostingDates from '@/components/metrics/LatePostingDates';
+import { parseMetricsDescription } from '@/lib/metrics-display';
 
 const STATUS_LABELS = {
   pending: 'Pendente',
@@ -103,6 +106,7 @@ export default function AdminMetrics() {
     const hasPostedAt = postedAt && !Number.isNaN(postedAt.getTime());
     const isLatePosting = hasPostingDeadline && hasPostedAt ? postedAt > postingDeadline : false;
     const isMultiAttempt = Number(submission.attempt_number || 1) > 1;
+    const { userNotes } = parseMetricsDescription(submission.description);
 
     return (
       <div
@@ -179,12 +183,20 @@ export default function AdminMetrics() {
           )}
         </div>
 
-        {/* Observação */}
-        {submission.description && (
+        {/* Alerta de postagem fora do prazo */}
+        {isLatePosting && (
+          <LatePostingDates
+            postingDeadline={submission?.task?.posting_deadline}
+            postedAt={submission?.posted_at}
+          />
+        )}
+
+        {/* Observação do ecoante */}
+        {userNotes && (
           <div className="px-3 py-2.5 rounded-xl mb-3" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)` }}>
-            <p style={{ fontSize: 10, fontWeight: 700, color: `${C.cream}50`, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 4 }}>Observações</p>
+            <p style={{ fontSize: 10, fontWeight: 700, color: `${C.cream}50`, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 4 }}>Observações do ecoante</p>
             <p style={{ fontSize: 13, color: `${C.cream}70`, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }} className="line-clamp-3">
-              {submission.description}
+              {userNotes}
             </p>
           </div>
         )}
@@ -205,22 +217,7 @@ export default function AdminMetrics() {
             </a>
           )}
 
-          {(submission.metrics_file_urls?.length > 0
-            ? submission.metrics_file_urls
-            : submission.metrics_file_url ? [submission.metrics_file_url] : []
-          ).map((url, i) => (
-            <a key={i} href={url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:brightness-110"
-              style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: `1px solid rgba(var(--ink),0.08)` }}>
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${C.blue}18`, color: C.blue }}>
-                <Download size={15} />
-              </div>
-              <div>
-                <p style={{ fontSize: 13, fontWeight: 600, color: C.cream }}>Arquivo de métricas</p>
-                <p style={{ fontSize: 11, color: `${C.cream}50` }}>Clique para visualizar / download</p>
-              </div>
-            </a>
-          ))}
+          <MetricsFilesList submission={submission} />
         </div>
 
         {/* Motivo de rejeição */}
