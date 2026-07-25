@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { shouldSendCampaignEmailOnCreate } from '@/lib/task-scheduling'
+import { isDevCampaignEmailDisabled } from '@/lib/dev-safety'
 
 const toDateOrNull = (value) => {
   if (!value) return null
@@ -141,12 +142,14 @@ export const tasksService = {
         .single()
 
       if (!error) {
-        if (shouldSendCampaignEmailOnCreate(data)) {
+        if (shouldSendCampaignEmailOnCreate(data) && !isDevCampaignEmailDisabled()) {
           supabase.functions.invoke('send-new-campaign-email', {
             body: { record: data },
           }).catch((invokeError) => {
             console.error('Erro ao enfileirar e-mails da nova campanha:', invokeError)
           })
+        } else if (shouldSendCampaignEmailOnCreate(data) && isDevCampaignEmailDisabled()) {
+          console.warn('[dev] E-mail de nova campanha não enviado (VITE_DEV_DISABLE_CAMPAIGN_EMAIL=true)')
         }
         return data
       }

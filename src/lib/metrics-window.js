@@ -1,7 +1,10 @@
 import { addDays } from 'date-fns'
 
+/** Em dev, defina VITE_DEV_SKIP_METRICS_WAIT=true no .env para liberar envio imediato */
+const isDevMetricsBypass = import.meta.env.DEV && import.meta.env.VITE_DEV_SKIP_METRICS_WAIT === 'true'
+
 /** Dias corridos após o envio da prova para liberar envio de métricas */
-export const METRICS_WAIT_AFTER_PROOF_DAYS = 5
+export const METRICS_WAIT_AFTER_PROOF_DAYS = isDevMetricsBypass ? 0 : 5
 
 /** Dias corridos que o ecoante tem para enviar métricas após a janela abrir */
 export const METRICS_SUBMISSION_WINDOW_DAYS = 365

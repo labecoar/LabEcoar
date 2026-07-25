@@ -21,3 +21,9 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/launch-scheduled-tasks/deno.json"
 entrypoint = "./functions/launch-scheduled-tasks/index.ts"
+
+[functions.notify-metrics-webhook]
+enabled = true
+verify_jwt = true
+import_map = "./functions/notify-metrics-webhook/deno.json"
+entrypoint = "./functions/notify-metrics-webhook/index.ts"

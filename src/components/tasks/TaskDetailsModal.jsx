@@ -6,6 +6,7 @@ import { useMyMetricsSubmissions, useSubmitMetricsSubmission } from "@/hooks/use
 import { usePaymentInfo } from "@/hooks/usePayments";
 import { useUploadFile } from "@/hooks/useStorage";
 import { getProofMetricsWindowFromSubmission, getMetricsResubmissionDeadline, METRICS_WAIT_AFTER_PROOF_DAYS } from '@/lib/metrics-window';
+import { metricsService } from '@/services/metrics.service';
 import {
   Dialog,
   DialogContent,
@@ -493,7 +494,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
         uploaded.push(url);
       }
 
-      await submitMetrics.mutateAsync({
+      const metricsSubmission = await submitMetrics.mutateAsync({
         user,
         task,
         metricsFileUrls: uploaded,
@@ -502,6 +503,18 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
       });
 
       notifySuccess('Métricas enviadas com sucesso! Aguarde a análise do administrador.');
+
+      try {
+        await metricsService.notifyMetricsWebhook(metricsSubmission?.id);
+        if (import.meta.env.DEV) {
+          notifySuccess('[dev] Webhook n8n enviado com sucesso');
+        }
+      } catch (webhookError) {
+        console.error('Erro ao chamar webhook:', webhookError);
+        if (import.meta.env.DEV) {
+          notifyWarning('[dev] Webhook n8n falhou');
+        }
+      }
       setMetricsDescription('');
       setMetricsLink('');
       setMetricsFiles([]);

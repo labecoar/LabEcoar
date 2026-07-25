@@ -319,4 +319,17 @@ export const metricsService = {
     if (legacyError) throw legacyError
     return legacyData
   },
+
+  async notifyMetricsWebhook(metricsSubmissionId) {
+    if (!metricsSubmissionId) {
+      throw new Error('ID da métrica é obrigatório para notificar o webhook.')
+    }
+
+    const { data, error } = await supabase.functions.invoke('notify-metrics-webhook', {
+      body: { id_metrica: metricsSubmissionId },
+    })
+
+    if (error) throw error
+    return data
+  },
 }

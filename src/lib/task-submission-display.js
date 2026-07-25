@@ -2,7 +2,7 @@ import { getProofMetricsWindowFromSubmission, getMetricsResubmissionDeadline } f
 import { C } from '@/lib/theme';
 
 export const CATEGORY_ACCENT = {
-  campanha: C.red,
+  campanha: C.lime,
   resposta_rapida: C.red,
   oficina: C.purple,
   folhetim: C.cyan,
@@ -11,7 +11,7 @@ export const CATEGORY_ACCENT = {
 };
 
 export const CATEGORY_ACCENT_BG = {
-  campanha: C.orange_back,
+  campanha: C.lime_back,
   resposta_rapida: C.red_back,
   sidequest_teste: C.orange_back,
 };
