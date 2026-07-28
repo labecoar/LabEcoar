@@ -17,6 +17,7 @@ import TaskDetailsModal from "../components/tasks/TaskDetailsModal";
 import { getProofMetricsWindowFromSubmission, getMetricsResubmissionDeadline } from '@/lib/metrics-window';
 import { C, heading, body } from '@/lib/theme';
 import { formatLaunchDateTime, isTaskScheduled } from '@/lib/task-scheduling';
+import { stripFormattingForPreview } from '@/lib/task-description-format';
 import { PageShell, PageHeader, PageContent, PageTitle } from "@/components/layout/PageShell";
 
 const BORDER_COLOR = "rgba(var(--ink),0.07)";
@@ -447,7 +448,7 @@ export default function Tasks() {
               {task.title}
             </div>
             <div style={{ fontSize: 12, color: "rgba(var(--ink),0.45)", lineHeight: 1.55, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-              {task.description}
+              {stripFormattingForPreview(task.description)}
             </div>
           </div>
 

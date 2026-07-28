@@ -33,6 +33,7 @@ type Task = {
   category: string
   status: string
   launch_at?: string | null 
+  launch_email_sent?: boolean | null
   min_followers?: number | null
   max_participants?: number | null
   current_participants?: number | null
@@ -218,6 +219,14 @@ serve(async (req) => {
 
     if (!record?.id || !record?.title) {
       return new Response('invalid payload', { status: 400 })
+    }
+
+    if (record.launch_email_sent) {
+      console.log('Skipping campaign email: launch_email_sent already true', record.id)
+      return new Response(JSON.stringify({ skipped: true, reason: 'launch_email_sent' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     if (!isCampaignAvailable(record)) {

@@ -44,6 +44,8 @@ import {
   formatLaunchDateTime,
   isTaskScheduled,
 } from '@/lib/task-scheduling'
+import { stripFormattingForPreview, getDescriptionPlainText } from '@/lib/task-description-format'
+import { TaskDescriptionEditor } from '@/components/tasks/TaskDescriptionEditor'
 
 const CATEGORY_OPTIONS = [
   { value: 'campanha', label: 'Campanha (Paga)' },
@@ -385,7 +387,8 @@ export default function AdminContentManagement() {
     setError('')
 
     const title = formData.title.trim()
-    const description = formData.description.trim()
+    const description = formData.description
+    const descriptionPlain = getDescriptionPlainText(description)
     const offeredValue = formData.offered_value === '' ? null : Number(formData.offered_value)
     const points = Number(formData.points)
     const resolvedPoints = isCampaign
@@ -403,7 +406,7 @@ export default function AdminContentManagement() {
       ? countBusinessDaysUntil(finalDeadline)
       : null
 
-    if (!title || !description || !formData.category) {
+    if (!title || !descriptionPlain || !formData.category) {
       setError('Preencha título, descrição e categoria.')
       return
     }
@@ -800,13 +803,9 @@ export default function AdminContentManagement() {
                   {/* Descrição */}
                   <div>
                     <label style={labelStyle}>DESCRIÇÃO <span style={{ color: C.orange }}>*</span></label>
-                    <textarea
-                      className={aInputCls}
-                      style={textareaStyle}
-                      rows={4}
+                    <TaskDescriptionEditor
                       value={formData.description}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                      placeholder="Descreva a tarefa em detalhes..."
+                      onChange={(nextDescription) => setFormData((prev) => ({ ...prev, description: nextDescription }))}
                     />
                   </div>
 
@@ -1356,7 +1355,7 @@ function TaskCard({ task, Icon, categoryMeta, deadline, scheduled = false, launc
       {/* Content */}
       <div style={{ paddingRight: '46%' }}>
         <h3 style={{ ...heading, color: C.cream, fontSize: 17, fontWeight: 700 }} className="break-words">{task.title}</h3>
-        <p style={{ color: `${C.cream}55`, fontSize: 13, marginTop: 6 }} className="line-clamp-2">{task.description}</p>
+        <p style={{ color: `${C.cream}55`, fontSize: 13, marginTop: 6 }} className="line-clamp-2">{stripFormattingForPreview(task.description)}</p>
       </div>
 
       {/* Meta */}

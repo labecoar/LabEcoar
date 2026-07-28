@@ -24,6 +24,7 @@ import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
 import { C, heading, body } from '@/lib/theme';
 import { getCategoryStyle } from "@/pages/Tasks";
 import { formatLaunchDateTime, isTaskScheduled } from '@/lib/task-scheduling';
+import { TaskDescriptionContent } from '@/components/tasks/TaskDescriptionContent';
 
 const CATEGORY_NAMES = {
   campanha: "Campanha",
@@ -646,11 +647,11 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
             <div style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream, marginBottom: 8 }}>Descrição da Tarefa</div>
             {task.description ? (
               (() => {
-                const shouldShowToggle = String(task.description || '').length > 240 || String(task.description || '').includes('\n\n');
+                const shouldShowToggle = String(task.description || '').length > 240 || String(task.description || '').includes('\n\n') || /^#{1,3}\s/m.test(String(task.description || ''));
                 if (showFullDescription) {
                   return (
                     <>
-                      <p className="whitespace-pre-wrap break-words text-justify" style={{ fontSize: 13, color: `${C.cream}70`, lineHeight: 1.65 }}>{task.description}</p>
+                      <TaskDescriptionContent description={task.description} />
                       {shouldShowToggle && (
                         <button
                           type="button"
@@ -667,7 +668,9 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
                 return (
                   <>
-                    <p className="line-clamp-3 break-words whitespace-pre-wrap text-justify" style={{ fontSize: 13, color: `${C.cream}70`, lineHeight: 1.65 }}>{task.description}</p>
+                    <div className="line-clamp-3 overflow-hidden">
+                      <TaskDescriptionContent description={task.description} />
+                    </div>
                     {shouldShowToggle && (
                       <button
                         type="button"

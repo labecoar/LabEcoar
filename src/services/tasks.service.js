@@ -134,6 +134,12 @@ export const tasksService = {
       status: 'active'
     }
 
+    // Em dev, marca como "e-mail já enviado" antes do INSERT para bloquear
+    // webhooks/cron do Supabase que disparam independente do frontend.
+    if (isDevCampaignEmailDisabled() && mutablePayload.category === 'campanha') {
+      mutablePayload.launch_email_sent = true
+    }
+
     while (true) {
       const { data, error } = await supabase
         .from('tasks')
@@ -149,7 +155,7 @@ export const tasksService = {
             console.error('Erro ao enfileirar e-mails da nova campanha:', invokeError)
           })
         } else if (shouldSendCampaignEmailOnCreate(data) && isDevCampaignEmailDisabled()) {
-          console.warn('[dev] E-mail de nova campanha não enviado (VITE_DEV_DISABLE_CAMPAIGN_EMAIL=true)')
+          console.warn('[dev] E-mail de nova campanha suprimido (launch_email_sent=true, VITE_DEV_DISABLE_CAMPAIGN_EMAIL=true)')
         }
         return data
       }

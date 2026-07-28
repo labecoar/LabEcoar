@@ -12,7 +12,8 @@ import {
   validateFaqSections,
 } from "@/lib/faq-utils";
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
-import { HelpCircle, Search, Star, ChevronDown, Mail, Pencil, Save, X, Plus, Trash2 } from "lucide-react";
+import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
+import { HelpCircle, Search, Star, ChevronDown, Mail, Pencil, Save, X, Plus, Trash2, GripVertical } from "lucide-react";
 import { C, heading, body } from "@/lib/theme";
 import { FAQ_SECTIONS } from "@/data/faq-content";
 
@@ -109,6 +110,33 @@ function FaqAnswer({ item, accent }) {
   );
 }
 
+function EditActionButtons({ onCancel, onSave, isSaving, compact = false }) {
+  return (
+    <div className={`flex items-center gap-2 ${compact ? "" : "justify-end"}`}>
+      <button
+        type="button"
+        onClick={onCancel}
+        disabled={isSaving}
+        className={`inline-flex items-center gap-1.5 rounded-xl transition-all hover:brightness-110 disabled:opacity-50 ${compact ? "px-3 py-2" : "px-3 py-1.5"}`}
+        style={{ backgroundColor: "rgba(var(--ink),0.08)", color: `${C.cream}80`, ...heading, fontSize: 12, fontWeight: 700 }}
+      >
+        <X size={13} />
+        Cancelar
+      </button>
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={isSaving}
+        className={`inline-flex items-center gap-1.5 rounded-xl transition-all hover:brightness-110 disabled:opacity-50 ${compact ? "px-3 py-2" : "px-3 py-1.5"}`}
+        style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontSize: 12, fontWeight: 700 }}
+      >
+        <Save size={13} />
+        {isSaving ? "Salvando..." : "Salvar"}
+      </button>
+    </div>
+  );
+}
+
 function FaqAccordionItem({
   item,
   accent,
@@ -120,6 +148,8 @@ function FaqAccordionItem({
   onAnswerChange,
   onDelete,
   anchorId,
+  dragHandleProps,
+  isDragging,
 }) {
   return (
     <div
@@ -127,14 +157,24 @@ function FaqAccordionItem({
       style={{
         borderRadius: 14,
         backgroundColor: C.card,
-        border: `1px solid ${isOpen || editMode ? `${accent}30` : "rgba(var(--ink),0.06)"}`,
+        border: `1px solid ${isOpen || editMode || isDragging ? `${accent}30` : "rgba(var(--ink),0.06)"}`,
         overflow: "hidden",
         transition: "border-color 0.2s",
+        boxShadow: isDragging ? `0 8px 24px rgba(0,0,0,0.35)` : "none",
       }}
     >
       {editMode ? (
         <div className="px-4 py-4 flex flex-col gap-3">
           <div className="flex items-start gap-2">
+            <button
+              type="button"
+              {...dragHandleProps}
+              className="shrink-0 p-2 rounded-xl cursor-grab active:cursor-grabbing transition-colors hover:brightness-110"
+              style={{ color: `${C.cream}45`, backgroundColor: "rgba(var(--ink),0.06)", border: "1px solid rgba(var(--ink),0.08)" }}
+              title="Arrastar para reordenar"
+            >
+              <GripVertical size={14} />
+            </button>
             <input
               value={item.question || ""}
               onChange={(e) => onQuestionChange(e.target.value)}
@@ -255,8 +295,9 @@ export default function FAQ() {
     setDraftSections(
       cloneFaqSections(faqSections).map((section) => ({
         ...section,
-        items: section.items.map((item) => ({
+        items: section.items.map((item, itemIndex) => ({
           ...item,
+          _draftId: `${section.id}-item-${itemIndex}`,
           _answerText: faqItemToPlainAnswer(item),
         })),
       })),
@@ -299,17 +340,44 @@ export default function FAQ() {
 
   const addDraftItem = (sectionIndex, sectionId) => {
     const newItemIndex = draftSections[sectionIndex]?.items?.length ?? 0;
+    const draftId = `${sectionId}-item-new-${Date.now()}`;
 
     setDraftSections((prev) => {
       const next = cloneFaqSections(prev);
       next[sectionIndex].items.push({
         ...createEmptyFaqItem(),
+        _draftId: draftId,
         _answerText: "",
       });
       return next;
     });
 
     setScrollToItemId(`faq-edit-${sectionId}-${newItemIndex}`);
+  };
+
+  const reorderDraftItems = (sectionIndex, startIndex, endIndex) => {
+    if (startIndex === endIndex) return;
+
+    setDraftSections((prev) => {
+      const next = cloneFaqSections(prev);
+      const items = [...next[sectionIndex].items];
+      const [moved] = items.splice(startIndex, 1);
+      items.splice(endIndex, 0, moved);
+      next[sectionIndex].items = items;
+      return next;
+    });
+  };
+
+  const handleDragEnd = (result) => {
+    const { destination, source } = result;
+    if (!destination) return;
+    if (destination.droppableId !== source.droppableId) return;
+    if (destination.index === source.index) return;
+
+    const sectionIndex = draftSections.findIndex((section) => section.id === source.droppableId);
+    if (sectionIndex < 0) return;
+
+    reorderDraftItems(sectionIndex, source.index, destination.index);
   };
 
   const handleSave = async () => {
@@ -388,28 +456,11 @@ export default function FAQ() {
           )}
 
           {isAdmin && isEditing && (
-            <>
-              <button
-                type="button"
-                onClick={cancelEditing}
-                disabled={saveFaq.isPending}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all hover:brightness-110 disabled:opacity-50"
-                style={{ backgroundColor: "rgba(var(--ink),0.08)", color: `${C.cream}80`, ...heading, fontSize: 12, fontWeight: 700 }}
-              >
-                <X size={13} />
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saveFaq.isPending}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all hover:brightness-110 disabled:opacity-50"
-                style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontSize: 12, fontWeight: 700 }}
-              >
-                <Save size={13} />
-                {saveFaq.isPending ? "Salvando..." : "Salvar"}
-              </button>
-            </>
+            <EditActionButtons
+              onCancel={cancelEditing}
+              onSave={handleSave}
+              isSaving={saveFaq.isPending}
+            />
           )}
 
           <div
@@ -435,7 +486,7 @@ export default function FAQ() {
             </h1>
             <p style={{ fontSize: 14, color: `${C.cream}50`, marginTop: 6 }}>
               {isEditing
-                ? "Edite perguntas e respostas. Separe parágrafos com uma linha em branco."
+                ? "Edite perguntas e respostas. Arraste os cards para reordenar. Separe parágrafos com uma linha em branco."
                 : "Tudo o que você precisa saber sobre o CuícaLab."}
             </p>
           </div>
@@ -453,28 +504,12 @@ export default function FAQ() {
                   Editar FAQ
                 </button>
               ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={cancelEditing}
-                    disabled={saveFaq.isPending}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl disabled:opacity-50"
-                    style={{ backgroundColor: "rgba(var(--ink),0.08)", color: `${C.cream}80`, ...heading, fontSize: 12, fontWeight: 700 }}
-                  >
-                    <X size={13} />
-                    Cancelar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSave}
-                    disabled={saveFaq.isPending}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl disabled:opacity-50"
-                    style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontSize: 12, fontWeight: 700 }}
-                  >
-                    <Save size={13} />
-                    {saveFaq.isPending ? "Salvando..." : "Salvar"}
-                  </button>
-                </>
+                <EditActionButtons
+                  onCancel={cancelEditing}
+                  onSave={handleSave}
+                  isSaving={saveFaq.isPending}
+                  compact
+                />
               )}
             </div>
           )}
@@ -555,83 +590,156 @@ export default function FAQ() {
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-10">
-            {filteredSections.map((section) => {
-              const sectionIndex = draftSections.findIndex((s) => s.id === section.id);
-              const palette = SECTION_COLORS[section.colorKey] || SECTION_COLORS.lime;
-              return (
-                <section key={section.id}>
-                  <div className="flex items-center justify-between gap-3 mb-4">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: "50%",
-                          backgroundColor: palette.color,
-                          flexShrink: 0,
-                        }}
-                      />
-                      <h2
-                        style={{
-                          ...heading,
-                          fontSize: 16,
-                          fontWeight: 800,
-                          color: palette.color,
-                          letterSpacing: "-0.01em",
-                        }}
-                      >
-                        {section.title}
-                      </h2>
-                      <span style={{ fontSize: 11, color: `${C.cream}35` }}>
-                        {section.items.length}
-                      </span>
-                    </div>
+          <>
+            <DragDropContext onDragEnd={isEditing ? handleDragEnd : () => {}}>
+              <div className="flex flex-col gap-10">
+                {filteredSections.map((section) => {
+                  const sectionIndex = draftSections.findIndex((s) => s.id === section.id);
+                  const palette = SECTION_COLORS[section.colorKey] || SECTION_COLORS.lime;
+                  const itemsList = (
+                    <>
+                      {section.items.map((item, itemIndex) => {
+                        const itemKey = item._draftId || `${section.id}-${itemIndex}`;
+                        const accordion = (
+                          <FaqAccordionItem
+                            item={item}
+                            accent={palette.color}
+                            isOpen={openKey === itemKey}
+                            onToggle={() => toggleItem(itemKey)}
+                            editMode={isEditing}
+                            draftAnswer={item._answerText ?? ""}
+                            anchorId={isEditing ? `faq-edit-${section.id}-${itemIndex}` : undefined}
+                            onQuestionChange={(value) => updateDraftItem(sectionIndex, itemIndex, { question: value })}
+                            onAnswerChange={(value) => updateDraftAnswer(sectionIndex, itemIndex, value)}
+                            onDelete={() => deleteDraftItem(sectionIndex, itemIndex)}
+                          />
+                        );
 
-                    {isEditing && sectionIndex >= 0 && (
-                      <button
-                        type="button"
-                        onClick={() => addDraftItem(sectionIndex, section.id)}
-                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all hover:brightness-110"
-                        style={{
-                          color: palette.color,
-                          backgroundColor: `${palette.color}12`,
-                          border: `1px solid ${palette.color}25`,
-                          ...heading,
-                          fontSize: 12,
-                          fontWeight: 700,
-                        }}
-                      >
-                        <Plus size={13} />
-                        Nova pergunta
-                      </button>
-                    )}
-                  </div>
+                        if (!isEditing || sectionIndex < 0) {
+                          return <React.Fragment key={itemKey}>{accordion}</React.Fragment>;
+                        }
 
-                  <div className="flex flex-col gap-2">
-                    {section.items.map((item, itemIndex) => {
-                      const itemKey = `${section.id}-${itemIndex}`;
-                      return (
-                        <FaqAccordionItem
-                          key={itemKey}
-                          item={item}
-                          accent={palette.color}
-                          isOpen={openKey === itemKey}
-                          onToggle={() => toggleItem(itemKey)}
-                          editMode={isEditing}
-                          draftAnswer={item._answerText ?? ""}
-                          anchorId={isEditing ? `faq-edit-${section.id}-${itemIndex}` : undefined}
-                          onQuestionChange={(value) => updateDraftItem(sectionIndex, itemIndex, { question: value })}
-                          onAnswerChange={(value) => updateDraftAnswer(sectionIndex, itemIndex, value)}
-                          onDelete={() => deleteDraftItem(sectionIndex, itemIndex)}
-                        />
-                      );
-                    })}
-                  </div>
-                </section>
-              );
-            })}
-          </div>
+                        return (
+                          <Draggable key={itemKey} draggableId={itemKey} index={itemIndex}>
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                style={provided.draggableProps.style}
+                              >
+                                <FaqAccordionItem
+                                  item={item}
+                                  accent={palette.color}
+                                  isOpen={openKey === itemKey}
+                                  onToggle={() => toggleItem(itemKey)}
+                                  editMode={isEditing}
+                                  draftAnswer={item._answerText ?? ""}
+                                  anchorId={`faq-edit-${section.id}-${itemIndex}`}
+                                  onQuestionChange={(value) => updateDraftItem(sectionIndex, itemIndex, { question: value })}
+                                  onAnswerChange={(value) => updateDraftAnswer(sectionIndex, itemIndex, value)}
+                                  onDelete={() => deleteDraftItem(sectionIndex, itemIndex)}
+                                  dragHandleProps={provided.dragHandleProps}
+                                  isDragging={snapshot.isDragging}
+                                />
+                              </div>
+                            )}
+                          </Draggable>
+                        );
+                      })}
+                    </>
+                  );
+
+                  return (
+                    <section key={section.id}>
+                      <div className="flex items-center justify-between gap-3 mb-4">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div
+                            style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: "50%",
+                              backgroundColor: palette.color,
+                              flexShrink: 0,
+                            }}
+                          />
+                          <h2
+                            style={{
+                              ...heading,
+                              fontSize: 16,
+                              fontWeight: 800,
+                              color: palette.color,
+                              letterSpacing: "-0.01em",
+                            }}
+                          >
+                            {section.title}
+                          </h2>
+                          <span style={{ fontSize: 11, color: `${C.cream}35` }}>
+                            {section.items.length}
+                          </span>
+                        </div>
+
+                        {isEditing && sectionIndex >= 0 && (
+                          <button
+                            type="button"
+                            onClick={() => addDraftItem(sectionIndex, section.id)}
+                            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all hover:brightness-110"
+                            style={{
+                              color: palette.color,
+                              backgroundColor: `${palette.color}12`,
+                              border: `1px solid ${palette.color}25`,
+                              ...heading,
+                              fontSize: 12,
+                              fontWeight: 700,
+                            }}
+                          >
+                            <Plus size={13} />
+                            Nova pergunta
+                          </button>
+                        )}
+                      </div>
+
+                      {isEditing && sectionIndex >= 0 ? (
+                        <Droppable droppableId={section.id}>
+                          {(provided) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.droppableProps}
+                              className="flex flex-col gap-2"
+                            >
+                              {itemsList}
+                              {provided.placeholder}
+                            </div>
+                          )}
+                        </Droppable>
+                      ) : (
+                        <div className="flex flex-col gap-2">{itemsList}</div>
+                      )}
+                    </section>
+                  );
+                })}
+              </div>
+            </DragDropContext>
+
+            {isEditing && (
+              <div
+                className="mt-8 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sticky bottom-4 z-20"
+                style={{
+                  backgroundColor: C.card,
+                  border: `1px solid ${C.lime}25`,
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
+                }}
+              >
+                <p style={{ fontSize: 13, color: `${C.cream}55`, lineHeight: 1.5 }}>
+                  Salve as alterações quando terminar de editar, reordenar ou adicionar perguntas.
+                </p>
+                <EditActionButtons
+                  onCancel={cancelEditing}
+                  onSave={handleSave}
+                  isSaving={saveFaq.isPending}
+                />
+              </div>
+            )}
+          </>
         )}
 
         {!isEditing && (
