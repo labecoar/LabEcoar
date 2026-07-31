@@ -360,7 +360,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     // Etapa 2
     steps.push({
       label: "Enviar link da tarefa",
-      description: "Envie o link do seu conteúdo publicado",
+      description: "Envie o link ou arquivo do seu conteúdo para aprovação",
       dateInfo: hasProofDeadline
         ? `até ${proofDeadline.toLocaleDateString('pt-BR')} ${proofDeadline.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
         : task.expires_at
