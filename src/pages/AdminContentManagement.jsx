@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCreateForumTopic, useDeleteForumTopic, useForumTopics, useUpdateForumTopic } from '@/hooks/useForum'
-import { useAdminTasks, useCreateTask, useDeleteTask, useUpdateTask } from '@/hooks/useTasks'
+import { useAdminTasks, useCreateTask, useDeactivateTask, useDeleteTask, useReactivateTask, useUpdateTask } from '@/hooks/useTasks'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -30,6 +30,8 @@ import {
   Clock3,
   Pencil,
   Trash2,
+  ToggleLeft,
+  ToggleRight,
   MessageSquare,
   Archive,
   LayoutGrid,
@@ -210,6 +212,8 @@ export default function AdminContentManagement() {
   const createTask = useCreateTask()
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
+  const deactivateTask = useDeactivateTask()
+  const reactivateTask = useReactivateTask()
   const createForumTopic = useCreateForumTopic()
   const updateForumTopic = useUpdateForumTopic()
   const deleteForumTopic = useDeleteForumTopic()
@@ -260,8 +264,15 @@ export default function AdminContentManagement() {
     () => tasks.filter((task) => task.status === 'active' && !isTaskExpired(task)),
     [tasks]
   )
+  const inactiveTasks = useMemo(
+    () => tasks.filter((task) => task.status === 'inactive'),
+    [tasks]
+  )
   const completedTasks = useMemo(
-    () => tasks.filter((task) => task.status !== 'active' || isTaskExpired(task)),
+    () => tasks.filter((task) => (
+      task.status !== 'inactive'
+      && (task.status !== 'active' || isTaskExpired(task))
+    )),
     [tasks]
   )
 
@@ -379,6 +390,35 @@ export default function AdminContentManagement() {
     } catch (deleteError) {
       console.error('Erro ao excluir tarefa:', deleteError)
       notifyError(deleteError?.message || 'Não foi possível excluir a tarefa.')
+    }
+  }
+
+  const handleDeactivateTask = async (task) => {
+    const label = task.category === 'campanha' ? 'campanha' : 'missão'
+    const shouldDeactivate = window.confirm(`Inativar esta ${label}? Ela deixará de aparecer para os usuários, mas poderá ser reativada depois.`)
+    if (!shouldDeactivate) return
+
+    try {
+      await deactivateTask.mutateAsync(task.id)
+      if (editingTask?.id === task.id) {
+        resetForm()
+      }
+      notifySuccess(`${label.charAt(0).toUpperCase() + label.slice(1)} inativada com sucesso!`)
+    } catch (deactivateError) {
+      console.error('Erro ao inativar tarefa:', deactivateError)
+      notifyError(deactivateError?.message || 'Não foi possível inativar a tarefa.')
+    }
+  }
+
+  const handleReactivateTask = async (task) => {
+    const label = task.category === 'campanha' ? 'campanha' : 'missão'
+
+    try {
+      await reactivateTask.mutateAsync(task.id)
+      notifySuccess(`${label.charAt(0).toUpperCase() + label.slice(1)} reativada com sucesso!`)
+    } catch (reactivateError) {
+      console.error('Erro ao reativar tarefa:', reactivateError)
+      notifyError(reactivateError?.message || 'Não foi possível reativar a tarefa.')
     }
   }
 
@@ -581,6 +621,7 @@ export default function AdminContentManagement() {
   const tabs = [
     { key: 'create', label: 'Criar Tarefa' },
     { key: 'active', label: `Ativas (${activeTasks.length})` },
+    { key: 'inactive', label: `Inativas (${inactiveTasks.length})` },
     { key: 'completed', label: `Concluídas (${completedTasks.length})` },
     { key: 'forum', label: `Fórum (${forumTopics.length})` },
   ]
@@ -1103,9 +1144,61 @@ export default function AdminContentManagement() {
                         launchLabel={scheduled ? formatLaunchDateTime(task.launch_at) : null}
                         onEdit={handleEditTask}
                         onDelete={handleDeleteTask}
+                        onDeactivate={handleDeactivateTask}
                         deleteIsPending={deleteTask.isPending}
+                        deactivateIsPending={deactivateTask.isPending}
                         heading={heading}
                         body={body}
+                      />
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════
+            TAB: INATIVAS
+        ══════════════════════════════════════════ */}
+        {activeTab === 'inactive' && (
+          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.07)` }}>
+            <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: C.orange }} />
+              <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>Tarefas Inativas</span>
+            </div>
+            <div className="p-6">
+              {isLoading ? (
+                <div style={{ color: `${C.cream}50`, textAlign: 'center', padding: '40px 0' }}>Carregando tarefas...</div>
+              ) : inactiveTasks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-4">
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.08)` }}>
+                    <ToggleLeft size={24} style={{ color: `${C.cream}30` }} />
+                  </div>
+                  <p style={{ ...heading, fontSize: 16, color: `${C.cream}50`, textAlign: 'center' }}>Nenhuma tarefa inativa no momento.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {inactiveTasks.map((task) => {
+                    const categoryMeta = CATEGORY_META[task.category] || { label: task.category, icon: Target, color: '' }
+                    const Icon = categoryMeta.icon
+                    const deadline = getTaskDeadlineState(task)
+                    return (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        Icon={Icon}
+                        categoryMeta={categoryMeta}
+                        deadline={deadline}
+                        onEdit={handleEditTask}
+                        onDelete={handleDeleteTask}
+                        onReactivate={handleReactivateTask}
+                        deleteIsPending={deleteTask.isPending}
+                        reactivateIsPending={reactivateTask.isPending}
+                        heading={heading}
+                        body={body}
+                        dimmed
+                        inactive
                       />
                     )
                   })}
@@ -1324,8 +1417,26 @@ export default function AdminContentManagement() {
   )
 }
 
-// ─── Task Card (shared between Ativas / Concluídas) ───────────────────────────
-function TaskCard({ task, Icon, categoryMeta, deadline, scheduled = false, launchLabel = null, onEdit, onDelete, deleteIsPending, heading, body, dimmed = false }) {
+// ─── Task Card (shared between Ativas / Inativas / Concluídas) ───────────────
+function TaskCard({
+  task,
+  Icon,
+  categoryMeta,
+  deadline,
+  scheduled = false,
+  launchLabel = null,
+  onEdit,
+  onDelete,
+  onDeactivate,
+  onReactivate,
+  deleteIsPending,
+  deactivateIsPending = false,
+  reactivateIsPending = false,
+  heading,
+  body,
+  dimmed = false,
+  inactive = false,
+}) {
   return (
     <div
       className="relative rounded-2xl p-5 transition-all"
@@ -1340,6 +1451,11 @@ function TaskCard({ task, Icon, categoryMeta, deadline, scheduled = false, launc
         {scheduled && launchLabel && (
           <span style={{ backgroundColor: 'rgba(170,102,255,0.18)', color: C.purple, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <Clock3 size={11} /> Agendada · {launchLabel}
+          </span>
+        )}
+        {inactive && (
+          <span style={{ backgroundColor: C.orange_back, color: C.orange, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <ToggleLeft size={11} /> Inativa
           </span>
         )}
         <span style={{ backgroundColor: `${C.lime}20`, color: C.lime, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -1386,7 +1502,7 @@ function TaskCard({ task, Icon, categoryMeta, deadline, scheduled = false, launc
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2 mt-4">
+      <div className="flex flex-wrap gap-2 mt-4">
         <button
           onClick={() => onEdit(task)}
           className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110"
@@ -1394,10 +1510,30 @@ function TaskCard({ task, Icon, categoryMeta, deadline, scheduled = false, launc
         >
           <Pencil size={12} /> Editar
         </button>
+        {onDeactivate && task.status === 'active' && (
+          <button
+            onClick={() => onDeactivate(task)}
+            disabled={deactivateIsPending}
+            className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110 disabled:opacity-50"
+            style={{ border: `1px solid ${C.orange}40`, backgroundColor: C.orange_back, color: C.orange, fontSize: 12, fontWeight: 600, ...heading }}
+          >
+            <ToggleRight size={12} /> Inativar
+          </button>
+        )}
+        {onReactivate && task.status === 'inactive' && (
+          <button
+            onClick={() => onReactivate(task)}
+            disabled={reactivateIsPending}
+            className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110 disabled:opacity-50"
+            style={{ border: `1px solid ${C.lime}40`, backgroundColor: C.lime_back, color: C.lime, fontSize: 12, fontWeight: 600, ...heading }}
+          >
+            <ToggleLeft size={12} /> Reativar
+          </button>
+        )}
         <button
           onClick={() => onDelete(task.id)}
           disabled={deleteIsPending}
-          className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110"
+          className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110 disabled:opacity-50"
           style={{ border: `1px solid rgba(248,113,113,0.25)`, backgroundColor: 'transparent', color: '#f87171', fontSize: 12, fontWeight: 600, ...heading }}
         >
           <Trash2 size={12} /> Excluir

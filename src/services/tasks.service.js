@@ -61,6 +61,7 @@ async function reopenAutoExpiredSubmissionsIfDeadlineExtended(previousTask, upda
 
 async function reactivateTaskIfDeadlineReopened(updatedTask) {
   if (!updatedTask || updatedTask.status === 'active') return updatedTask
+  if (updatedTask.status === 'inactive' || updatedTask.status === 'archived') return updatedTask
 
   const nextDeadline = resolveTaskProofDeadline(updatedTask)
   const isReopenedWindow = !nextDeadline || nextDeadline.getTime() > Date.now()
@@ -210,5 +211,41 @@ export const tasksService = {
       .eq('id', taskId)
 
     if (error) throw error
-  }
+  },
+
+  /**
+   * Inativar tarefa (Admin) — oculta dos usuários sem excluir
+   */
+  async deactivateTask(taskId) {
+    const { data, error } = await supabase
+      .from('tasks')
+      .update({
+        status: 'inactive',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', taskId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  /**
+   * Reativar tarefa (Admin)
+   */
+  async reactivateTask(taskId) {
+    const { data, error } = await supabase
+      .from('tasks')
+      .update({
+        status: 'active',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', taskId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
 }

@@ -4,6 +4,7 @@ import DOMPurify from 'dompurify'
 import { C, heading } from '@/lib/theme'
 import {
   isRichTextDescription,
+  normalizeRichDescriptionHtml,
   TASK_DESCRIPTION_SANITIZE_OPTIONS,
 } from '@/lib/task-description-format'
 import './task-description-quill.css'
@@ -100,7 +101,9 @@ export function TaskDescriptionContent({ description, className = '' }) {
   if (!description) return null
 
   if (isRichTextDescription(description)) {
-    const sanitized = DOMPurify.sanitize(description, TASK_DESCRIPTION_SANITIZE_OPTIONS)
+    const sanitized = normalizeRichDescriptionHtml(
+      DOMPurify.sanitize(description, TASK_DESCRIPTION_SANITIZE_OPTIONS)
+    )
 
     return (
       <div

@@ -25,6 +25,7 @@ import { C, heading, body } from '@/lib/theme';
 import { getCategoryStyle } from "@/pages/Tasks";
 import { formatLaunchDateTime, isTaskScheduled } from '@/lib/task-scheduling';
 import { TaskDescriptionContent } from '@/components/tasks/TaskDescriptionContent';
+import { isRichTextDescription, getDescriptionPlainText } from '@/lib/task-description-format';
 
 const CATEGORY_NAMES = {
   campanha: "Campanha",
@@ -647,7 +648,17 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
             <div style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream, marginBottom: 8 }}>Descrição da Tarefa</div>
             {task.description ? (
               (() => {
-                const shouldShowToggle = String(task.description || '').length > 240 || String(task.description || '').includes('\n\n') || /^#{1,3}\s/m.test(String(task.description || ''));
+                const descriptionText = String(task.description || '')
+                const isRichDescription = isRichTextDescription(descriptionText)
+                const plainDescription = getDescriptionPlainText(descriptionText)
+                const richBlockCount = isRichDescription
+                  ? (descriptionText.match(/<(p|h[1-3]|ul|ol)\b/gi) || []).length
+                  : 0
+                const shouldShowToggle = plainDescription.length > 240
+                  || descriptionText.includes('\n\n')
+                  || /^#{1,3}\s/m.test(descriptionText)
+                  || (isRichDescription && (plainDescription.length > 120 || richBlockCount > 3))
+
                 if (showFullDescription) {
                   return (
                     <>
@@ -668,7 +679,13 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
                 return (
                   <>
-                    <div className="line-clamp-3 overflow-hidden">
+                    <div
+                      className={
+                        isRichDescription
+                          ? (shouldShowToggle ? 'max-h-28 overflow-hidden' : '')
+                          : 'line-clamp-3 overflow-hidden'
+                      }
+                    >
                       <TaskDescriptionContent description={task.description} />
                     </div>
                     {shouldShowToggle && (

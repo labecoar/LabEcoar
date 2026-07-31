@@ -35,3 +35,17 @@ export const TASK_DESCRIPTION_SANITIZE_OPTIONS = {
   ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'h1', 'h2', 'h3', 'ol', 'ul', 'li', 'span'],
   ALLOWED_ATTR: ['style', 'class'],
 }
+
+export function normalizeRichDescriptionHtml(html) {
+  const value = String(html || '').trim()
+  if (!value || typeof document === 'undefined') return value
+
+  const template = document.createElement('template')
+  template.innerHTML = value
+
+  template.content.querySelectorAll('*').forEach((node) => {
+    node.removeAttribute('class')
+  })
+
+  return template.innerHTML
+}

@@ -79,3 +79,33 @@ export function useDeleteTask() {
     },
   })
 }
+
+/**
+ * Hook para inativar tarefa
+ */
+export function useDeactivateTask() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (taskId) => tasksService.deactivateTask(taskId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks', 'admin-all'] })
+    },
+  })
+}
+
+/**
+ * Hook para reativar tarefa
+ */
+export function useReactivateTask() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (taskId) => tasksService.reactivateTask(taskId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks', 'admin-all'] })
+    },
+  })
+}
