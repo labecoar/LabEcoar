@@ -223,7 +223,9 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const hasValidSubmittedAt = submittedAt && !Number.isNaN(submittedAt.getTime());
   const proofDeadline = task?.category === 'campanha'
     ? (task?.posting_deadline ? new Date(task.posting_deadline) : null)
-    : (task?.expires_at ? new Date(task.expires_at) : null);
+    : (task?.expires_at ? new Date(task.expires_at)
+      : task?.delivery_deadline ? new Date(task.delivery_deadline)
+        : task?.posting_deadline ? new Date(task.posting_deadline) : null);
   const isSidequestTask = task?.category === 'sidequest_teste';
   const hasProofDeadline = proofDeadline && !Number.isNaN(proofDeadline.getTime());
   const isProofDeadlineExpired = hasProofDeadline ? new Date() > proofDeadline : false;
@@ -347,35 +349,39 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
   const timelineSteps = useMemo(() => {
     const steps = [];
+    const postingDeadlineLabel = formatLaunchDateTime(task.posting_deadline);
+    const proofDeadlineLabel = hasProofDeadline
+      ? formatLaunchDateTime(proofDeadline)
+      : null;
+    const metricsStartLabel = formatLaunchDateTime(metricsWindowStart);
 
     // Etapa 1
     steps.push({
       label: "Candidatar-se",
-      description: isSidequestTask ? "Ao se candidatar, você já fica inscrito." : "Envie sua candidatura para análise",
-      dateInfo: task.posting_deadline
-        ? `até ${new Date(task.posting_deadline).toLocaleDateString('pt-BR')} ${new Date(task.posting_deadline).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
-        : "Sem data definida"
+      description: isSidequestTask
+        ? "Ao se candidatar, você já poderá fazer a tarefa."
+        : "Envie sua candidatura para análise.",
+      dateInfoPrefix: postingDeadlineLabel ? 'até ' : null,
+      dateTimeLabel: postingDeadlineLabel,
     });
 
     // Etapa 2
     steps.push({
       label: "Enviar link da tarefa",
-      description: "Envie o link ou arquivo do seu conteúdo para aprovação",
-      dateInfo: hasProofDeadline
-        ? `até ${proofDeadline.toLocaleDateString('pt-BR')} ${proofDeadline.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
-        : task.expires_at
-          ? `até ${new Date(task.expires_at).toLocaleDateString('pt-BR')} ${new Date(task.expires_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
-          : "Sem data definida"
+      description: "Envie o link ou o arquivo do seu conteúdo para aprovação.",
+      dateInfoPrefix: proofDeadlineLabel ? 'até ' : null,
+      dateTimeLabel: proofDeadlineLabel,
     });
 
     // Etapa 3 (Apenas para Campanhas)
     if (isCampaignTask) {
       steps.push({
         label: "Enviar métricas",
-        description: metricsWindowStart
-          ? `Disponível a partir de ${metricsWindowStart.toLocaleDateString('pt-BR')} às ${metricsWindowStart.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+        description: metricsWindowStart ? "Disponível a partir de" : null,
+        dateTimeLabel: metricsWindowStart
+          ? metricsStartLabel
           : `${METRICS_WAIT_AFTER_PROOF_DAYS} dias após a aprovação do conteúdo.`,
-        dateInfo: null
+        dateInfoSuffix: null,
       });
     }
 
@@ -577,7 +583,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                 Lançamento agendado
               </div>
               <p style={{ color: `${C.cream}80`, fontSize: 13 }}>
-                Esta tarefa será liberada em <strong style={{ color: C.cream }}>{launchLabel}</strong>. Você poderá se candidatar a partir desse horário.
+                Agendada para <strong style={{ color: C.red }}>{launchLabel}</strong>. Você poderá se candidatar a partir desse horário.
               </p>
             </div>
           )}
@@ -748,11 +754,15 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                       </div>
                       <div className={`pb-6 ${!isActive ? 'opacity-50' : ''}`}>
                         <p style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>{step.label}</p>
-                        <p style={{ fontSize: 13, color: `${C.cream}70`, marginTop: 2 }}>{step.description}</p>
-                        {step.dateInfo && (
+                        {step.description && (
+                          <p style={{ fontSize: 13, color: `${C.cream}70`, marginTop: 2 }}>{step.description}</p>
+                        )}
+                        {step.dateTimeLabel && (
                           <p className="flex items-center gap-1.5 mt-2" style={{ fontSize: 12, color: `${C.cream}40` }}>
                             <Clock size={12} />
-                            {step.dateInfo}
+                            {step.dateInfoPrefix && <span>{step.dateInfoPrefix}</span>}
+                            <span style={{ color: C.red }}>{step.dateTimeLabel}</span>
+                            {step.dateInfoSuffix && <span>{step.dateInfoSuffix}</span>}
                           </p>
                         )}
                       </div>
@@ -771,7 +781,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                 <form onSubmit={handleApply}>
                   {isScheduled && launchLabel && (
                     <div className="mb-3 text-xs rounded-xl p-3" style={{ backgroundColor: 'rgba(170,102,255,0.12)', color: C.purple, border: '1px solid rgba(170,102,255,0.2)' }}>
-                      Agendada para {launchLabel}. A participação será liberada automaticamente no horário.
+                      Agendada para <strong style={{ color: C.red }}>{launchLabel}</strong>. Você poderá se candidatar a partir desse horário.
                     </div>
                   )}
                   {!meetsFollowersRequirement && minFollowersRequired > 0 && (

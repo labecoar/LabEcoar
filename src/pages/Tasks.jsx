@@ -14,7 +14,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import TaskDetailsModal from "../components/tasks/TaskDetailsModal";
-import { getProofMetricsWindowFromSubmission, getMetricsResubmissionDeadline } from '@/lib/metrics-window';
+import { getProofMetricsWindowFromSubmission, getMetricsResubmissionDeadline, METRICS_WAIT_AFTER_PROOF_DAYS } from '@/lib/metrics-window';
 import { C, heading, body } from '@/lib/theme';
 import { formatLaunchDateTime, isTaskScheduled } from '@/lib/task-scheduling';
 import { stripFormattingForPreview } from '@/lib/task-description-format';
@@ -253,21 +253,40 @@ export default function Tasks() {
     return Date.now() <= proofDeadline.getTime();
   };
 
+  const buildStepWithDeadline = (label, dateVal) => {
+    const dateTimeLabel = formatLaunchDateTime(dateVal);
+    return {
+      label,
+      dateTimeLabel,
+      dateInfoPrefix: dateTimeLabel ? ' até ' : null,
+    };
+  };
+
   const getTaskSteps = (task, submission) => {
-    const steps = [];
-    steps.push({ label: "Candidatar-se", date: task.posting_deadline || null });
-    steps.push({ label: "Enviar link da tarefa", date: task.posting_deadline || task.expires_at || null });
+    const steps = [
+      buildStepWithDeadline("Candidatar-se", task.posting_deadline),
+      buildStepWithDeadline("Enviar link da tarefa", resolveProofDeadline(task)),
+    ];
+
     if (task.category === 'campanha') {
       const submissionStatus = normalizeSubmissionStatus(submission?.status);
-      let metricsDate = null;
+      let dateTimeLabel = null;
+      let dateInfoPrefix = null;
 
       if (submissionStatus === 'approved') {
         const window = getProofMetricsWindowFromSubmission(submission);
-        metricsDate = window?.end || null;
+        dateTimeLabel = formatLaunchDateTime(window?.end || null);
+        dateInfoPrefix = dateTimeLabel ? ' até ' : null;
       }
 
-      steps.push({ label: "Enviar métricas", date: metricsDate });
+      if (!dateTimeLabel) {
+        dateTimeLabel = `${METRICS_WAIT_AFTER_PROOF_DAYS} dias após a aprovação do conteúdo.`;
+        dateInfoPrefix = ' ';
+      }
+
+      steps.push({ label: "Enviar métricas", dateTimeLabel, dateInfoPrefix });
     }
+
     return steps;
   };
 
@@ -457,13 +476,12 @@ export default function Tasks() {
           <div className="flex items-center gap-3">
             {(() => {
               const dateVal = task.posting_deadline || task.expires_at || task.delivery_deadline;
-              if (!dateVal) return null;
-              const d = new Date(dateVal);
-              if (isNaN(d.getTime())) return null;
+              const dateTimeLabel = formatLaunchDateTime(dateVal);
+              if (!dateTimeLabel) return null;
               return (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: MUTED_COLOR }}>
                   <Clock size={10} />
-                  {format(d, "dd/MM/yyyy")}
+                  <span style={{ color: C.red }}>{dateTimeLabel}</span>
                 </span>
               );
             })()}
@@ -500,10 +518,11 @@ export default function Tasks() {
                     </div>
                     <span style={{ fontSize: 11, color: i < completedSteps ? `${C.cream}90` : MUTED_COLOR }}>
                       {step.label}
-                      {step.date && (
-                        <span style={{ color: `${C.cream}30` }}>
-                          {" "}até {format(new Date(step.date), "dd/MM/yyyy 'às' HH:mm")}
-                        </span>
+                      {step.dateTimeLabel && (
+                        <>
+                          {step.dateInfoPrefix}
+                          <span style={{ color: C.red }}>{step.dateTimeLabel}</span>
+                        </>
                       )}
                     </span>
                   </div>
