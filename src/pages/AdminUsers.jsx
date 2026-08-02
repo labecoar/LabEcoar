@@ -281,18 +281,30 @@ export default function AdminUsers() {
                           borderBottom: `1px solid rgba(var(--ink),0.04)`,
                         }}
                       >
-                        <td className="px-5 py-3">
-                          <div className="flex items-center gap-3">
+                        <td className="px-5 py-3 max-w-[240px]">
+                          <div className="flex items-center gap-3 min-w-0">
                             <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold text-sm"
                               style={{ backgroundColor: C.orange, color: C.cream }}>
                               {(user.full_name || user.display_name || 'U').charAt(0).toUpperCase()}
                             </div>
-                            <span style={{ fontWeight: 600, color: C.cream, fontSize: 13 }}>
+                            <span
+                              className="truncate min-w-0"
+                              title={user.full_name || user.display_name || 'Sem nome'}
+                              style={{ fontWeight: 600, color: C.cream, fontSize: 13 }}
+                            >
                               {user.full_name || user.display_name || 'Sem nome'}
                             </span>
                           </div>
                         </td>
-                        <td className="px-5 py-3" style={{ color: `${C.cream}60`, fontSize: 13 }}>{user.email}</td>
+                        <td className="px-5 py-3 max-w-[220px]">
+                          <span
+                            className="block truncate"
+                            title={user.email || ''}
+                            style={{ color: `${C.cream}60`, fontSize: 13 }}
+                          >
+                            {user.email}
+                          </span>
+                        </td>
                         <td className="px-5 py-3">
                           <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{
                             backgroundColor: user.role === 'admin' ? `${C.orange}18` : `${C.lime}18`,
@@ -321,7 +333,7 @@ export default function AdminUsers() {
                           )}
                         </td>
                         <td className="px-5 py-3" style={{ color: `${C.cream}40`, fontSize: 12 }}>{formatDate(user.created_at)}</td>
-                        <td className="px-5 py-3">
+                        <td className="px-5 py-3 whitespace-nowrap">
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => openEdit(user)}

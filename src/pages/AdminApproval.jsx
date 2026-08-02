@@ -30,10 +30,6 @@ const STATUS_LABELS = {
   rejected: 'Prova rejeitada',
 }
 
-const BUSINESS_START_HOUR = 8;
-const BUSINESS_END_HOUR = 18;
-const REVIEW_SLA_BUSINESS_HOURS = 48;
-
 const REVIEW_SLA_HOURS = 48;
 
 const addHours = (baseDate, hoursToAdd) => {

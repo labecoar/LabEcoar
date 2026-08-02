@@ -1,18 +1,17 @@
 ﻿// @ts-nocheck
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTasks } from "@/hooks/useTasks";
 import { useMySubmissions } from "@/hooks/useSubmissions";
+import { useMyMetricsSubmissions } from "@/hooks/useMetrics";
 import { useUserScore, useGroupProgress } from "@/hooks/useScores";
-import { Trophy, CheckCircle, Star, ChevronRight, Zap, FileCheck, ArrowUpRight, ExternalLink, CalendarDays } from "lucide-react";
+import { Star, ChevronRight, Zap, FileCheck, CalendarDays } from "lucide-react";
 import GroupProgress, { getGroupCategory } from "@/components/dashboard/GroupProgress";
+import RecentSubmissionsPanel from "@/components/dashboard/RecentSubmissionsPanel";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { getCurrentQuarterKey } from "@/services/scores.service";
-import { C, heading, body } from '@/lib/theme';
+import { C, heading } from '@/lib/theme';
 import { useThemeMode } from '@/contexts/ThemeContext';
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { PageShell, PageHeader, PageHeaderLabel, PageContent } from "@/components/layout/PageShell";
 
 const CATEGORY_VALUES = {
@@ -22,37 +21,18 @@ const CATEGORY_VALUES = {
   carnaval: 4500
 };
 
-const getStatusChip = (status) => {
-  const norm = String(status).toLowerCase();
-  if (norm === 'approved') return { bg: 'rgba(204,255,68,0.12)', color: C.lime, label: 'Aprovada' };
-  if (norm === 'rejected' || norm === 'application_rejected') return { bg: 'rgba(255,34,85,0.12)', color: '#FF2255', label: 'Rejeitada' };
-  return { bg: 'rgba(var(--ink),0.08)', color: `rgba(var(--ink),0.8)`, label: 'Em análise' };
-}
-
 export default function Dashboard() {
   const navigate = useNavigate();
   const { isLight, T } = useThemeMode();
   const { user, profile } = useAuth();
   const selectedQuarter = getCurrentQuarterKey();
-  const { data: allTasks = [] } = useTasks();
   const { data: submissions = [] } = useMySubmissions(user?.id);
+  const { data: myMetricsSubmissions = [] } = useMyMetricsSubmissions(user?.id);
   const { data: userScore } = useUserScore(user?.id, selectedQuarter);
   const { data: groupProgress } = useGroupProgress(selectedQuarter);
 
   const approvedSubmissions = submissions.filter((s) => s.status === 'approved');
   const pendingSubmissions = submissions.filter((s) => ['pending', 'application_pending', 'proof_pending', 'application_approved'].includes(s.status));
-
-  const totalCampaigns = React.useMemo(() => {
-    return allTasks.filter(t => t.category === 'campanha').length;
-  }, [allTasks]);
-
-  const campaignsCompleted = React.useMemo(() => {
-    const campaignSubmissions = approvedSubmissions.filter(sub => {
-      const task = allTasks.find(t => t.id === sub.task_id);
-      return task && task.category === 'campanha';
-    });
-    return Math.min(campaignSubmissions.length, totalCampaigns);
-  }, [approvedSubmissions, allTasks, totalCampaigns]);
 
   const currentPoints = userScore?.total_points || 0;
   const collectivePoints = groupProgress?.collective_points || 0;
@@ -71,12 +51,6 @@ export default function Dashboard() {
     { label: 'Seus Pontos', value: currentPoints, accent: isLight ? T.accent : C.lime, bg: C.card },
   ];
 
-  const recentSubmissions = submissions
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 3);
-
-  const lastApprovedProof = approvedSubmissions.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.proof_url;
-
   return (
     <PageShell>
       <PageHeader>
@@ -87,7 +61,7 @@ export default function Dashboard() {
         </div>
       </PageHeader>
 
-      <PageContent maxWidth="max-w-5xl" className="space-y-5 md:space-y-6">
+      <PageContent maxWidth="max-w-7xl" className="space-y-5 md:space-y-6">
         {/* BOAS VINDAS & PONTOS GERAIS */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 sm:gap-6">
           <div className="min-w-0 flex-1">
@@ -162,85 +136,13 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* CAMPANHAS & RECENTES */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 pb-2">
-
-          {/* Campanhas Realizadas */}
-          <div className="md:col-span-2 p-4 sm:p-5 rounded-2xl" style={{ backgroundColor: C.card, border: `1px solid ${isLight ? T.borderMid : "rgba(var(--ink),0.06)"}` }}>
-            <div className="flex items-center gap-2 mb-5">
-              <Trophy size={14} style={{ color: isLight ? T.accent : C.lime }} />
-              <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: C.cream }}>Campanhas Pagas Realizadas</span>
-            </div>
-            <div className="flex items-baseline gap-2 mb-1">
-              <span className="text-4xl sm:text-5xl md:text-6xl font-black leading-none tracking-tighter" style={{ ...heading, color: C.cream }}>{campaignsCompleted}</span>
-              <span style={{ fontSize: 26, color: isLight ? T.textFaint : `${C.cream}28`, fontWeight: 200 }}>/</span>
-              <span className="text-2xl sm:text-3xl font-semibold" style={{ ...heading, color: isLight ? T.textFaint : `${C.cream}30` }}>{totalCampaigns}</span>
-            </div>
-            <p style={{ fontSize: 12, color: isLight ? T.textMuted : `${C.cream}45`, marginBottom: 24 }}>
-              {totalCampaigns === 0
-                ? 'Nenhuma campanha disponível neste trimestre.'
-                : campaignsCompleted >= totalCampaigns
-                  ? 'Limite de campanhas atingido!'
-                  : `${totalCampaigns - campaignsCompleted} campanha(s) restante(s)`}
-            </p>
-            <div className="grid gap-3 overflow-x-auto" style={{ gridTemplateColumns: `repeat(${Math.min(totalCampaigns, 5)}, minmax(0, 1fr))` }}>
-              {Array.from({ length: totalCampaigns }, (_, i) => i + 1).map((step) => {
-                const done = step <= campaignsCompleted;
-                const curr = step === campaignsCompleted + 1;
-                return (
-                  <div key={step} className="flex flex-col items-center min-w-[36px]">
-                    <div className="h-1 rounded-full mb-3 w-full" style={{ backgroundColor: done ? C.lime : curr ? C.orange : "rgba(var(--ink),0.07)" }} />
-                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: done ? C.lime : curr ? C.darkGreen : "rgba(var(--ink),0.05)", color: done ? C.black : curr ? C.orange : `${C.cream}28`, border: curr ? `1px solid ${C.orange}50` : "none", boxShadow: done ? `0 0 12px ${C.lime}44` : "none" }}>
-                      {done ? <CheckCircle size={14} /> : step}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Submissões Recentes */}
-          <div className="md:col-span-3 p-4 sm:p-5 rounded-2xl flex flex-col min-w-0" style={{ backgroundColor: C.card, border: `1px solid ${isLight ? T.borderMid : "rgba(var(--ink),0.06)"}` }}>
-            <div className="flex items-center justify-between mb-5 gap-2">
-              <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: C.cream }}>Submissões Recentes</span>
-              <button onClick={() => navigate(createPageUrl("MySubmissions"))} className="flex items-center gap-1 transition-opacity hover:opacity-100 opacity-65 shrink-0" style={{ fontSize: 12, color: isLight ? T.accent : C.lime }}>
-                Ver todas <ArrowUpRight size={12} />
-              </button>
-            </div>
-
-            <div className="flex-1 flex flex-col justify-center">
-              {recentSubmissions.length === 0 ? (
-                <div className="text-center text-sm" style={{ color: isLight ? T.textMuted : `${C.cream}40` }}>
-                  Nenhuma submissão recente.
-                </div>
-              ) : (
-                recentSubmissions.map((sub, i) => {
-                  const { bg, color, label } = getStatusChip(sub.status);
-                  const taskTitle = allTasks.find(t => t.id === sub.task_id)?.title || 'Tarefa';
-                  const timeStr = format(new Date(sub.created_at), "dd/MM 'às' HH:mm", { locale: ptBR });
-
-                  return (
-                    <div key={sub.id} className="flex items-start justify-between gap-3 sm:gap-4 py-3" style={{ borderBottom: i < recentSubmissions.length - 1 ? `1px solid ${isLight ? T.borderMid : "rgba(var(--ink),0.05)"}` : "none" }}>
-                      <div className="flex-1 min-w-0">
-                        <div className="truncate" style={{ fontSize: 13, color: C.cream, fontWeight: 500, marginBottom: 3 }}>{taskTitle}</div>
-                        <div style={{ fontSize: 11, color: isLight ? T.textFaint : `${C.cream}35` }}>{timeStr}</div>
-                      </div>
-                      <span className="shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap" style={{ backgroundColor: bg, color }}>{label}</span>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-            {lastApprovedProof && (
-              <div className="mt-4 pt-3" style={{ borderTop: `1px solid rgba(var(--ink),0.05)` }}>
-                <a href={lastApprovedProof} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 transition-opacity hover:opacity-100 opacity-60 w-fit" style={{ fontSize: 11, color: C.cream }}>
-                  <ExternalLink size={11} />
-                  Ver prova da última submissão aprovada
-                </a>
-              </div>
-            )}
-          </div>
+        {/* SUBMISSÕES RECENTES */}
+        <div className="pb-2">
+          <RecentSubmissionsPanel
+            submissions={submissions}
+            metricsSubmissions={myMetricsSubmissions}
+            onViewAll={() => navigate(createPageUrl("MySubmissions"))}
+          />
         </div>
       </PageContent>
     </PageShell>

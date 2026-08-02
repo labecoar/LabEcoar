@@ -163,7 +163,7 @@ export default function Forum() {
           >
             <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: "#ce161c" }} />
             <p style={{ fontSize: 13, color: "#ff6b6b", lineHeight: 1.4 }}>
-              {unreadTopicIds.size} {unreadTopicIds.size === 1 ? "sala com mensagem nova" : "salas com mensagens novas"} — já estão no topo da lista abaixo.
+              {unreadTopicIds.size} {unreadTopicIds.size === 1 ? "sala com mensagem nova" : "salas com mensagens novas"}.
             </p>
           </div>
         )}
