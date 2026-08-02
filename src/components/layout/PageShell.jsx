@@ -1,6 +1,35 @@
 // @ts-nocheck
 import React from "react";
+import { Star } from "lucide-react";
 import { C, heading, body } from "@/lib/theme";
+import { useThemeMode } from "@/contexts/ThemeContext";
+
+export function usePageHeaderTheme() {
+  const { isLight, T } = useThemeMode();
+
+  return {
+    isLight,
+    T,
+    barStyle: {
+      backgroundColor: isLight ? `${T.topbar}F8` : `${C.black}F5`,
+      backdropFilter: "blur(16px)",
+      borderBottom: `1px solid ${isLight ? T.topbarBdr : "rgba(var(--ink),0.05)"}`,
+    },
+    labelStyle: {
+      ...heading,
+      fontSize: 12,
+      fontWeight: 700,
+      color: isLight ? T.accent : `${C.cream}60`,
+      letterSpacing: "0.06em",
+      textTransform: "uppercase",
+    },
+    iconColor: isLight ? T.accent : C.lime,
+    chipStyle: {
+      backgroundColor: isLight ? T.itemBg : "rgba(var(--ink),0.06)",
+      color: isLight ? T.textSub : `${C.cream}70`,
+    },
+  };
+}
 
 export function PageShell({ children, className = "" }) {
   return (
@@ -11,16 +40,25 @@ export function PageShell({ children, className = "" }) {
 }
 
 export function PageHeader({ children, className = "" }) {
+  const { barStyle } = usePageHeaderTheme();
+
   return (
     <div
       className={`hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10 gap-2 min-w-0 ${className}`}
-      style={{
-        backgroundColor: `${C.black}F5`,
-        backdropFilter: "blur(16px)",
-        borderBottom: "1px solid rgba(var(--ink),0.05)",
-      }}
+      style={barStyle}
     >
       {children}
+    </div>
+  );
+}
+
+export function PageHeaderLabel({ icon: Icon, children, iconSize = 16, className = "" }) {
+  const { labelStyle, iconColor } = usePageHeaderTheme();
+
+  return (
+    <div className={`flex items-center gap-2 sm:gap-3 min-w-0 ${className}`}>
+      {Icon && <Icon size={iconSize} className="shrink-0" style={{ color: iconColor }} />}
+      <span className="truncate" style={labelStyle}>{children}</span>
     </div>
   );
 }
@@ -42,6 +80,8 @@ export function PageHero({ children, className = "" }) {
 }
 
 export function PageTitle({ children, subtitle, className = "" }) {
+  const { isLight, T } = useThemeMode();
+
   return (
     <div className={className}>
       <h1
@@ -51,7 +91,7 @@ export function PageTitle({ children, subtitle, className = "" }) {
         {children}
       </h1>
       {subtitle && (
-        <div className="text-sm mt-1.5 md:mt-2" style={{ color: `${C.cream}50` }}>
+        <div className="text-sm mt-1.5 md:mt-2" style={{ color: isLight ? T.textMuted : `${C.cream}50` }}>
           {subtitle}
         </div>
       )}
@@ -65,6 +105,7 @@ export function PointsBadge({ points }) {
       className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full shrink-0"
       style={{ backgroundColor: C.lime, color: C.onAccent }}
     >
+      <Star size={11} fill={C.onAccent} className="shrink-0" />
       <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>{points} pts</span>
     </div>
   );

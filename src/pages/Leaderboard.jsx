@@ -5,6 +5,7 @@ import { useLeaderboard } from "@/hooks/useScores";
 import { Trophy, Medal, Star, Crown } from "lucide-react";
 import { getCurrentQuarterKey } from "@/services/scores.service";
 import { C, heading, body } from '@/lib/theme';
+import { PageHeader, PageHeaderLabel } from "@/components/layout/PageShell";
 
 const LEADERBOARD_BASE_YEAR = 2026;
 
@@ -57,15 +58,9 @@ export default function Leaderboard() {
     <div className="min-h-screen" style={{ backgroundColor: C.black, ...body }}>
 
       {/* Header fixo */}
-      <div className="hidden md:flex items-center px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10"
-        style={{ backgroundColor: `${C.black}F5`, backdropFilter: 'blur(16px)', borderBottom: `1px solid rgba(var(--ink),0.05)` }}>
-        <div className="flex items-center gap-3">
-          <Trophy size={16} style={{ color: C.lime }} />
-          <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-            Ranking de Ecoantes
-          </span>
-        </div>
-      </div>
+      <PageHeader>
+        <PageHeaderLabel icon={Trophy}>Ranking de Ecoantes</PageHeaderLabel>
+      </PageHeader>
 
       <div className="px-4 sm:px-6 md:px-8 pt-5 md:pt-7 pb-8 md:pb-10 max-w-4xl mx-auto w-full min-w-0 space-y-8 md:space-y-10">
 

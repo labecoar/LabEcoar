@@ -15,6 +15,7 @@ import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { HelpCircle, Search, Star, ChevronDown, Mail, Pencil, Save, X, Plus, Trash2, GripVertical } from "lucide-react";
 import { C, heading, body } from "@/lib/theme";
+import { PageHeader, PageHeaderLabel, PointsBadge } from "@/components/layout/PageShell";
 import { FAQ_SECTIONS } from "@/data/faq-content";
 
 const SECTION_COLORS = {
@@ -410,28 +411,9 @@ export default function FAQ() {
 
   return (
     <div style={{ minHeight: "100vh", background: C.black, ...body }}>
-      <div
-        className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10"
-        style={{
-          backgroundColor: `${C.black}F5`,
-          backdropFilter: "blur(16px)",
-          borderBottom: "1px solid rgba(var(--ink),0.05)",
-        }}
-      >
+      <PageHeader>
         <div className="flex items-center gap-3">
-          <HelpCircle size={16} style={{ color: C.lime }} />
-          <span
-            style={{
-              ...heading,
-              fontSize: 12,
-              fontWeight: 700,
-              color: `${C.cream}60`,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-            }}
-          >
-            FAQ
-          </span>
+          <PageHeaderLabel icon={HelpCircle}>FAQ</PageHeaderLabel>
           {isEditing && (
             <span
               className="px-2 py-0.5 rounded-full"
@@ -463,17 +445,9 @@ export default function FAQ() {
             />
           )}
 
-          <div
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-            style={{ backgroundColor: C.lime, color: C.onAccent }}
-          >
-            <Star size={11} fill={C.onAccent} />
-            <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>
-              {userScore?.total_points || 0} pts
-            </span>
-          </div>
+          <PointsBadge points={userScore?.total_points || 0} />
         </div>
-      </div>
+      </PageHeader>
 
       <div className="px-4 sm:px-6 md:px-8 pt-5 md:pt-7 pb-8 md:pb-10 max-w-4xl mx-auto w-full min-w-0">
         <div className="mb-6 md:mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">

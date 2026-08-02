@@ -41,6 +41,7 @@ import {
 import { notifyError, notifySuccess, notifyWarning } from '@/lib/toast'
 import { getCampaignAdminVisibilityDeadline, isCampaignVisibleForAdminReview } from '@/lib/metrics-window'
 import { C, heading, body } from '@/lib/theme'
+import { PageHeader, PageHeaderLabel, usePageHeaderTheme } from "@/components/layout/PageShell";
 import {
   formatDateTimeLocalValue as formatLaunchDateTimeLocalValue,
   formatLaunchDateTime,
@@ -206,9 +207,11 @@ const getTaskDeadlineState = (task) => {
 }
 
 export default function AdminContentManagement() {
+  const { barStyle } = usePageHeaderTheme();
   const { user, profile } = useAuth()
   const { data: tasks = [], isLoading } = useAdminTasks()
-  const { data: forumTopics = [], isLoading: loadingForum } = useForumTopics()
+  const { data: forumTopicsData, isLoading: loadingForum } = useForumTopics()
+  const forumTopics = forumTopicsData?.topics ?? []
   const createTask = useCreateTask()
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
@@ -641,38 +644,13 @@ export default function AdminContentManagement() {
         }
       `}</style>
 
-      <div
-        className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10"
-        style={{
-          backgroundColor: `${C.black}F5`,
-          backdropFilter: 'blur(16px)',
-          borderBottom: `1px solid rgba(var(--ink),0.05)`,
-        }}
-      >
-        <div className="flex items-center gap-3">
-          <LayoutGrid size={16} style={{ color: C.lime }} />
-          <span
-            style={{
-              ...heading,
-              fontSize: 12,
-              fontWeight: 700,
-              color: `${C.cream}60`,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Gerenciar Conteúdo
-          </span>
-        </div>
-      </div>
+      <PageHeader>
+        <PageHeaderLabel icon={LayoutGrid}>Gerenciar Conteúdo</PageHeaderLabel>
+      </PageHeader>
 
       <div
         className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-0 sticky top-0 z-10"
-        style={{
-          backgroundColor: `${C.black}F5`,
-          backdropFilter: 'blur(16px)',
-          borderBottom: `1px solid rgba(var(--ink),0.05)`,
-        }}
+        style={barStyle}
       >
       </div>
 

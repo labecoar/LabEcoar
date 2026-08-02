@@ -1,5 +1,5 @@
 ﻿// @ts-nocheck
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateSubmission, useSubmitProof } from "@/hooks/useSubmissions";
 import { useMyMetricsSubmissions, useSubmitMetricsSubmission } from "@/hooks/useMetrics";
@@ -21,7 +21,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar, Clock, Users, Star, CircleDollarSign, UserRoundCheck, Send, Upload, BarChart3, CheckCircle2, X, User } from "lucide-react";
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
-import { C, heading, body } from '@/lib/theme';
+import { C, heading, body, getModalBackground } from '@/lib/theme';
+import { useThemeMode } from '@/contexts/ThemeContext';
 import { getCategoryStyle } from "@/pages/Tasks";
 import { formatLaunchDateTime, isTaskScheduled } from '@/lib/task-scheduling';
 import { TaskDescriptionContent } from '@/components/tasks/TaskDescriptionContent';
@@ -43,22 +44,6 @@ const validateFileSize = (file, fieldName = 'arquivo') => {
     const sizeMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
     throw new Error(`${fieldName} muito grande. Máximo permitido: ${sizeMB}MB. Seu arquivo: ${(file.size / (1024 * 1024)).toFixed(2)}MB`);
   }
-};
-
-const formatTimeLeft = (expiresAt) => {
-  if (!expiresAt) return null;
-  const now = new Date();
-  const end = new Date(expiresAt);
-  const diffMs = end.getTime() - now.getTime();
-
-  if (diffMs <= 0) return "Expirada";
-
-  const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const days = Math.floor(totalHours / 24);
-  const hours = totalHours % 24;
-
-  if (days > 0) return `${days}d ${hours}h`;
-  return `${hours}h`;
 };
 
 const STATUS_TEXT = {
@@ -183,6 +168,8 @@ const SURFACE_BORDER = '1px solid rgba(var(--ink),0.07)';
 const DIVIDER = '1px solid rgba(var(--ink),0.07)';
 
 const inputCls = "!bg-[rgba(var(--ink),0.06)] !border-[rgba(var(--ink),0.12)] text-[rgb(var(--ink))] placeholder:text-[rgba(var(--ink),0.35)] rounded-xl focus-visible:ring-1 focus-visible:ring-[rgba(var(--ink),0.2)]";
+const fileInputCls = "block w-full mt-1.5 text-sm text-transparent file:mr-0 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold transition-all file:bg-[rgba(var(--ink),0.1)] file:text-[rgb(var(--ink))] hover:file:bg-[rgba(var(--ink),0.2)] file:cursor-pointer cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
+const MAX_PROOF_FILES = 5;
 
 export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskApproved, currentSubmission, cardIndex = 0 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -193,7 +180,9 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const [metricsDescription, setMetricsDescription] = useState('');
   const [metricsLink, setMetricsLink] = useState('');
   const [metricsFiles, setMetricsFiles] = useState([]);
+  const proofFileInputRef = useRef(null);
   const { user, profile } = useAuth();
+  const { isLight, T } = useThemeMode();
   const createSubmission = useCreateSubmission();
   const submitProof = useSubmitProof();
   const submitMetrics = useSubmitMetricsSubmission();
@@ -201,14 +190,37 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const { data: paymentInfo } = usePaymentInfo(user?.id);
   const { data: myMetricsSubmissions = [] } = useMyMetricsSubmissions(user?.id);
 
+  const handleProofFilesChange = (e) => {
+    const novos = Array.from(e.target.files || []);
+    setProofFiles((prev) => [...prev, ...novos].slice(0, MAX_PROOF_FILES));
+    e.target.value = '';
+  };
+
+  const removeProofFile = (index) => {
+    setProofFiles((prev) => prev.filter((_, idx) => idx !== index));
+    if (proofFileInputRef.current) proofFileInputRef.current.value = '';
+  };
+
   if (!task) return null;
 
+  const labelColor = isLight ? T.textMuted : `${C.cream}45`;
+  const subColor = isLight ? T.textSub : `${C.cream}60`;
+  const bodyMuted = isLight ? T.textSub : `${C.cream}70`;
+  const faintColor = isLight ? T.textFaint : `${C.cream}40`;
+  const softColor = isLight ? T.textMuted : `${C.cream}50`;
+  const dimColor = isLight ? T.textFaint : `${C.cream}35`;
+  const strongMuted = isLight ? T.textSub : `${C.cream}80`;
+  const bulletColor = isLight ? T.textFaint : `${C.cream}25`;
+  const surfaceBg = isLight ? T.surface : SURFACE_BG;
+  const surfaceBorder = isLight ? `1px solid ${T.border}` : SURFACE_BORDER;
+  const modalBg = getModalBackground(isLight);
+
   const isCampaignTask = task?.category === 'campanha';
+  const isSidequestTask = task?.category === 'sidequest_teste';
   const { color: accent, bg: accentBg } = getCategoryStyle(task.category);
   const accentText = accent === C.lime ? C.onAccent : C.cream;
-  const columnAccent = accent;
-  const columnAccentBg = accentBg;
-  const timeLeft = useMemo(() => formatTimeLeft(task.expires_at), [task.expires_at]);
+  const actionButtonClassName = "w-full flex justify-center items-center min-h-[48px] px-4 py-3 rounded-xl text-center transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100";
+  const actionButtonStyle = { backgroundColor: accent, color: accentText, ...heading, fontSize: 14, fontWeight: 700 };
   const displayCategory = CATEGORY_NAMES[task.category] || task.category;
   const displayProofType = useMemo(() => getProofTypeLabel(task), [task]);
   const offeredValue = Number(task.offered_value || task.points || 0);
@@ -226,7 +238,6 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     : (task?.expires_at ? new Date(task.expires_at)
       : task?.delivery_deadline ? new Date(task.delivery_deadline)
         : task?.posting_deadline ? new Date(task.posting_deadline) : null);
-  const isSidequestTask = task?.category === 'sidequest_teste';
   const hasProofDeadline = proofDeadline && !Number.isNaN(proofDeadline.getTime());
   const isProofDeadlineExpired = hasProofDeadline ? new Date() > proofDeadline : false;
   const isSubmissionExpiredByRule = isAutoExpiredSubmissionRejection(currentSubmission) && isProofDeadlineExpired;
@@ -240,6 +251,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     && !isProofDeadlineExpired
   );
   const isWaiting = ['application_pending', 'proof_pending', 'pending'].includes(submissionStatus);
+  const isParticipateAction = (isSidequestTask || isCampaignTask) && canApply && !canSubmitProof && !isWaiting;
   const currentMetricsSubmission = useMemo(
     () => myMetricsSubmissions.find((item) => String(item.task_id) === String(task.id)) || null,
     [myMetricsSubmissions, task.id]
@@ -282,24 +294,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     || (isSidequestTask && submissionStatus === 'application_pending');
   const hasPassedStep2 = submissionStatus === 'approved';
   const isMetricsCompleted = metricsStatus === 'approved';
-  const footerStageDeadline = useMemo(() => {
-
-    if (hasProofDeadline && !hasPassedStep2) {
-      return {
-        label: 'Prazo do conteúdo até',
-        date: proofDeadline,
-      };
-    }
-
-    if (task.expires_at) {
-      return {
-        label: timeLeft === 'Expirada' ? 'Expirada em' : 'Expira em',
-        date: new Date(task.expires_at),
-      };
-    }
-
-    return null;
-  }, [isCampaignTask, hasPassedStep2, isMetricsCompleted, metricsWindowStart, metricsWindowEnd, hasMetricsWindowPassed, hasProofDeadline, proofDeadline, task.expires_at, timeLeft, now]);
+  const isScheduledAction = isScheduled && !isTaskApproved && submissionStatus !== 'approved' && !hasPassedStep1;
 
   const submissionStageLabel = isSidequestTask && submissionStatus === 'application_pending'
     ? SIDEQUEST_PENDING_TEXT
@@ -355,20 +350,29 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
       : null;
     const metricsStartLabel = formatLaunchDateTime(metricsWindowStart);
 
-    // Etapa 1
-    steps.push({
-      label: "Candidatar-se",
-      description: isSidequestTask
-        ? "Ao se candidatar, você já poderá fazer a tarefa."
-        : "Envie sua candidatura para análise.",
-      dateInfoPrefix: postingDeadlineLabel ? 'até ' : null,
-      dateTimeLabel: postingDeadlineLabel,
-    });
+    if (isSidequestTask) {
+      steps.push({
+        label: "Participar desta Missão",
+        description: "Clique no botão abaixo para participar desta missão e liberar o envio do seu conteúdo.",
+        dateInfoPrefix: postingDeadlineLabel ? 'até ' : null,
+        dateTimeLabel: postingDeadlineLabel,
+      });
+    } else {
+      steps.push({
+        label: "Candidatar-se",
+        description: isCampaignTask
+          ? "Clique no botão abaixo para se candidatar a esta campanha. Após a aprovação, você poderá enviar seu conteúdo."
+          : "Clique no botão abaixo para se candidatar a esta tarefa. Após a aprovação, você poderá enviar seu conteúdo.",
+        dateInfoPrefix: postingDeadlineLabel ? 'até ' : null,
+        dateTimeLabel: postingDeadlineLabel,
+      });
+    }
 
-    // Etapa 2
     steps.push({
-      label: "Enviar link da tarefa",
-      description: "Envie o link ou o arquivo do seu conteúdo para aprovação.",
+      label: "Enviar conteúdo da tarefa",
+      description: isSidequestTask
+        ? "Envie o link e/ou o arquivo do seu conteúdo"
+        : "Envie o link e/ou o arquivo do seu conteúdo para validação.",
       dateInfoPrefix: proofDeadlineLabel ? 'até ' : null,
       dateTimeLabel: proofDeadlineLabel,
     });
@@ -430,7 +434,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     const trimmedProofLink = String(proofLink || '').trim();
 
     if (!trimmedProofLink && proofFiles.length === 0) {
-      notifyWarning('Envie pelo menos uma prova: link ou arquivo.');
+      notifyWarning('Envie pelo menos uma prova: link e/ou arquivo.');
       return;
     }
 
@@ -539,7 +543,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     <Dialog open={!!task} onOpenChange={onClose}>
       <DialogContent
         className="w-[calc(100vw-1rem)] sm:max-w-xl max-h-[90dvh] sm:max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0 rounded-2xl sm:rounded-2xl [&>button]:hidden"
-        style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.1)`, color: C.cream }}
+        style={{ backgroundColor: modalBg, border: isLight ? `1px solid ${T.border}` : `1px solid rgba(var(--ink),0.1)`, color: C.cream }}
       >
         {/* ── Header sticky ── */}
         <DialogHeader
@@ -552,11 +556,11 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
             </DialogTitle>
             <DialogDescription asChild>
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="px-2.5 py-1 rounded-lg text-xs font-bold" style={{ backgroundColor: columnAccentBg, border: `1px solid ${columnAccent}25`, color: columnAccent, ...heading }}>
+                <span className="px-2.5 py-1 rounded-lg text-xs font-bold" style={{ backgroundColor: accentBg, border: `1px solid ${accent}25`, color: accent, ...heading }}>
                   {displayCategory}
                 </span>
                 {task.requires_application && !isSidequestTask && (
-                  <span className="px-2.5 py-1 rounded-lg text-xs font-bold" style={{ backgroundColor: columnAccentBg, border: `1px solid ${columnAccent}25`, color: columnAccent, ...heading }}>
+                  <span className="px-2.5 py-1 rounded-lg text-xs font-bold" style={{ backgroundColor: accentBg, border: `1px solid ${accent}25`, color: accent, ...heading }}>
                     Requer Inscrição e Seleção
                   </span>
                 )}
@@ -567,7 +571,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
             type="button"
             onClick={onClose}
             className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center hover:opacity-70 transition-opacity"
-            style={{ backgroundColor: 'rgba(var(--ink),0.07)', color: `${C.cream}60` }}
+            style={{ backgroundColor: 'rgba(var(--ink),0.07)', color: subColor }}
           >
             <X size={14} />
           </button>
@@ -582,7 +586,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                 <Calendar size={14} />
                 Lançamento agendado
               </div>
-              <p style={{ color: `${C.cream}80`, fontSize: 13 }}>
+              <p style={{ color: strongMuted, fontSize: 13 }}>
                 Agendada para <strong style={{ color: C.red }}>{launchLabel}</strong>. Você poderá se candidatar a partir desse horário.
               </p>
             </div>
@@ -590,22 +594,32 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
           {/* Pagamento + Vagas */}
           <div className={`grid grid-cols-1 ${task.max_participants ? 'sm:grid-cols-2' : ''} gap-3`}>
-            <div className="rounded-xl p-4" style={{ backgroundColor: SURFACE_BG, border: SURFACE_BORDER }}>
-              <p style={{ fontSize: 10, color: `${C.cream}45`, marginBottom: 6 }}>Pagamento / Pontuação</p>
+            <div className="rounded-xl p-4" style={{ backgroundColor: isLight ? C.black_back : surfaceBg, border: surfaceBorder }}>
+              <p style={{ fontSize: 10, color: labelColor, marginBottom: 6 }}>Pagamento / Pontuação</p>
               <div className="flex items-center gap-1.5">
-                <CircleDollarSign size={14} style={{ color: accent }} />
-                <p style={{ ...heading, fontSize: 22, fontWeight: 900, color: accent }}>
+                {isSidequestTask ? (
+                  <Star size={16} style={{ color: accent, fill: accent }} />
+                ) : (
+                  <CircleDollarSign size={14} style={{ color: accent }} />
+                )}
+                <p style={{
+                  ...heading,
+                  fontSize: isSidequestTask ? 26 : 22,
+                  fontWeight: 900,
+                  color: accent,
+                  letterSpacing: isSidequestTask ? "-0.02em" : undefined,
+                }}>
                   {isCampaignTask ? `R$ ${offeredValue.toLocaleString('pt-BR')}` : `${offeredValue.toLocaleString('pt-BR')} pts`}
                 </p>
               </div>
             </div>
 
             {task.max_participants && (
-              <div className="rounded-xl p-4" style={{ backgroundColor: SURFACE_BG, border: SURFACE_BORDER }}>
-                <p style={{ fontSize: 10, color: `${C.cream}45`, marginBottom: 6 }}>Vagas Preenchidas</p>
+              <div className="rounded-xl p-4" style={{ backgroundColor: surfaceBg, border: surfaceBorder }}>
+                <p style={{ fontSize: 10, color: labelColor, marginBottom: 6 }}>Vagas Preenchidas</p>
                 <div className="flex items-center gap-1.5">
                   <p style={{ ...heading, fontSize: 22, fontWeight: 900, color: C.cream }}>
-                    <span style={{ color: `${C.cream}70` }}>{task.current_participants || 0}</span>/{task.max_participants}
+                    <span style={{ color: bodyMuted }}>{task.current_participants || 0}</span>/{task.max_participants}
                   </p>
                 </div>
               </div>
@@ -614,13 +628,13 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
           {/* Tipo de conteúdo — destaque, estilo Figma */}
           {Array.isArray(task.content_formats) && task.content_formats.length > 0 && (
-            <div className="rounded-xl p-4" style={{ backgroundColor: columnAccentBg, border: `1px solid ${columnAccent}25` }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: columnAccent, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>
+            <div className="rounded-xl p-4" style={{ backgroundColor: accentBg, border: `1px solid ${accent}25` }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: accent, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>
                 Tipo de Conteúdo
               </div>
               <div className="flex flex-wrap gap-2">
                 {task.content_formats.map((f) => (
-                  <span key={f} className="px-3 py-1.5 rounded-xl text-xs font-semibold" style={{ backgroundColor: columnAccentBg, color: columnAccent }}>
+                  <span key={f} className="px-3 py-1.5 rounded-xl text-xs font-semibold" style={{ backgroundColor: accentBg, color: accent }}>
                     {f}
                   </span>
                 ))}
@@ -629,21 +643,21 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
           )}
 
           {/* Perfil Desejado */}
-          <div className="rounded-xl p-4" style={{ backgroundColor: SURFACE_BG, border: SURFACE_BORDER }}>
+          <div className="rounded-xl p-4" style={{ backgroundColor: surfaceBg, border: surfaceBorder }}>
             <div className="flex items-center gap-2 mb-3">
-              <User size={13} style={{ color: C.lime }} />
+              <User size={13} style={{ color: accent }} />
               <span style={{ ...heading, fontSize: 13, fontWeight: 700, color: C.cream }}>Perfil Desejado</span>
             </div>
             {task.profile_requirements && (
-              <p className="text-xs mb-2" style={{ color: `${C.cream}70` }}>{task.profile_requirements}</p>
+              <p className="text-xs mb-2" style={{ color: bodyMuted }}>{task.profile_requirements}</p>
             )}
             <ul className="flex flex-col gap-1.5">
-              <li className="flex items-start gap-2" style={{ fontSize: 12, color: `${C.cream}60` }}>
-                <span style={{ color: `${C.cream}25` }}>•</span>
+              <li className="flex items-start gap-2" style={{ fontSize: 12, color: subColor }}>
+                <span style={{ color: bulletColor }}>•</span>
                 Mínimo de {task.min_followers || 0} seguidores
               </li>
-              <li className="flex items-start gap-2" style={{ fontSize: 12, color: `${C.cream}60` }}>
-                <span style={{ color: `${C.cream}25` }}>•</span>
+              <li className="flex items-start gap-2" style={{ fontSize: 12, color: subColor }}>
+                <span style={{ color: bulletColor }}>•</span>
                 Formato de entrega: {displayProofType}
               </li>
             </ul>
@@ -674,7 +688,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                           type="button"
                           onClick={() => setShowFullDescription(false)}
                           className="text-xs hover:underline mt-2 block"
-                          style={{ color: C.lime }}
+                          style={{ color: accent }}
                         >
                           Ver menos
                         </button>
@@ -699,7 +713,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                         type="button"
                         onClick={() => setShowFullDescription(true)}
                         className="text-xs hover:underline mt-2 block"
-                        style={{ color: C.lime }}
+                        style={{ color: accent }}
                       >
                         Ver mais
                       </button>
@@ -708,10 +722,10 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                 );
               })()
             ) : (
-              <p style={{ fontSize: 13, color: `${C.cream}50` }}>-</p>
+              <p style={{ fontSize: 13, color: softColor }}>-</p>
             )}
             {hasValidSubmittedAt && (
-              <div className="flex items-center gap-1.5 mt-3" style={{ fontSize: 11, color: `${C.cream}35` }}>
+              <div className="flex items-center gap-1.5 mt-3" style={{ fontSize: 11, color: dimColor }}>
                 <Clock size={10} />
                 Submissão enviada em {submittedAt.toLocaleDateString('pt-BR')} às {submittedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </div>
@@ -720,15 +734,15 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
             {/* ── Visual Cronograma ── */}
             <div className="pt-6 pb-2" style={{ borderTop: DIVIDER }}>
               <div className="flex items-center justify-between mb-4">
-                <span style={{ fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.1em", textTransform: "uppercase" }}>Cronograma</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: subColor, letterSpacing: "0.1em", textTransform: "uppercase" }}>Cronograma</span>
               </div>
 
               {/* Barra de Progresso */}
               <div className="flex items-center gap-3 mb-6">
-                <div style={{ flex: 1, height: 6, borderRadius: 999, background: SURFACE_BG, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${(completedStepsCount / timelineSteps.length) * 100}%`, background: columnAccent, transition: "width 0.3s ease-in-out" }} />
+                <div style={{ flex: 1, height: 6, borderRadius: 999, background: surfaceBg, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${(completedStepsCount / timelineSteps.length) * 100}%`, background: accent, transition: "width 0.3s ease-in-out" }} />
                 </div>
-                <span style={{ fontSize: 12, color: `${C.cream}50` }}>{completedStepsCount}/{timelineSteps.length} etapas</span>
+                <span style={{ fontSize: 12, color: softColor }}>{completedStepsCount}/{timelineSteps.length} etapas</span>
               </div>
 
               {/* Lista de Etapas */}
@@ -738,9 +752,9 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                   const isCurrent = i === completedStepsCount;
                   const isActive = isCompleted || isCurrent;
 
-                  const circleBg = isActive ? columnAccentBg : SURFACE_BG;
-                  const circleBorder = isActive ? `1px solid ${columnAccent}45` : SURFACE_BORDER;
-                  const circleColor = isActive ? columnAccent : `${C.cream}40`;
+                  const circleBg = isActive ? accentBg : surfaceBg;
+                  const circleBorder = isActive ? `1px solid ${accent}45` : surfaceBorder;
+                  const circleColor = isActive ? accent : faintColor;
 
                   return (
                     <div key={i} className="flex gap-4">
@@ -749,16 +763,16 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                           {isCompleted ? <CheckCircle2 size={16} /> : <span style={{ fontSize: 13, fontWeight: 800 }}>{i + 1}</span>}
                         </div>
                         {i < timelineSteps.length - 1 && (
-                          <div className="w-[2px] h-full my-1 rounded-full" style={{ backgroundColor: isCompleted ? columnAccentBg : SURFACE_BG }}></div>
+                          <div className="w-[2px] h-full my-1 rounded-full" style={{ backgroundColor: isCompleted ? accentBg : surfaceBg }}></div>
                         )}
                       </div>
                       <div className={`pb-6 ${!isActive ? 'opacity-50' : ''}`}>
                         <p style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>{step.label}</p>
                         {step.description && (
-                          <p style={{ fontSize: 13, color: `${C.cream}70`, marginTop: 2 }}>{step.description}</p>
+                          <p style={{ fontSize: 13, color: bodyMuted, marginTop: 2 }}>{step.description}</p>
                         )}
                         {step.dateTimeLabel && (
-                          <p className="flex items-center gap-1.5 mt-2" style={{ fontSize: 12, color: `${C.cream}40` }}>
+                          <p className="flex items-center gap-1.5 mt-2" style={{ fontSize: 12, color: faintColor }}>
                             <Clock size={12} />
                             {step.dateInfoPrefix && <span>{step.dateInfoPrefix}</span>}
                             <span style={{ color: C.red }}>{step.dateTimeLabel}</span>
@@ -797,14 +811,24 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                   <button
                     type="submit"
                     disabled={isSubmitting || !canApply}
-                    className="w-full flex justify-center items-center h-8 rounded-xl transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ backgroundColor: C.blue, color: C.cream, ...heading, fontSize: 14, fontWeight: 700 }}
+                    className={actionButtonClassName}
+                    style={actionButtonStyle}
                   >
-                    <Send className="w-4 h-4 mr-2" />
+                    {isScheduledAction ? (
+                      <Calendar className="w-4 h-4 mr-2" />
+                    ) : (isSidequestTask && isParticipateAction) ? (
+                      <Star className="w-4 h-4 mr-2" />
+                    ) : (
+                      <Send className="w-4 h-4 mr-2" />
+                    )}
                     {isTaskApproved || submissionStatus === 'approved'
                       ? 'Tarefa concluída'
                       : isSubmissionReopenedByDateChange
-                        ? 'Candidatar-se para esta Vaga'
+                        ? (isSidequestTask
+                          ? 'Participar desta Missão'
+                          : isCampaignTask
+                            ? (task.requires_application ? 'Candidatar-se para esta Vaga' : 'Participar desta Campanha')
+                            : 'Candidatar-se para esta Vaga')
                         : canSubmitProof
                           ? isSidequestTask && submissionStatus === 'application_pending'
                             ? 'Avançar para prova da Missão'
@@ -821,7 +845,11 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                                   ? `Agendada para ${launchLabel}`
                                   : isSubmitting
                                     ? 'Enviando...'
-                                    : 'Candidatar-se para esta Vaga'}
+                                    : isSidequestTask
+                                      ? 'Participar desta Missão'
+                                      : isCampaignTask
+                                        ? (task.requires_application ? 'Candidatar-se para esta Vaga' : 'Participar desta Campanha')
+                                        : 'Candidatar-se para esta Vaga'}
                   </button>
                 </form>
 
@@ -829,40 +857,54 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
               {/* Formulário Etapa 2 */}
               {!hasPassedStep2 && isStep2Current && (
-                <div className="rounded-2xl p-5 flex flex-col gap-4" style={{ backgroundColor: SURFACE_BG, border: SURFACE_BORDER }}>
-                  {submissionStatus === 'proof_pending' ? (
-                    <div className="text-xs rounded-xl p-3 text-center" style={{ backgroundColor: 'rgba(68,102,255,0.12)', color: '#8899FF', border: '1px solid rgba(68,102,255,0.2)' }}>
-                      Sua prova foi enviada e está em análise pelo administrador.
-                    </div>
-                  ) : (
-                    <form onSubmit={handleSendProof} className="flex flex-col gap-4">
-                      {/* ... SEUS INPUTS ORIGINAIS DE PROOF CONTINUAM AQUI ... */}
+                <div className="rounded-2xl p-5 flex flex-col gap-4" style={{ backgroundColor: surfaceBg, border: surfaceBorder }}>
+                  <form onSubmit={handleSendProof} className="flex flex-col gap-4">
+                    {submissionStatus !== 'proof_pending' && (
+                      <>
                       <div>
-                        <Label htmlFor="proof-link" style={{ color: `${C.cream}70`, fontSize: 12 }}>Link da prova</Label>
-                        <Input id="proof-link" type="url" value={proofLink} onChange={(e) => setProofLink(e.target.value)} placeholder="Cole o link da prova" className={`mt-1.5 h-[46px] ${inputCls}`} />
+                        <Label htmlFor="proof-link" style={{ color: bodyMuted, fontSize: 12 }}>Link da prova</Label>
+                        <Input
+                          id="proof-link"
+                          type="url"
+                          value={proofLink}
+                          onChange={(e) => setProofLink(e.target.value)}
+                          placeholder="Cole o link do vídeo (Google Drive, YouTube, etc.)"
+                          className={`mt-1.5 h-[46px] ${inputCls}`}
+                        />
+                        <p style={{ fontSize: 11, color: faintColor, marginTop: 6, lineHeight: 1.45 }}>
+                          Se for um vídeo no Google Drive, verifique se o link está público ou com acesso liberado para quem tem o link - assim a equipe consegue assistir sem pedir permissão.
+                        </p>
                       </div>
-                      <p style={{ fontSize: 12, color: `${C.cream}70`, marginTop: 2 }}>E/ou anexe um arquivo da prova:</p>
+                      <p style={{ fontSize: 12, color: bodyMuted, marginTop: 2 }}>E/ou anexe um arquivo da prova:</p>
                       <div>
-                        <Label htmlFor="proof-file" style={{ color: `${C.cream}70`, fontSize: 12 }}>Arquivo da prova </Label>
-                        <input id="proof-file" type="file" multiple onChange={(e) => {
-                          const novos = Array.from(e.target.files || []);
-                          setProofFiles((prev) => {
-                            const combined = [...prev, ...novos];
-                            return combined.slice(0, 2); // garante máximo de 2
-                          });
-                        }} className="block w-full mt-1.5 text-sm file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold transition-all file:bg-[rgba(var(--ink),0.1)] file:text-[rgb(var(--ink))] hover:file:bg-[rgba(var(--ink),0.2)] file:cursor-pointer cursor-pointer text-[rgba(var(--ink),0.5)]" />
-                        {/* Lista dos arquivos selecionados */}
+                        <div className="flex items-center justify-between gap-2">
+                          <Label htmlFor="proof-file" style={{ color: bodyMuted, fontSize: 12 }}>Arquivo da prova</Label>
+                          <span style={{ fontSize: 11, color: faintColor }}>Até {MAX_PROOF_FILES} arquivos</span>
+                        </div>
+                        <input
+                          id="proof-file"
+                          ref={proofFileInputRef}
+                          type="file"
+                          multiple
+                          disabled={proofFiles.length >= MAX_PROOF_FILES}
+                          onChange={handleProofFilesChange}
+                          className={fileInputCls}
+                        />
                         {proofFiles.length > 0 && (
                           <div className="flex flex-col gap-2 mt-2">
                             {proofFiles.map((file, i) => (
-                              <div key={i} className="flex items-center justify-between px-3 py-2 rounded-xl"
-                                style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: '1px solid rgba(var(--ink),0.08)' }}>
-                                <span style={{ fontSize: 12, color: `${C.cream}70` }} className="truncate">{file.name}</span>
+                              <div
+                                key={`${file.name}-${file.size}-${file.lastModified}`}
+                                className="flex items-center justify-between px-3 py-2 rounded-xl"
+                                style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: '1px solid rgba(var(--ink),0.08)' }}
+                              >
+                                <span style={{ fontSize: 12, color: bodyMuted }} className="truncate">{file.name}</span>
                                 <button
                                   type="button"
-                                  onClick={() => setProofFiles(proofFiles.filter((_, idx) => idx !== i))}
-                                  style={{ color: `${C.cream}40`, marginLeft: 8 }}
+                                  onClick={() => removeProofFile(i)}
+                                  style={{ color: bulletColor, marginLeft: 8 }}
                                   className="hover:opacity-100 opacity-60 shrink-0"
+                                  aria-label={`Remover ${file.name}`}
                                 >
                                   <X size={13} />
                                 </button>
@@ -871,52 +913,56 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                           </div>
                         )}
                       </div>
-                      <button
-                        type="submit"
-                        disabled={isSubmitting || uploadFile.isPending || submitProof.isPending}
-                        className="w-full flex justify-center items-center h-[48px] rounded-xl transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ backgroundColor: C.lime, color: C.onAccent, ...heading, fontSize: 14, fontWeight: 700 }}
-                      >
-                        <Upload className="w-4 h-4 mr-2" />
-                        {isSubmitting || uploadFile.isPending || submitProof.isPending ? 'Enviando prova...' : 'Enviar prova para aprovação'}
-                      </button>
-                    </form>
-                  )}
+                      </>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={submissionStatus === 'proof_pending' || isSubmitting || uploadFile.isPending || submitProof.isPending}
+                      className={actionButtonClassName}
+                      style={actionButtonStyle}
+                    >
+                      <Upload className="w-4 h-4 mr-2 shrink-0" />
+                      {submissionStatus === 'proof_pending'
+                        ? 'Sua prova foi enviada e está em análise pelo administrador.'
+                        : isSubmitting || uploadFile.isPending || submitProof.isPending
+                          ? 'Enviando prova...'
+                          : 'Enviar prova para validação'}
+                    </button>
+                  </form>
                 </div>
               )}
 
               {/* Formulário Etapa 3 */}
               {isCampaignTask && hasPassedStep2 && !isMetricsCompleted && (
-                <div className="rounded-2xl p-5 flex flex-col gap-4" style={{ backgroundColor: SURFACE_BG, border: SURFACE_BORDER }}>
-                  {metricsStatus === 'pending' ? (
-                    <div className="text-xs rounded-xl p-3 text-center" style={{ backgroundColor: 'rgba(68,102,255,0.12)', color: '#8899FF', border: '1px solid rgba(68,102,255,0.2)' }}>
-                      Métricas enviadas. Em análise.
-                    </div>
-                  ) : (
-                    <form onSubmit={handleSendMetrics} className="flex flex-col gap-4">
-                      {/* ... SEUS INPUTS ORIGINAIS DE MÉTRICAS CONTINUAM AQUI ... */}
+                <div className="rounded-2xl p-5 flex flex-col gap-4" style={{ backgroundColor: surfaceBg, border: surfaceBorder }}>
+                  <form onSubmit={handleSendMetrics} className="flex flex-col gap-4">
+                    {metricsStatus !== 'pending' && (
                       <div>
-                        <Label htmlFor="metrics-file" style={{ color: `${C.cream}70`, fontSize: 12 }}>Arquivo de métricas (Obrigatório)</Label>
+                        <Label htmlFor="metrics-file" style={{ color: bodyMuted, fontSize: 12 }}>Arquivo de métricas (Obrigatório)</Label>
                         <input id="metrics-file" type="file" multiple onChange={(e) => setMetricsFiles(Array.from(e.target.files || []))} className="block w-full mt-1.5 text-sm file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold transition-all file:bg-[rgba(var(--ink),0.1)] file:text-[rgb(var(--ink))] hover:file:bg-[rgba(var(--ink),0.2)] file:cursor-pointer cursor-pointer text-[rgba(var(--ink),0.5)]" />
                       </div>
-                      <div title={metricsButtonTitle || undefined}>
-                        <button
-                          type="submit"
-                          disabled={isSubmitting || uploadFile.isPending || submitMetrics.isPending || !metricsFiles || metricsFiles.length === 0 || !canSubmitMetrics}
-                          className="w-full flex justify-center items-center h-[48px] rounded-xl transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                          style={{ backgroundColor: C.orange, color: C.onAccent, ...heading, fontSize: 14, fontWeight: 700 }}
-                        >
-                          <Upload className="w-4 h-4 mr-2" />
-                          {isSubmitting || uploadFile.isPending || submitMetrics.isPending ? 'Enviando métricas...' : 'Enviar métricas'}
-                        </button>
-                        {metricsInlineHint && (
-                          <p style={{ fontSize: 11, color: `${C.cream}50`, marginTop: 8, textAlign: 'center' }}>
-                            {metricsInlineHint}
-                          </p>
-                        )}
-                      </div>
-                    </form>
-                  )}
+                    )}
+                    <div title={metricsStatus === 'pending' ? undefined : (metricsButtonTitle || undefined)}>
+                      <button
+                        type="submit"
+                        disabled={metricsStatus === 'pending' || isSubmitting || uploadFile.isPending || submitMetrics.isPending || !metricsFiles || metricsFiles.length === 0 || !canSubmitMetrics}
+                        className={actionButtonClassName}
+                        style={actionButtonStyle}
+                      >
+                        <Upload className="w-4 h-4 mr-2 shrink-0" />
+                        {metricsStatus === 'pending'
+                          ? 'Métricas enviadas. Em análise.'
+                          : isSubmitting || uploadFile.isPending || submitMetrics.isPending
+                            ? 'Enviando métricas...'
+                            : 'Enviar métricas'}
+                      </button>
+                      {metricsStatus !== 'pending' && metricsInlineHint && (
+                        <p style={{ fontSize: 11, color: softColor, marginTop: 8, textAlign: 'center' }}>
+                          {metricsInlineHint}
+                        </p>
+                      )}
+                    </div>
+                  </form>
                 </div>
               )}
 
@@ -930,14 +976,6 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
             </div>
           )}
 
-          {footerStageDeadline?.date && (
-            <div className="flex items-center justify-end gap-1.5" style={{ color: `${C.cream}30`, fontSize: 12 }}>
-              <Clock size={9} />
-              <span>
-                {footerStageDeadline.label} {footerStageDeadline.date.toLocaleString('pt-BR')}
-              </span>
-            </div>
-          )}
         </div>
       </DialogContent>
     </Dialog>

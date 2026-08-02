@@ -13,26 +13,21 @@ import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { notifyError } from "@/lib/toast";
-import { C, heading, body } from "@/lib/theme";
+import { C, heading, body, colorWithAlpha } from "@/lib/theme";
+import { useThemeMode } from "@/contexts/ThemeContext";
+import { PageHeader, PageHeaderLabel, PointsBadge } from "@/components/layout/PageShell";
 
-const CATEGORY_INFO = {
+const getCategoryInfo = () => ({
   dicas: { name: "Dicas", colorHex: C.orange },
   duvidas: { name: "Dúvidas", colorHex: C.blue },
   conquistas: { name: "Conquistas", colorHex: "#AA66FF" },
   campanhas: { name: "Campanhas", colorHex: C.lime },
-  geral: { name: "Geral", colorHex: `${C.cream}80` },
+  geral: { name: "Geral", colorHex: C.cream },
   sugestoes: { name: "Sugestões", colorHex: "#FF2255" },
-};
-
-const inputStyle = {
-  backgroundColor: C.black_light,
-  border: "1px solid rgba(var(--ink),0.1)",
-  color: C.cream,
-  ...body,
-  fontSize: 14,
-};
+});
 
 export default function ForumTopic() {
+  useThemeMode(); // re-render ao alternar tema claro/escuro
   const { user, profile } = useAuth();
   const urlParams = new URLSearchParams(window.location.search);
   const topicId = urlParams.get("id");
@@ -83,39 +78,10 @@ export default function ForumTopic() {
   };
 
   const renderHeader = () => (
-    <div
-      className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10"
-      style={{
-        backgroundColor: `${C.black}F5`,
-        backdropFilter: "blur(16px)",
-        borderBottom: "1px solid rgba(var(--ink),0.05)",
-      }}
-    >
-      <div className="flex items-center gap-3">
-        <MessageSquare size={16} style={{ color: C.lime }} />
-        <span
-          style={{
-            ...heading,
-            fontSize: 12,
-            fontWeight: 700,
-            color: `${C.cream}60`,
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-          }}
-        >
-          Fórum
-        </span>
-      </div>
-      <div
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-        style={{ backgroundColor: C.lime, color: C.onAccent }}
-      >
-        <Star size={11} fill={C.onAccent} />
-        <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>
-          {userScore?.total_points || 0} pts
-        </span>
-      </div>
-    </div>
+    <PageHeader>
+      <PageHeaderLabel icon={MessageSquare}>Fórum</PageHeaderLabel>
+      <PointsBadge points={userScore?.total_points || 0} />
+    </PageHeader>
   );
 
   if (topicLoading) {
@@ -157,10 +123,19 @@ export default function ForumTopic() {
     );
   }
 
-  const categoryInfo = CATEGORY_INFO[topic.category] || CATEGORY_INFO.geral;
+  const categories = getCategoryInfo();
+  const categoryInfo = categories[topic.category] || categories.geral;
   const categoryColor = categoryInfo.colorHex;
   const replyCount = posts.length || topic.total_posts || 0;
   const isPinned = Boolean(topic.is_pinned);
+
+  const inputStyle = {
+    backgroundColor: C.black_light,
+    border: "1px solid rgba(var(--ink),0.1)",
+    color: C.cream,
+    ...body,
+    fontSize: 14,
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: C.black, ...body }}>
@@ -210,7 +185,7 @@ export default function ForumTopic() {
             <span
               className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
               style={{
-                backgroundColor: `${categoryColor}18`,
+                backgroundColor: colorWithAlpha(categoryColor, 0.1),
                 color: categoryColor,
               }}
             >
@@ -417,7 +392,7 @@ export default function ForumTopic() {
                           onClick={() => handleLike(post)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all hover:brightness-110"
                           style={{
-                            backgroundColor: hasLiked ? `${C.pink}18` : "rgba(var(--ink),0.06)",
+                            backgroundColor: hasLiked ? colorWithAlpha(C.pink, 0.1) : "rgba(var(--ink),0.06)",
                             color: hasLiked ? C.pink : `${C.cream}55`,
                             fontSize: 12,
                             fontWeight: 600,

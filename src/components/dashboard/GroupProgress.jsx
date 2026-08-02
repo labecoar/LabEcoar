@@ -53,6 +53,7 @@ export function getGroupCategory(collectivePoints = 0, activeEcoantes = 1) {
 
 function GroupProgressBar({ groupPct, targetPoints }) {
   const ink = useInkText();
+  const { isLight, T } = useThemeMode();
   const rounded = Math.round(groupPct);
   const dotLeft = `clamp(0px, calc(${groupPct}% - 8px), calc(100% - 16px))`;
 
@@ -84,7 +85,7 @@ function GroupProgressBar({ groupPct, targetPoints }) {
 
       <div className="flex justify-between mb-7">
         <span style={{ fontSize: 10, color: ink.faint }}>0</span>
-        <span style={{ fontSize: 10, fontWeight: 700, color: C.lime }}>{rounded}% concluído</span>
+        <span style={{ fontSize: 10, fontWeight: 700, color: isLight ? T.accent : C.lime }}>{rounded}% concluído</span>
         <span style={{ fontSize: 10, color: ink.faint }}>{Number(targetPoints).toLocaleString("pt-BR")} pts</span>
       </div>
     </div>
@@ -93,6 +94,7 @@ function GroupProgressBar({ groupPct, targetPoints }) {
 
 function LevelColumn({ level, collectivePoints, index, groupLevelIdx, activeEcoantes }) {
   const ink = useInkText();
+  const { isLight, T } = useThemeMode();
   const Icon = level.icon;
   const lvlThreshold = groupThreshold(level.pts, activeEcoantes);
   const completed = collectivePoints >= lvlThreshold;
@@ -102,7 +104,7 @@ function LevelColumn({ level, collectivePoints, index, groupLevelIdx, activeEcoa
 
   const iconBg = completed ? C.lime : isNext ? C.darkGreen : "rgba(var(--ink),0.05)";
   const iconColor = completed ? C.onAccent : isNext ? C.orange : ink.disabled;
-  const nameColor = completed ? C.lime : isNext ? C.cream : ink.muted;
+  const nameColor = completed ? (isLight ? T.accent : C.lime) : isNext ? C.cream : ink.muted;
 
   return (
     <div className="flex flex-col items-center text-center">
@@ -144,6 +146,7 @@ function LevelColumn({ level, collectivePoints, index, groupLevelIdx, activeEcoa
 
 export default function GroupProgress({ selectedQuarter }) {
   const ink = useInkText();
+  const { isLight, T } = useThemeMode();
   const { data, isLoading } = useGroupProgress(selectedQuarter);
 
   const activeEcoantes = data?.active_ecoantes ?? 0;
@@ -159,12 +162,15 @@ export default function GroupProgress({ selectedQuarter }) {
   return (
     <div
       className="relative rounded-2xl shrink-0 w-full"
-      style={{ backgroundColor: C.black_back }}
+      style={{
+        backgroundColor: isLight ? C.card : C.black_back,
+        border: isLight ? `1px solid ${T.border}` : undefined,
+      }}
     >
       <div
         aria-hidden
         className="absolute border border-solid inset-0 pointer-events-none rounded-2xl"
-        style={{ borderColor: "rgba(var(--ink),0.06)" }}
+        style={{ borderColor: isLight ? "transparent" : "rgba(var(--ink),0.06)" }}
       />
 
       <div className="flex flex-col gap-5 sm:gap-7 items-start pt-4 sm:pt-[25px] px-4 sm:px-6 md:px-[25px] pb-4 sm:pb-[25px] relative w-full">
@@ -184,7 +190,7 @@ export default function GroupProgress({ selectedQuarter }) {
             </span>
 
             <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <Users size={13} style={{ color: C.lime}} />
+              <Users size={13} style={{ color: isLight ? T.accent : C.lime }} />
               <span style={{ fontSize: 13, color: ink.subtle, ...body }}>
                 {isLoading
                   ? "..."

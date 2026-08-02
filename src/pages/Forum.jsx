@@ -1,7 +1,7 @@
 ﻿// @ts-nocheck
 import React, { useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCreateForumTopic, useForumTopics } from "@/hooks/useForum";
+import { useCreateForumTopic, useForumTopicStats, useForumTopics, FORUM_PAGE_SIZE } from "@/hooks/useForum";
 import { useForumUnread } from "@/hooks/useForumUnread";
 import { useUserScore } from "@/hooks/useScores";
 import {
@@ -12,7 +12,9 @@ import { createPageUrl } from "@/utils";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { notifyError } from "@/lib/toast";
-import { C, heading, body } from '@/lib/theme';
+import { C, heading, body, colorWithAlpha } from '@/lib/theme';
+import { useThemeMode } from '@/contexts/ThemeContext';
+import { PageHeader, PageHeaderLabel, PointsBadge } from "@/components/layout/PageShell";
 import { ChevronDown } from "lucide-react";
 import {
   Dialog,
@@ -20,14 +22,14 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 
-const CATEGORY_INFO = {
+const getCategoryInfo = () => ({
   dicas: { name: "Dicas", colorHex: C.orange },
   duvidas: { name: "Dúvidas", colorHex: C.blue },
   conquistas: { name: "Conquistas", colorHex: "#AA66FF" },
   campanhas: { name: "Campanhas", colorHex: C.lime },
   geral: { name: "Geral", colorHex: C.cream },
-  sugestoes: { name: "Sugestões", colorHex: "#FF2255" }
-};
+  sugestoes: { name: "Sugestões", colorHex: "#FF2255" },
+});
 
 const previewText = (text, max = 110) => {
   const clean = String(text || "").replace(/\s+/g, " ").trim();
@@ -37,10 +39,11 @@ const previewText = (text, max = 110) => {
 };
 
 export default function Forum() {
+  useThemeMode(); // re-render ao alternar tema claro/escuro
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState("todas");
-  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(FORUM_PAGE_SIZE);
   const [showNewTopicDialog, setShowNewTopicDialog] = useState(false);
   const [newTopic, setNewTopic] = useState({
     title: "",
@@ -48,14 +51,26 @@ export default function Forum() {
     category: "geral"
   });
 
-  const { data: topics = [], isLoading } = useForumTopics();
+  const { data: topicsData, isLoading, isFetching } = useForumTopics({
+    limit: visibleCount,
+    category: selectedCategory,
+  });
+  const { data: topicStats } = useForumTopicStats();
+  const topics = topicsData?.topics ?? [];
+  const hasMoreTopics = topicsData?.hasMore ?? false;
   const { data: userScore } = useUserScore(user?.id);
   const createTopicMutation = useCreateForumTopic();
   const { isTopicUnread, hasUnread, unreadTopicIds, markTopicSeen } = useForumUnread();
+  const categoryInfo = getCategoryInfo();
 
-  const totalTopics = topics.length;
-  const totalReplies = topics.reduce((a, t) => a + (t.total_posts || 0), 0);
-  const totalViews = topics.reduce((a, t) => a + (t.views || 0), 0);
+  const totalTopics = topicStats?.totalTopics ?? 0;
+  const totalReplies = topicStats?.totalReplies ?? 0;
+  const totalViews = topicStats?.totalViews ?? 0;
+
+  const handleCategoryChange = (categoryKey) => {
+    setSelectedCategory(categoryKey);
+    setVisibleCount(FORUM_PAGE_SIZE);
+  };
 
   const handleCreateTopic = async (e) => {
     e.preventDefault();
@@ -77,18 +92,8 @@ export default function Forum() {
     }
   };
 
-  const filteredTopics = useMemo(() => {
-    let list = selectedCategory === "todas"
-      ? topics
-      : topics.filter((topic) => topic.category === selectedCategory);
-    if (showUnreadOnly) {
-      list = list.filter((topic) => isTopicUnread(topic));
-    }
-    return list;
-  }, [topics, selectedCategory, showUnreadOnly, isTopicUnread]);
-
   const sortedTopics = useMemo(() => {
-    return [...filteredTopics].sort((a, b) => {
+    return [...topics].sort((a, b) => {
       const aUnread = isTopicUnread(a) ? 1 : 0;
       const bUnread = isTopicUnread(b) ? 1 : 0;
       if (bUnread !== aUnread) return bUnread - aUnread;
@@ -97,14 +102,13 @@ export default function Forum() {
       return new Date(b.last_activity || b.created_at || 0).getTime()
         - new Date(a.last_activity || a.created_at || 0).getTime();
     });
-  }, [filteredTopics, isTopicUnread]);
+  }, [topics, isTopicUnread]);
 
   return (
     <div style={{ minHeight: "100vh", background: C.black, ...body }}>
-      <div className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10" style={{ backgroundColor: `${C.black}F5`, backdropFilter: "blur(16px)", borderBottom: `1px solid rgba(var(--ink),0.05)` }}>
+      <PageHeader>
         <div className="flex items-center gap-3">
-          <MessageSquare size={16} style={{ color: C.lime }} />
-          <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", textTransform: "uppercase" }}>Fórum</span>
+          <PageHeaderLabel icon={MessageSquare}>Fórum</PageHeaderLabel>
           {hasUnread && (
             <span
               className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide"
@@ -114,18 +118,15 @@ export default function Forum() {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.onAccent }}>
-          <Star size={11} fill={C.onAccent} />
-          <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>{userScore?.total_points || 0} pts</span>
-        </div>
-      </div>
+        <PointsBadge points={userScore?.total_points || 0} />
+      </PageHeader>
 
       <div className="px-4 sm:px-6 md:px-8 pt-5 md:pt-7 pb-8 md:pb-10 max-w-6xl mx-auto w-full min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6 md:mb-8">
           <div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-none" style={{ ...heading, color: C.cream }}>Fórum</h1>
             <p style={{ fontSize: 14, color: `${C.cream}50`, marginTop: 6 }}>
-              Salas com ponto vermelho têm mensagem nova — sem precisar abrir uma por uma.
+              Salas com ponto vermelho têm mensagem nova e aparecem no topo da lista.
             </p>
           </div>
           <button
@@ -155,28 +156,25 @@ export default function Forum() {
           ))}
         </div>
 
-        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-          <button
-            onClick={() => setShowUnreadOnly((v) => !v)}
-            className="shrink-0 px-4 py-2 rounded-xl text-sm transition-all duration-150 flex items-center gap-2"
-            style={{
-              backgroundColor: showUnreadOnly ? "rgba(206,22,28,0.18)" : "rgba(var(--ink),0.06)",
-              color: showUnreadOnly ? "#ff6b6b" : `${C.cream}70`,
-              fontWeight: showUnreadOnly ? 700 : 400,
-              ...heading,
-              fontSize: 13,
-              border: showUnreadOnly ? "1px solid rgba(206,22,28,0.35)" : "1px solid transparent",
-            }}
+        {hasUnread && (
+          <div
+            className="mb-4 px-4 py-3 rounded-xl flex items-center gap-2.5"
+            style={{ backgroundColor: "rgba(206,22,28,0.1)", border: "1px solid rgba(206,22,28,0.22)" }}
           >
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: "#ce161c" }} />
-            Com novidade{hasUnread ? ` (${unreadTopicIds.size})` : ""}
-          </button>
-          {[{ key: "todas", name: "Todas" }, ...Object.entries(CATEGORY_INFO).map(([k, v]) => ({ key: k, name: v.name }))].map((c) => {
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: "#ce161c" }} />
+            <p style={{ fontSize: 13, color: "#ff6b6b", lineHeight: 1.4 }}>
+              {unreadTopicIds.size} {unreadTopicIds.size === 1 ? "sala com mensagem nova" : "salas com mensagens novas"} — já estão no topo da lista abaixo.
+            </p>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+          {[{ key: "todas", name: "Todas" }, ...Object.entries(categoryInfo).map(([k, v]) => ({ key: k, name: v.name }))].map((c) => {
             const active = c.key === selectedCategory;
             return (
               <button
                 key={c.key}
-                onClick={() => setSelectedCategory(c.key)}
+                onClick={() => handleCategoryChange(c.key)}
                 className="shrink-0 px-4 py-2 rounded-xl text-sm transition-all duration-150"
                 style={{
                   backgroundColor: active ? C.lime : "rgba(var(--ink),0.06)",
@@ -201,7 +199,7 @@ export default function Forum() {
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <MessageSquare size={36} style={{ color: `${C.cream}20` }} />
             <p style={{ ...heading, fontSize: 18, fontWeight: 700, color: `${C.cream}40` }}>
-              {showUnreadOnly ? "Nenhuma sala com novidade no momento." : "Nenhum tópico nesta categoria."}
+              Nenhum tópico nesta categoria.
             </p>
           </div>
         ) : (
@@ -219,14 +217,31 @@ export default function Forum() {
                 ? ""
                 : formatDistanceToNow(activityDate, { addSuffix: true, locale: ptBR });
 
+              const baseBorder = unread
+                ? "rgba(206,22,28,0.4)"
+                : isPinned
+                  ? `${C.lime}22`
+                  : "rgba(var(--ink),0.08)";
+              const hoverBorder = unread
+                ? "rgba(206,22,28,0.6)"
+                : isPinned
+                  ? `${C.lime}55`
+                  : "rgba(var(--ink),0.22)";
+
               return (
                 <div
                   key={topic.id}
                   onClick={() => navigate(createPageUrl(`ForumTopic?id=${topic.id}`))}
-                  className="rounded-2xl transition-all hover:brightness-110 cursor-pointer relative overflow-hidden"
+                  className="rounded-2xl transition-[border-color] duration-150 cursor-pointer relative overflow-hidden"
                   style={{
                     backgroundColor: C.card,
-                    border: `1px solid ${unread ? "rgba(206,22,28,0.4)" : isPinned ? `${C.lime}22` : "rgba(var(--ink),0.06)"}`,
+                    border: `1px solid ${baseBorder}`,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = hoverBorder;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = baseBorder;
                   }}
                 >
                   {unread && (
@@ -252,11 +267,11 @@ export default function Forum() {
                       <span
                         className="shrink-0 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ml-auto"
                         style={{
-                          backgroundColor: `${CATEGORY_INFO[topic.category]?.colorHex || C.lime}18`,
-                          color: CATEGORY_INFO[topic.category]?.colorHex || C.lime,
+                          backgroundColor: colorWithAlpha(categoryInfo[topic.category]?.colorHex || C.lime, 0.1),
+                          color: categoryInfo[topic.category]?.colorHex || C.lime,
                         }}
                       >
-                        {CATEGORY_INFO[topic.category]?.name || topic.category}
+                        {categoryInfo[topic.category]?.name || topic.category}
                       </span>
                     </div>
 
@@ -313,6 +328,32 @@ export default function Forum() {
                 </div>
               );
             })}
+            {hasMoreTopics && (
+              <button
+                type="button"
+                onClick={() => setVisibleCount((count) => count + FORUM_PAGE_SIZE)}
+                disabled={isFetching}
+                className="mt-2 w-full flex items-center justify-center gap-2 py-3 rounded-xl transition-[border-color] duration-150 disabled:opacity-60"
+                style={{
+                  backgroundColor: "rgba(var(--ink),0.04)",
+                  color: `${C.cream}70`,
+                  border: "1px solid rgba(var(--ink),0.1)",
+                  ...heading,
+                  fontSize: 13,
+                  fontWeight: 700,
+                }}
+                onMouseEnter={(e) => {
+                  if (isFetching) return;
+                  e.currentTarget.style.borderColor = "rgba(var(--ink),0.22)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(var(--ink),0.1)";
+                }}
+              >
+                <ChevronDown size={15} />
+                {isFetching ? "Carregando..." : `Carregar mais ${FORUM_PAGE_SIZE} salas`}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -339,7 +380,7 @@ export default function Forum() {
                     value={newTopic.category}
                     onChange={(e) => setNewTopic({ ...newTopic, category: e.target.value })}
                   >
-                    {Object.entries(CATEGORY_INFO).map(([key, info]) => (
+                    {Object.entries(categoryInfo).map(([key, info]) => (
                       <option key={key} value={key} style={{ backgroundColor: C.card, color: C.cream }}>{info.name}</option>
                     ))}
                   </select>

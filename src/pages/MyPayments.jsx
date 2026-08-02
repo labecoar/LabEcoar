@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { notifyError, notifySuccess } from "@/lib/toast";
 import { C, heading, body } from '@/lib/theme';
+import { PageHeader, PageHeaderLabel, PointsBadge } from "@/components/layout/PageShell";
 import { useUserScore } from "@/hooks/useScores";
 
 const formatCurrency = (value) => Number(value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 });
@@ -137,16 +138,10 @@ export default function MyPayments() {
 
   return (
     <main className="flex-1 overflow-y-auto" style={{ backgroundColor: C.black }}>
-      <div className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10" style={{ backgroundColor: `${C.black}F5`, backdropFilter: "blur(16px)", borderBottom: `1px solid rgba(var(--ink),0.05)` }}>
-        <div className="flex items-center gap-3">
-          <CreditCard size={16} style={{ color: C.lime }} />
-          <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", textTransform: "uppercase" }}>Meus Pagamentos</span>
-        </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.onAccent }}>
-          <Star size={11} fill={C.onAccent} />
-          <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>{userScore?.total_points || 0} pts</span>
-        </div>
-      </div>
+      <PageHeader>
+        <PageHeaderLabel icon={CreditCard}>Meus Pagamentos</PageHeaderLabel>
+        <PointsBadge points={userScore?.total_points || 0} />
+      </PageHeader>
 
       <div className="px-4 sm:px-6 md:px-8 pt-5 md:pt-7 pb-8 md:pb-10 max-w-6xl mx-auto w-full min-w-0">
         <div className="mb-6 md:mb-8">

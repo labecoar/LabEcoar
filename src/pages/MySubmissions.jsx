@@ -28,27 +28,14 @@ import {
   isExpiredSubmission,
 } from '@/lib/task-submission-display';
 import { C, heading, body } from '@/lib/theme';
+import { useThemeMode } from '@/contexts/ThemeContext';
+import { getCategoryStyle } from '@/pages/Tasks';
+import { PageHeader, PageHeaderLabel, PointsBadge } from "@/components/layout/PageShell";
 import { createPageUrl } from '@/utils';
 
 const PAGE_SIZE = 10;
 
 const aInputCls = 'w-full px-4 py-2.5 rounded-xl outline-none transition-all';
-const aInputStyle = {
-  border: '1px solid rgba(var(--ink),0.12)',
-  backgroundColor: 'rgba(var(--ink),0.04)',
-  color: C.cream,
-  fontSize: 13,
-  ...body,
-};
-const aSelectStyle = {
-  ...aInputStyle,
-  cursor: 'pointer',
-  appearance: 'none',
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23FFFFDE' stroke-width='2' stroke-opacity='0.4'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
-  backgroundRepeat: 'no-repeat',
-  backgroundPosition: 'right 12px center',
-  paddingRight: 32,
-};
 
 const formatShortDate = (value) => {
   if (!value) return '—';
@@ -73,11 +60,11 @@ function StatusBadge({ submission, metricsSubmission }) {
   );
 }
 
-function Pagination({ page, totalPages, onPageChange }) {
+function Pagination({ page, totalPages, onPageChange, mutedColor }) {
   if (totalPages <= 1) return null;
   return (
     <div className="flex items-center justify-between px-6 py-4" style={{ borderTop: '1px solid rgba(var(--ink),0.07)' }}>
-      <span style={{ fontSize: 12, color: `${C.cream}50` }}>
+      <span style={{ fontSize: 12, color: mutedColor }}>
         Página {page} de {totalPages}
       </span>
       <div className="flex items-center gap-2">
@@ -104,14 +91,19 @@ function Pagination({ page, totalPages, onPageChange }) {
   );
 }
 
-function SortButton({ label, field, sortField, sortDir, onSort }) {
+function SortButton({ label, field, sortField, sortDir, onSort, isLight, T }) {
   const active = sortField === field;
   return (
     <button
       type="button"
       onClick={() => onSort(field)}
       className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
-      style={{ color: active ? C.lime : `${C.cream}40`, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em' }}
+      style={{
+        color: active ? (isLight ? T.accent : C.lime) : (isLight ? T.textFaint : `${C.cream}40`),
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: '0.08em',
+      }}
     >
       {label}
       <ArrowUpDown size={10} style={{ opacity: active ? 1 : 0.4, transform: active && sortDir === 'asc' ? 'rotate(180deg)' : 'none' }} />
@@ -121,6 +113,7 @@ function SortButton({ label, field, sortField, sortDir, onSort }) {
 
 export default function MySubmissions() {
   const navigate = useNavigate();
+  const { isLight, T } = useThemeMode();
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -132,6 +125,30 @@ export default function MySubmissions() {
   const { data: submissions = [], isLoading, error } = useMySubmissions(user?.id);
   const { data: myMetricsSubmissions = [] } = useMyMetricsSubmissions(user?.id);
   const { data: userScore } = useUserScore(user?.id);
+
+  const mutedColor = isLight ? T.textMuted : `${C.cream}50`;
+  const subColor = isLight ? T.textSub : `${C.cream}60`;
+  const faintColor = isLight ? T.textFaint : `${C.cream}40`;
+  const optionStyle = { backgroundColor: C.card, color: isLight ? T.text : C.cream };
+
+  const inputStyle = {
+    border: `1px solid ${isLight ? T.border : 'rgba(var(--ink),0.12)'}`,
+    backgroundColor: isLight ? C.card : 'rgba(var(--ink),0.04)',
+    color: isLight ? T.text : C.cream,
+    fontSize: 13,
+    ...body,
+  };
+
+  const selectChevronStroke = isLight ? '%231D1D1B' : '%23FFFFDE';
+  const selectStyle = {
+    ...inputStyle,
+    cursor: 'pointer',
+    appearance: 'none',
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='${selectChevronStroke}' stroke-width='2' stroke-opacity='${isLight ? '0.55' : '0.4'}'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 12px center',
+    paddingRight: 32,
+  };
 
   const getMetricsSubmission = (taskId) =>
     myMetricsSubmissions.find((item) => String(item.task_id) === String(taskId)) || null;
@@ -251,21 +268,10 @@ export default function MySubmissions() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: C.black, ...body }}>
-      <div className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10"
-        style={{ backgroundColor: `${C.black}F5`, backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(var(--ink),0.05)' }}>
-        <div className="flex items-center gap-3">
-          <Activity size={16} style={{ color: C.lime }} />
-          <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-            Minhas Tarefas
-          </span>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.onAccent }}>
-            <Star size={11} fill={C.onAccent} />
-            <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>{userScore?.total_points || 0} pts</span>
-          </div>
-        </div>
-      </div>
+      <PageHeader>
+        <PageHeaderLabel icon={Activity}>Minhas Tarefas</PageHeaderLabel>
+        <PointsBadge points={userScore?.total_points || 0} />
+      </PageHeader>
 
       <div className="px-4 sm:px-6 md:px-8 pt-4 md:pt-7 pb-8 md:pb-10 max-w-7xl mx-auto w-full min-w-0 space-y-5 md:space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -273,7 +279,7 @@ export default function MySubmissions() {
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-none" style={{ ...heading, color: C.cream }}>
               Minhas Tarefas
             </h1>
-            <p className="text-sm mt-1.5 md:mt-2 leading-relaxed" style={{ color: `${C.cream}50` }}>
+            <p className="text-sm mt-1.5 md:mt-2 leading-relaxed" style={{ color: mutedColor }}>
               Acompanhe suas inscrições, prazos e status — visão completa das suas participações.
             </p>
           </div>
@@ -292,30 +298,30 @@ export default function MySubmissions() {
             { label: 'Em andamento', value: overview.pending, color: C.orange },
             { label: 'Concluídas', value: overview.completed, color: C.lime },
             { label: 'Rejeitadas', value: overview.rejected, color: '#f87171' },
-            { label: 'Expiradas', value: overview.expired, color: `${C.cream}60` },
+            { label: 'Expiradas', value: overview.expired, color: isLight ? T.textMuted : `${C.cream}60` },
             { label: 'Pontos ganhos', value: overview.points, color: C.lime },
           ].map(({ label, value, color }) => (
-            <div key={label} className="p-4 sm:p-5 rounded-2xl" style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: '1px solid rgba(var(--ink),0.06)' }}>
-              <div style={{ fontSize: 11, color: `${C.cream}50`, marginBottom: 6 }}>{label}</div>
+            <div key={label} className="p-4 sm:p-5 rounded-2xl" style={{ backgroundColor: isLight ? C.card : 'rgba(var(--ink),0.03)', border: `1px solid ${isLight ? T.border : 'rgba(var(--ink),0.06)'}` }}>
+              <div style={{ fontSize: 11, color: mutedColor, marginBottom: 6 }}>{label}</div>
               <div className="text-xl sm:text-2xl md:text-3xl font-black leading-none tracking-tight" style={{ ...heading, color }}>{value}</div>
             </div>
           ))}
         </div>
 
-        <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'rgba(var(--ink),0.02)', border: '1px solid rgba(var(--ink),0.07)' }}>
+        <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: isLight ? C.card : 'rgba(var(--ink),0.02)', border: `1px solid ${isLight ? T.border : 'rgba(var(--ink),0.07)'}` }}>
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 px-6 py-4"
             style={{ borderBottom: '1px solid rgba(var(--ink),0.07)' }}>
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: C.lime }} />
               <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>Minhas inscrições</span>
-              <span style={{ fontSize: 12, color: `${C.cream}40` }}>{filteredRows.length} exibida(s)</span>
+              <span style={{ fontSize: 12, color: faintColor }}>{filteredRows.length} exibida(s)</span>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
               <div className="relative flex-1 sm:min-w-[200px]">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: `${C.cream}40` }} />
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: faintColor }} />
                 <input
-                  className={aInputCls}
-                  style={{ ...aInputStyle, paddingLeft: 34 }}
+                  className={`${aInputCls} ${isLight ? 'placeholder:text-[#8A8A88]' : ''}`}
+                  style={{ ...inputStyle, paddingLeft: 34 }}
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                   placeholder="Buscar tarefa..."
@@ -323,24 +329,24 @@ export default function MySubmissions() {
               </div>
               <select
                 className={aInputCls}
-                style={{ ...aSelectStyle, minWidth: 140 }}
+                style={{ ...selectStyle, minWidth: 140 }}
                 value={categoryFilter}
                 onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
               >
-                <option value="all" style={{ backgroundColor: C.card }}>Todas categorias</option>
+                <option value="all" style={optionStyle}>Todas categorias</option>
                 {Object.entries(ACTIVE_USER_CATEGORIES).map(([value, label]) => (
-                  <option key={value} value={value} style={{ backgroundColor: C.card }}>{label}</option>
+                  <option key={value} value={value} style={optionStyle}>{label}</option>
                 ))}
               </select>
               {(bucketFilter === 'andamento' || bucketFilter === 'todas') && (
                 <select
                   className={aInputCls}
-                  style={{ ...aSelectStyle, minWidth: 170 }}
+                  style={{ ...selectStyle, minWidth: 170 }}
                   value={statusDetailFilter}
                   onChange={(e) => { setStatusDetailFilter(e.target.value); setPage(1); }}
                 >
                   {USER_STATUS_FILTER_OPTIONS.map(({ value, label }) => (
-                    <option key={value} value={value} style={{ backgroundColor: C.card }}>{label}</option>
+                    <option key={value} value={value} style={optionStyle}>{label}</option>
                   ))}
                 </select>
               )}
@@ -361,9 +367,10 @@ export default function MySubmissions() {
                   onClick={() => { setBucketFilter(value); setStatusDetailFilter('all'); setPage(1); }}
                   className="shrink-0 px-4 py-2 rounded-xl transition-all duration-150"
                   style={{
-                    backgroundColor: active ? C.lime : 'rgba(var(--ink),0.06)',
-                    color: active ? C.black : `${C.cream}70`,
+                    backgroundColor: active ? C.lime : (isLight ? T.itemBg : 'rgba(var(--ink),0.06)'),
+                    color: active ? C.onAccent : (isLight ? T.textSub : `${C.cream}70`),
                     fontWeight: active ? 700 : 400,
+                    border: !active && isLight ? `1px solid ${T.border}` : 'none',
                     ...heading,
                     fontSize: 13,
                   }}
@@ -377,7 +384,7 @@ export default function MySubmissions() {
           {paginatedRows.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-4">
               <Target size={32} style={{ color: `${C.cream}20` }} />
-              <p style={{ ...heading, fontSize: 16, color: `${C.cream}40` }}>
+              <p style={{ ...heading, fontSize: 16, color: isLight ? T.textMuted : `${C.cream}40` }}>
                 {bucketFilter === 'andamento' && statusDetailFilter === 'all'
                   ? 'Nenhuma tarefa em andamento no momento.'
                   : 'Nenhuma tarefa encontrada com esses filtros.'}
@@ -399,20 +406,20 @@ export default function MySubmissions() {
                   <thead>
                     <tr style={{ borderBottom: '1px solid rgba(var(--ink),0.06)' }}>
                       <th className="text-left px-5 py-3">
-                        <SortButton label="TAREFA" field="title" sortField={sort.field} sortDir={sort.dir} onSort={handleSort} />
+                        <SortButton label="TAREFA" field="title" sortField={sort.field} sortDir={sort.dir} onSort={handleSort} isLight={isLight} T={T} />
                       </th>
                       <th className="text-left px-5 py-3">
-                        <SortButton label="CATEGORIA" field="category" sortField={sort.field} sortDir={sort.dir} onSort={handleSort} />
+                        <SortButton label="CATEGORIA" field="category" sortField={sort.field} sortDir={sort.dir} onSort={handleSort} isLight={isLight} T={T} />
                       </th>
-                      <th className="text-left px-5 py-3" style={{ fontSize: 10, fontWeight: 700, color: `${C.cream}40`, letterSpacing: '0.08em' }}>STATUS</th>
+                      <th className="text-left px-5 py-3" style={{ fontSize: 10, fontWeight: 700, color: isLight ? T.textFaint : `${C.cream}40`, letterSpacing: '0.08em' }}>STATUS</th>
                       <th className="text-left px-5 py-3">
-                        <SortButton label="PRAZO" field="deadline" sortField={sort.field} sortDir={sort.dir} onSort={handleSort} />
-                      </th>
-                      <th className="text-left px-5 py-3">
-                        <SortButton label="INSCRIÇÃO" field="created_at" sortField={sort.field} sortDir={sort.dir} onSort={handleSort} />
+                        <SortButton label="PRAZO" field="deadline" sortField={sort.field} sortDir={sort.dir} onSort={handleSort} isLight={isLight} T={T} />
                       </th>
                       <th className="text-left px-5 py-3">
-                        <SortButton label="RECOMPENSA" field="reward" sortField={sort.field} sortDir={sort.dir} onSort={handleSort} />
+                        <SortButton label="INSCRIÇÃO" field="created_at" sortField={sort.field} sortDir={sort.dir} onSort={handleSort} isLight={isLight} T={T} />
+                      </th>
+                      <th className="text-left px-5 py-3">
+                        <SortButton label="RECOMPENSA" field="reward" sortField={sort.field} sortDir={sort.dir} onSort={handleSort} isLight={isLight} T={T} />
                       </th>
                       <th className="text-left px-5 py-3" />
                     </tr>
@@ -430,7 +437,7 @@ export default function MySubmissions() {
                           <p style={{ fontWeight: 600, color: C.cream, fontSize: 13 }} className="max-w-[220px] truncate">
                             {row.task?.title || 'Tarefa'}
                           </p>
-                          <p style={{ fontSize: 11, color: `${C.cream}40` }}>
+                          <p style={{ fontSize: 11, color: faintColor }}>
                             {row.deadlineState.isExpired
                               ? 'Prazo expirado'
                               : row.deadlineState.timeLabel !== 'Sem data'
@@ -439,22 +446,27 @@ export default function MySubmissions() {
                           </p>
                         </td>
                         <td className="px-5 py-3">
-                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: `${C.lime}12`, color: C.lime }}>
-                            {ACTIVE_USER_CATEGORIES[row.task?.category] || CATEGORY_NAMES[row.task?.category] || row.task?.category || '—'}
-                          </span>
+                          {(() => {
+                            const { color: catColor, bg: catBg } = getCategoryStyle(row.task?.category);
+                            return (
+                              <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: catBg, color: catColor }}>
+                                {ACTIVE_USER_CATEGORIES[row.task?.category] || CATEGORY_NAMES[row.task?.category] || row.task?.category || '—'}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td className="px-5 py-3">
                           <StatusBadge submission={row.submission} metricsSubmission={row.metricsSubmission} />
                         </td>
                         <td className="px-5 py-3">
-                          <p style={{ fontSize: 13, color: row.deadlineState.isCritical ? '#f87171' : row.deadlineState.isWarning ? C.orange : `${C.cream}70` }}>
+                          <p style={{ fontSize: 13, color: row.deadlineState.isCritical ? '#f87171' : row.deadlineState.isWarning ? C.orange : (isLight ? T.textSub : `${C.cream}70`) }}>
                             {formatDateTime(row.nextDeadline)}
                           </p>
                         </td>
-                        <td className="px-5 py-3" style={{ fontSize: 12, color: `${C.cream}60` }}>
+                        <td className="px-5 py-3" style={{ fontSize: 12, color: subColor }}>
                           {formatShortDate(row.submission.created_at)}
                         </td>
-                        <td className="px-5 py-3" style={{ ...heading, fontWeight: 800, color: row.statusDisplay.bucket === 'concluidas' ? C.lime : `${C.cream}50`, fontSize: 13 }}>
+                        <td className="px-5 py-3" style={{ ...heading, fontWeight: 800, color: row.statusDisplay.bucket === 'concluidas' ? (isLight ? C.darkGreen : C.lime) : mutedColor, fontSize: 13 }}>
                           {row.rewardLabel}
                         </td>
                         <td className="px-5 py-3">
@@ -462,7 +474,7 @@ export default function MySubmissions() {
                             type="button"
                             onClick={() => setSelectedSubmission(row.submission)}
                             className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110"
-                            style={{ border: '1px solid rgba(var(--ink),0.12)', backgroundColor: 'transparent', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
+                            style={{ border: `1px solid ${isLight ? T.border : 'rgba(var(--ink),0.12)'}`, backgroundColor: 'transparent', color: isLight ? T.textSub : `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
                           >
                             <Eye size={12} /> Detalhes
                           </button>
@@ -472,7 +484,7 @@ export default function MySubmissions() {
                   </tbody>
                 </table>
               </div>
-              <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+              <Pagination page={page} totalPages={totalPages} onPageChange={setPage} mutedColor={mutedColor} />
             </>
           )}
         </div>

@@ -1,44 +1,47 @@
 import React from "react";
 import { Moon, Sun } from "lucide-react";
 import { useThemeMode } from "@/contexts/ThemeContext";
+import { useSidebar } from "@/components/ui/sidebar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { C, body } from "@/lib/theme";
 
-export default function ThemeToggle({ collapsed = false }) {
-  const { mode, toggleTheme, isLight } = useThemeMode();
+export default function ThemeToggle() {
+  const { isLight, toggleTheme } = useThemeMode();
+  const { state, isMobile } = useSidebar();
+  const collapsed = state === "collapsed";
+  const label = isLight ? "Modo Escuro" : "Modo Claro";
 
-  return (
+  const button = (
     <button
       type="button"
       onClick={toggleTheme}
-      title={isLight ? "Ativar tema escuro" : "Ativar tema claro"}
-      aria-label={isLight ? "Ativar tema escuro" : "Ativar tema claro"}
-      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 hover:bg-white/10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+      aria-label={label}
+      className={`flex items-center rounded-xl transition-all hover:brightness-125 ${collapsed ? "w-8 h-8 justify-center mx-auto" : "w-full justify-start"}`}
       style={{
-        color: "rgba(255,255,255,0.85)",
+        gap: collapsed ? 0 : 10,
+        padding: collapsed ? 0 : "9px 14px",
+        backgroundColor: isLight ? `${C.lime}22` : "rgba(255,255,222,0.07)",
+        color: isLight ? C.lime : "rgba(255,255,222,0.7)",
         ...body,
-        fontSize: 13,
-        fontWeight: 500,
       }}
     >
-      {isLight ? (
-        <Moon className="w-4 h-4 shrink-0" />
-      ) : (
-        <Sun className="w-4 h-4 shrink-0" style={{ color: C.lime }} />
-      )}
-      <span className="group-data-[collapsible=icon]:hidden truncate">
-        {collapsed ? null : isLight ? "Tema escuro" : "Tema claro"}
-      </span>
+      {isLight ? <Moon size={14} /> : <Sun size={14} />}
       {!collapsed && (
-        <span
-          className="ml-auto group-data-[collapsible=icon]:hidden text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-md"
-          style={{
-            background: isLight ? "rgba(255,255,255,0.15)" : C.lime,
-            color: isLight ? "#fff" : C.onAccent,
-            fontWeight: 700,
-          }}
-        >
+        <span style={{ fontSize: 12, fontWeight: 600 }}>
+          {label}
         </span>
       )}
     </button>
+  );
+
+  if (!collapsed || isMobile) return button;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{button}</TooltipTrigger>
+      <TooltipContent side="right" align="center" sideOffset={10} className="px-3">
+        {label}
+      </TooltipContent>
+    </Tooltip>
   );
 }

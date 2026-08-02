@@ -15,10 +15,11 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import TaskDetailsModal from "../components/tasks/TaskDetailsModal";
 import { getProofMetricsWindowFromSubmission, getMetricsResubmissionDeadline, METRICS_WAIT_AFTER_PROOF_DAYS } from '@/lib/metrics-window';
-import { C, heading, body } from '@/lib/theme';
+import { C, heading, body, colorWithAlpha } from '@/lib/theme';
+import { useThemeMode } from '@/contexts/ThemeContext';
 import { formatLaunchDateTime, isTaskScheduled } from '@/lib/task-scheduling';
 import { stripFormattingForPreview } from '@/lib/task-description-format';
-import { PageShell, PageHeader, PageContent, PageTitle } from "@/components/layout/PageShell";
+import { PageShell, PageHeader, PageHeaderLabel, PageContent, PageTitle } from "@/components/layout/PageShell";
 
 const BORDER_COLOR = "rgba(var(--ink),0.07)";
 const MUTED_COLOR = "rgba(var(--ink),0.45)";
@@ -142,6 +143,7 @@ const getDeadlineState = (expiresAtValue) => {
 
 // ─── Componente principal ────────────────────────────────────────────────────
 export default function Tasks() {
+  const { isLight, T } = useThemeMode();
   const [selectedCategory, setSelectedCategory] = useState("todas");
   const [selectedTask, setSelectedTask] = useState(null);
   const { user, profile } = useAuth();
@@ -264,8 +266,10 @@ export default function Tasks() {
 
   const getTaskSteps = (task, submission) => {
     const steps = [
-      buildStepWithDeadline("Candidatar-se", task.posting_deadline),
-      buildStepWithDeadline("Enviar link da tarefa", resolveProofDeadline(task)),
+      task.category === 'sidequest_teste'
+        ? buildStepWithDeadline("Participar desta Missão", task.posting_deadline)
+        : buildStepWithDeadline("Candidatar-se", task.posting_deadline),
+      buildStepWithDeadline("Enviar conteúdo da tarefa", resolveProofDeadline(task)),
     ];
 
     if (task.category === 'campanha') {
@@ -321,7 +325,10 @@ export default function Tasks() {
     const Icon = CATEGORY_ICONS[task.category] || Target;
     const accentText = accent === C.lime ? C.onAccent : C.cream;
     const isCampaignTask = task.category === 'campanha';
+    const isMissionTask = task.category === 'sidequest_teste';
     const isPaidTask = task.category === 'campanha' || Number(task.offered_value || 0) > 0;
+    const missionPointsBg = isMissionTask ? accentBg : C.lime_back;
+    const missionPointsColor = isMissionTask ? accent : C.lime;
     const metricsStatus = String(metricsSubmission?.status || '').trim().toLowerCase();
     const submissionStatus = normalizeSubmissionStatus(submission?.status);
     const claimed = isTaskClaimed(task.id);
@@ -375,22 +382,31 @@ export default function Tasks() {
         return <span style={{ ...base, background: "rgba(var(--ink),0.07)", color: MUTED_COLOR }}>Em andamento</span>;
       if (isScheduled)
         return <span style={{ ...base, background: "rgba(170,102,255,0.12)", color: C.purple }}><Calendar size={11} /> Em breve</span>;
-      return <span style={{ ...base, background: "rgba(204,255,68,0.12)", color: C.lime }}>Disponível</span>;
+      return (
+        <span style={{
+          ...base,
+          background: isLight ? `${C.darkGreen}15` : "rgba(204,255,68,0.12)",
+          color: C.cream,
+        }}>
+          Disponível
+        </span>
+      );
     };
 
     return (
       <div
         onClick={() => !isSidequestBlockedThisMonth && setSelectedTask(task)}
         style={{
-          background: isScheduled ? 'rgba(170,102,255,0.06)' : C.card,
+          background: isScheduled ? colorWithAlpha('#FFFFFF', 0.4) : C.card,
           borderRadius: 16,
-          border: `1px solid ${isScheduled ? 'rgba(170,102,255,0.22)' : BORDER_COLOR}`,
+          border: `1px solid ${isScheduled ? 'rgba(170,102,255,0.22)' : (isLight ? T.border : BORDER_COLOR)}`,
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
           cursor: isSidequestBlockedThisMonth ? 'default' : 'pointer',
           transition: "all 0.2s",
-          opacity: isScheduled ? 0.88 : isSidequestBlockedThisMonth ? 0.4 : 1,
+          opacity: isSidequestBlockedThisMonth ? 0.4 : 1,
+          boxShadow: isLight && !isScheduled ? "0 2px 12px rgba(29,29,27,0.07)" : "none",
         }}
         onMouseEnter={e => {
           if (isSidequestBlockedThisMonth) return;
@@ -434,15 +450,22 @@ export default function Tasks() {
               )}
             </div>
             <div style={{
-              display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 999, flexShrink: 0,
-              background: isPaidTask ? "rgba(255,136,51,0.15)" : C.lime_back,
-              color: isPaidTask ? C.orange : C.lime,
+              display: "flex", alignItems: "center", gap: isMissionTask ? 5 : 4,
+              padding: isMissionTask ? "5px 12px" : "4px 10px",
+              borderRadius: 999, flexShrink: 0,
+              background: isPaidTask ? "rgba(255,136,51,0.15)" : missionPointsBg,
+              color: isPaidTask ? C.orange : missionPointsColor,
             }}>
               {isPaidTask
                 ? <CircleDollarSign size={11} />
-                : <Star size={10} style={{ fill: C.lime }} />
+                : <Star size={isMissionTask ? 12 : 10} style={{ fill: missionPointsColor }} />
               }
-              <span style={{ fontSize: 12, fontWeight: 700 }}>
+              <span style={{
+                ...(isMissionTask ? heading : {}),
+                fontSize: isMissionTask ? 14 : 12,
+                fontWeight: isMissionTask ? 800 : 700,
+                letterSpacing: isMissionTask ? "-0.02em" : undefined,
+              }}>
                 {isPaidTask
                   ? `R$ ${Number(task.offered_value || 0).toLocaleString('pt-BR')}`
                   : `${Number(task.points || 0).toLocaleString('pt-BR')} pts`}
@@ -573,14 +596,9 @@ export default function Tasks() {
   return (
     <PageShell>
       <PageHeader>
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <Target size={16} className="shrink-0" style={{ color: C.lime }} />
-          <span className="truncate" style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", textTransform: "uppercase" }}>
-            Tarefas Disponíveis
-          </span>
-        </div>
+        <PageHeaderLabel icon={Target}>Tarefas Disponíveis</PageHeaderLabel>
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full" style={{ backgroundColor: "rgba(var(--ink),0.06)", color: `${C.cream}70` }}>
+          <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full" style={{ backgroundColor: isLight ? T.itemBg : "rgba(var(--ink),0.06)", color: isLight ? T.textSub : `${C.cream}70` }}>
             <SlidersHorizontal size={11} />
             <span className="text-xs sm:text-sm whitespace-nowrap">{filteredTasks.length} {filteredTasks.length === 1 ? 'tarefa' : 'tarefas'}</span>
           </div>
@@ -596,7 +614,7 @@ export default function Tasks() {
           subtitle={
             <span className="flex flex-wrap items-center gap-2">
               Escolha uma tarefa e ganhe pontos!
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ backgroundColor: `${C.lime_back}`, color: C.lime }}>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ backgroundColor: isLight ? `${C.darkGreen}14` : C.lime_back, color: isLight ? C.darkGreen : C.lime }}>
                 +{filteredTasks.reduce((a, t) => a + (Number(t.points) || 0), 0)} pts disponíveis
               </span>
             </span>
@@ -606,7 +624,7 @@ export default function Tasks() {
         </PageTitle>
 
         {/* Filtros */}
-        <div className="flex items-center gap-2 mb-6 md:mb-7 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: "none" }}>
+        <div className="flex items-center gap-2 mt-5 md:mt-6 mb-6 md:mb-7 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: "none" }}>
           {FILTER_TABS.map(tab => {
             const active = selectedCategory === tab.value;
             return (
@@ -615,9 +633,10 @@ export default function Tasks() {
                 onClick={() => setSelectedCategory(tab.value)}
                 className="shrink-0 px-4 py-2 rounded-xl transition-all duration-150"
                 style={{
-                  backgroundColor: active ? C.lime : "rgba(var(--ink),0.06)",
-                  color: active ? C.black : `${C.cream}70`,
+                  backgroundColor: active ? C.lime : (isLight ? T.itemBg : "rgba(var(--ink),0.06)"),
+                  color: active ? C.onAccent : (isLight ? T.textSub : `${C.cream}70`),
                   fontWeight: active ? 700 : 400,
+                  border: !active && isLight ? `1px solid ${T.border}` : "none",
                   ...heading,
                   fontSize: 13,
                 }}
@@ -632,7 +651,7 @@ export default function Tasks() {
         {filteredTasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <Target size={56} color="rgba(var(--ink),0.2)" />
-            <p style={{ ...heading, fontSize: 18, fontWeight: 700, color: `${C.cream}40` }}>
+            <p style={{ ...heading, fontSize: 18, fontWeight: 700, color: isLight ? T.textMuted : `${C.cream}40` }}>
               {selectedCategory === "todas" ? "Nenhuma tarefa disponível no momento." : "Nenhuma tarefa nessa categoria."}
             </p>
           </div>

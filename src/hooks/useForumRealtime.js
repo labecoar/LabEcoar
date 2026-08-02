@@ -21,6 +21,8 @@ export function useForumRealtime(enabled = true) {
         { event: "*", schema: "public", table: "forum_posts" },
         () => {
           queryClient.invalidateQueries({ queryKey: ["forum-topics"] });
+          queryClient.invalidateQueries({ queryKey: ["forum-topics-unread"] });
+          queryClient.invalidateQueries({ queryKey: ["forum-topic-stats"] });
           queryClient.invalidateQueries({ queryKey: ["forum-posts"] });
           queryClient.invalidateQueries({ queryKey: ["forum-topic"] });
         }
@@ -30,6 +32,8 @@ export function useForumRealtime(enabled = true) {
         { event: "*", schema: "public", table: "forum_topics" },
         () => {
           queryClient.invalidateQueries({ queryKey: ["forum-topics"] });
+          queryClient.invalidateQueries({ queryKey: ["forum-topics-unread"] });
+          queryClient.invalidateQueries({ queryKey: ["forum-topic-stats"] });
           queryClient.invalidateQueries({ queryKey: ["forum-topic"] });
         }
       )

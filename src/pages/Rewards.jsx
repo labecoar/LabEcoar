@@ -1,5 +1,5 @@
 ﻿// @ts-nocheck
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserScore } from "@/hooks/useScores";
 import { useClaimReward, useMyRewardClaims, useRewards } from "@/hooks/useRewards";
@@ -26,7 +26,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
-import { C, heading, body } from '@/lib/theme';
+import { C, heading, body, getModalBackground } from '@/lib/theme';
+import { useThemeMode } from '@/contexts/ThemeContext';
+import { PageHeader, PageHeaderLabel, PointsBadge } from "@/components/layout/PageShell";
 
 const CATEGORY_INFO = {
   alimentacao: { name: "Alimentação", icon: Apple, colorHex: C.lime },
@@ -38,6 +40,8 @@ const CATEGORY_INFO = {
 };
 
 export default function Rewards() {
+  const { isLight } = useThemeMode();
+  const modalBg = getModalBackground(isLight);
   const [selectedCategory, setSelectedCategory] = useState("todas");
   const [selectedReward, setSelectedReward] = useState(null);
   const [showAddressModal, setShowAddressModal] = useState(false);
@@ -59,6 +63,29 @@ export default function Rewards() {
   const claimRewardMutation = useClaimReward(user?.id);
 
   const currentPoints = Number(userScore?.total_points || 0);
+
+  const nextRewardGoal = useMemo(() => {
+    const upcoming = rewards
+      .filter((reward) => {
+        if (reward.is_active === false) return false;
+        if (reward.quantity_available != null
+          && Number(reward.quantity_claimed || 0) >= Number(reward.quantity_available || 0)) {
+          return false;
+        }
+        return Number(reward.points_required || 0) > currentPoints;
+      })
+      .sort((a, b) => Number(a.points_required || 0) - Number(b.points_required || 0));
+
+    return upcoming[0] || null;
+  }, [rewards, currentPoints]);
+
+  const progressPercent = nextRewardGoal
+    ? Math.min(100, (currentPoints / Number(nextRewardGoal.points_required || 1)) * 100)
+    : 100;
+
+  const progressGoalLabel = nextRewardGoal
+    ? `${currentPoints}/${nextRewardGoal.points_required} pts para ${nextRewardGoal.title}`
+    : "Continue acumulando!";
 
   const filteredRewards = selectedCategory === "todas"
     ? rewards
@@ -159,16 +186,10 @@ export default function Rewards() {
   return (
     <div style={{ minHeight: "100vh", background: C.black, ...body }}>
       {/* Header Fixo */}
-      <div className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10" style={{ backgroundColor: `${C.black}F5`, backdropFilter: "blur(16px)", borderBottom: `1px solid rgba(var(--ink),0.05)` }}>
-        <div className="flex items-center gap-3">
-          <Gift size={16} style={{ color: C.lime }} />
-          <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", textTransform: "uppercase" }}>Recompensas</span>
-        </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.onAccent }}>
-          <Star size={11} fill={C.onAccent} />
-          <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>{currentPoints} pts</span>
-        </div>
-      </div>
+      <PageHeader>
+        <PageHeaderLabel icon={Gift}>Recompensas</PageHeaderLabel>
+        <PointsBadge points={currentPoints} />
+      </PageHeader>
 
       <div className="px-4 sm:px-6 md:px-8 pt-5 md:pt-7 pb-8 md:pb-10 max-w-6xl mx-auto w-full min-w-0">
         {/* Hero */}
@@ -177,21 +198,33 @@ export default function Rewards() {
           <p style={{ fontSize: 14, color: `${C.cream}50`, marginTop: 6 }}>Converta seus pontos em prêmios reais.</p>
         </div>
 
-        {/* Balance Card */}
-        <div className="p-4 sm:p-6 rounded-2xl mb-6 md:mb-8 flex flex-col md:flex-row md:items-center gap-6 md:gap-8" style={{ background: `linear-gradient(135deg, ${C.darkGreen} 0%, ${C.black} 100%)`, border: `1px solid ${C.lime}22` }}>
-          <div>
-            <div style={{ fontSize: 11, color: `${C.cream}50`, marginBottom: 4 }}>Saldo disponível</div>
+        {/* Balance Card — gradiente verde escuro; fim mais escuro que o creme da página */}
+        <div
+          className="p-4 sm:p-6 rounded-2xl mb-6 md:mb-8 flex flex-col md:flex-row md:items-center gap-6 md:gap-8"
+          style={{
+            background: "linear-gradient(135deg, #072617 0%, #1A4530 100%)",
+            border: `1px solid ${C.lime}22`,
+          }}
+        >
+          <div className="shrink-0">
+            <div style={{ fontSize: 11, color: "rgba(255,255,222,0.85)", marginBottom: 4 }}>Saldo disponível</div>
             <div className="text-4xl sm:text-5xl font-black leading-none tracking-tighter" style={{ ...heading, color: C.lime }}>{currentPoints}</div>
-            <div style={{ fontSize: 13, color: `${C.cream}40`, marginTop: 2 }}>pontos</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,222,0.75)", marginTop: 2 }}>pontos</div>
           </div>
-          <div className="flex-1 w-full max-w-md ml-auto">
-            <div style={{ fontSize: 12, color: `${C.cream}50`, marginBottom: 10 }}>Seu saldo em conta</div>
-            <div className="relative h-2 rounded-full w-full" style={{ backgroundColor: "rgba(var(--ink),0.07)" }}>
-              <div className="absolute left-0 top-0 h-full rounded-full" style={{ width: `${Math.min(100, (currentPoints / (currentPoints + 500)) * 100)}%`, background: `linear-gradient(90deg, ${C.lime} 0%, ${C.blue} 100%)` }} />
+          <div className="flex-1 w-full min-w-0">
+            <div style={{ fontSize: 12, color: "rgba(255,255,222,0.85)", marginBottom: 10 }}>Progresso para próximo resgate</div>
+            <div className="relative h-2 rounded-full w-full" style={{ backgroundColor: "rgba(255,255,222,0.12)" }}>
+              <div
+                className="absolute left-0 top-0 h-full rounded-full"
+                style={{
+                  width: `${progressPercent}%`,
+                  background: `linear-gradient(90deg, ${C.lime} 0%, ${C.blue} 100%)`,
+                }}
+              />
             </div>
-            <div className="flex justify-between mt-2">
-              <span style={{ fontSize: 11, color: `${C.cream}40` }}>0</span>
-              <span style={{ fontSize: 11, color: C.lime, fontWeight: 700 }}>Continue acumulando!</span>
+            <div className="flex justify-between items-start gap-3 mt-2">
+              <span style={{ fontSize: 11, color: "rgba(255,255,222,0.65)" }}>0</span>
+              <span style={{ fontSize: 11, color: C.lime, fontWeight: 700, textAlign: "right" }}>{progressGoalLabel}</span>
             </div>
           </div>
         </div>
@@ -296,7 +329,7 @@ export default function Rewards() {
           <Dialog open={!!selectedReward && !showAddressModal} onOpenChange={() => setSelectedReward(null)}>
             <DialogContent className="sm:max-w-xl p-0 border-0 bg-transparent overflow-hidden shadow-none [&>button]:text-[rgba(var(--ink),0.5)] [&>button]:hover:opacity-100 [&>button]:top-4 [&>button]:right-5 [&>button]:scale-125" aria-describedby={undefined} >
               <DialogTitle className="sr-only">Detalhes da Recompensa</DialogTitle>
-              <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.1)` }}>
+              <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: modalBg, border: `1px solid rgba(var(--ink),0.1)` }}>
                 <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
                   <span style={{ ...heading, fontSize: 18, fontWeight: 700, color: C.cream }}>{selectedReward?.title}</span>
                 </div>
@@ -362,7 +395,7 @@ export default function Rewards() {
         <Dialog open={showAddressModal} onOpenChange={() => setShowAddressModal(false)}>
           <DialogContent className="sm:max-w-xl p-0 border-0 bg-transparent overflow-hidden shadow-none [&>button]:text-[rgba(var(--ink),0.5)] [&>button]:hover:opacity-100 [&>button]:top-4 [&>button]:right-5 [&>button]:scale-125" aria-describedby={undefined}>
             <DialogTitle className="sr-only">Endereço de Entrega</DialogTitle>
-            <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.1)` }}>
+            <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: modalBg, border: `1px solid rgba(var(--ink),0.1)` }}>
               <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
                 <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream }}>Endereço de Entrega</span>
               </div>

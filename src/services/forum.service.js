@@ -3,6 +3,8 @@ import { supabase } from '@/lib/supabase'
 const FORUM_MAX_TEXT_LENGTH = 5000
 const BASE64_IMAGE_PATTERN = /data:image\/[a-zA-Z0-9.+-]+;base64,/i
 
+export const FORUM_PAGE_SIZE = 15
+
 const validateForumTextField = (value, fieldLabel) => {
   const normalized = String(value || '')
 
@@ -15,47 +17,80 @@ const validateForumTextField = (value, fieldLabel) => {
   }
 }
 
+const attachLastPosts = async (topics) => {
+  const topicIds = topics.map((topic) => topic.id).filter(Boolean)
+  let lastPostByTopic = {}
+
+  if (topicIds.length > 0) {
+    const { data: recentPosts, error: postsError } = await supabase
+      .from('forum_posts')
+      .select('topic_id, content, author_name, author_id, author_email, created_at')
+      .in('topic_id', topicIds)
+      .order('created_at', { ascending: false })
+
+    if (!postsError && Array.isArray(recentPosts)) {
+      recentPosts.forEach((post) => {
+        if (!post?.topic_id || lastPostByTopic[post.topic_id]) return
+        lastPostByTopic[post.topic_id] = {
+          content: post.content || '',
+          author_name: post.author_name || 'Comunidade',
+          author_id: post.author_id || null,
+          author_email: post.author_email || null,
+          created_at: post.created_at,
+        }
+      })
+    }
+  }
+
+  return topics.map((topic) => ({
+    ...topic,
+    total_posts: Number(topic.forum_posts?.[0]?.count ?? topic.total_posts ?? 0),
+    last_post: lastPostByTopic[topic.id] || null,
+    forum_posts: undefined,
+  }))
+}
+
 export const forumService = {
-  async getTopics() {
-    const { data, error } = await supabase
+  async getTopics({ limit, offset = 0, category } = {}) {
+    let query = supabase
       .from('forum_topics')
       .select('*, forum_posts(count)')
       .order('is_pinned', { ascending: false })
       .order('last_activity', { ascending: false })
 
-    if (error) throw error
-
-    const topics = data || []
-    const topicIds = topics.map((topic) => topic.id).filter(Boolean)
-
-    let lastPostByTopic = {}
-    if (topicIds.length > 0) {
-      const { data: recentPosts, error: postsError } = await supabase
-        .from('forum_posts')
-        .select('topic_id, content, author_name, author_id, author_email, created_at')
-        .in('topic_id', topicIds)
-        .order('created_at', { ascending: false })
-
-      if (!postsError && Array.isArray(recentPosts)) {
-        recentPosts.forEach((post) => {
-          if (!post?.topic_id || lastPostByTopic[post.topic_id]) return
-          lastPostByTopic[post.topic_id] = {
-            content: post.content || '',
-            author_name: post.author_name || 'Comunidade',
-            author_id: post.author_id || null,
-            author_email: post.author_email || null,
-            created_at: post.created_at,
-          }
-        })
-      }
+    if (category && category !== 'todas') {
+      query = query.eq('category', category)
     }
 
-    return topics.map((topic) => ({
-      ...topic,
-      total_posts: Number(topic.forum_posts?.[0]?.count ?? topic.total_posts ?? 0),
-      last_post: lastPostByTopic[topic.id] || null,
-      forum_posts: undefined,
-    }))
+    if (limit != null) {
+      query = query.range(offset, offset + limit - 1)
+    }
+
+    const { data, error } = await query
+
+    if (error) throw error
+
+    const topics = await attachLastPosts(data || [])
+
+    return {
+      topics,
+      hasMore: limit != null ? topics.length === limit : false,
+    }
+  },
+
+  async getTopicStats() {
+    const { data, error } = await supabase
+      .from('forum_topics')
+      .select('total_posts, views')
+
+    if (error) throw error
+
+    const rows = data || []
+    return {
+      totalTopics: rows.length,
+      totalReplies: rows.reduce((sum, topic) => sum + Number(topic.total_posts || 0), 0),
+      totalViews: rows.reduce((sum, topic) => sum + Number(topic.views || 0), 0),
+    }
   },
 
   async createTopic(topicData) {

@@ -13,8 +13,14 @@
     <script>
       (function () {
         try {
-          var mode = localStorage.getItem('labecoar-theme');
-          if (mode !== 'light' && mode !== 'dark') mode = 'dark';
+          var stored = localStorage.getItem('labecoar-theme');
+          var userChose = localStorage.getItem('labecoar-theme-user-choice') === '1';
+          var mode;
+          if (userChose && (stored === 'light' || stored === 'dark')) {
+            mode = stored;
+          } else {
+            mode = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+          }
           document.documentElement.setAttribute('data-theme', mode);
           document.documentElement.style.colorScheme = mode;
         } catch (e) {}

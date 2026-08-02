@@ -2,7 +2,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { LayoutDashboard, Target, FileCheck, Trophy, LogOut, Shield, User, Users, MessageSquare, Gift, CreditCard, DollarSign, BarChart3, ShieldCheck, HelpCircle, Activity } from "lucide-react";
+import { LayoutDashboard, Target, FileCheck, Trophy, LogOut, Shield, User, Users, MessageSquare, Gift, CreditCard, DollarSign, BarChart3, ShieldCheck, HelpCircle, Activity, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useThemeMode } from "@/contexts/ThemeContext";
 import { useUserScore, useGroupProgress } from "@/hooks/useScores";
@@ -162,6 +162,7 @@ function NavigationMenu({ items, isNavItemActive, hasForumUnread = false }) {
         <SidebarMenuItem key={item.title} className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
           <SidebarMenuButton
             asChild
+            tooltip={item.title}
             className={`hover:bg-[#096e4c10] transition-all duration-200 rounded-xl mb-1 ${isNavItemActive(item.url) ? 'text-black shadow-md' : 'text-white'
               }`}
             style={isNavItemActive(item.url) ? {
@@ -203,6 +204,27 @@ function NavigationMenu({ items, isNavItemActive, hasForumUnread = false }) {
   );
 }
 
+function SidebarCollapseButton() {
+  const { state, toggleSidebar } = useSidebar();
+  const expanded = state === "expanded";
+
+  return (
+    <button
+      type="button"
+      onClick={toggleSidebar}
+      aria-label={expanded ? "Recolher menu" : "Expandir menu"}
+      title={expanded ? "Recolher menu" : "Expandir menu"}
+      className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all hover:brightness-125"
+      style={{
+        backgroundColor: "rgba(0,0,0,0.35)",
+        color: "rgba(255,255,255,0.9)",
+      }}
+    >
+      {expanded ? <ChevronLeft size={16} strokeWidth={2.5} /> : <ChevronRight size={16} strokeWidth={2.5} />}
+    </button>
+  );
+}
+
 function MobileSidebarAutoCloseOnRouteChange({ pathname }) {
   const { isMobile, setOpenMobile } = useSidebar();
 
@@ -225,30 +247,14 @@ export default function Layout({ children, currentPageName }) {
   const visibleNavigationItems = isAdmin ? adminNavigationItems : navigationItems;
   const landingPageUrl = currentPageName ? createPageUrl(currentPageName) : null;
 
-  // Controla a sidebar no desktop: fechada (só ícones) por padrão, expande no hover.
-  // No mobile o comportamento continua sendo o padrão do Sheet (openMobile / setOpenMobile).
-  const [sidebarOpen, setSidebarOpen] = React.useState(false);
-  const closeTimeoutRef = React.useRef(null);
-
-  const handleSidebarMouseEnter = () => {
-    if (closeTimeoutRef.current) {
-      clearTimeout(closeTimeoutRef.current);
-      closeTimeoutRef.current = null;
-    }
-    setSidebarOpen(true);
+  const getInitialSidebarOpen = () => {
+    if (typeof document === "undefined") return true;
+    const match = document.cookie.match(/(?:^|; )sidebar_state=(true|false)/);
+    if (match) return match[1] === "true";
+    return true;
   };
 
-  const handleSidebarMouseLeave = () => {
-    closeTimeoutRef.current = setTimeout(() => {
-      setSidebarOpen(false);
-    }, 400); // tempo (ms) parado fora da sidebar antes de minimizar
-  };
-
-  React.useEffect(() => {
-    return () => {
-      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
-    };
-  }, []);
+  const [sidebarOpen, setSidebarOpen] = React.useState(getInitialSidebarOpen);
 
   // Chamadas de hooks devem ficar obrigatoriamente dentro do componente
   const { data: users } = useQuery({
@@ -307,20 +313,22 @@ export default function Layout({ children, currentPageName }) {
       <div className="min-h-screen flex w-full" style={{ backgroundColor: colors.black, color: colors.cream }}>
         <Sidebar
           collapsible="icon"
-          className="border-r flex flex-col"
+          className="group-data-[side=left]:border-r-0 flex flex-col"
           style={{
             backgroundColor: colors.blue,
             "--sidebar-width-icon": "4rem"
           }}
-          onMouseEnter={handleSidebarMouseEnter}
-          onMouseLeave={handleSidebarMouseLeave}
         >
-          <SidebarHeader className="border-a p-6" >
-            <img
-              src={logoCuica}
-              style={{ height: 38, width: 172, justifyContent: "center", alignSelf: "center" }}
-              className="w-full h-full object-cover group-data-[collapsible=icon]:hidden"
-            />
+          <SidebarHeader className="border-a p-4 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3">
+            <div className="flex items-center justify-between gap-2 group-data-[collapsible=icon]:justify-center">
+              <img
+                src={logoCuica}
+                alt="Cuíca Lab"
+                style={{ height: 38, width: 172 }}
+                className="object-contain group-data-[collapsible=icon]:hidden"
+              />
+              <SidebarCollapseButton />
+            </div>
           </SidebarHeader>
 
           <SidebarContent className="flex flex-col h-full">
@@ -337,10 +345,6 @@ export default function Layout({ children, currentPageName }) {
               </SidebarGroup>
             </div>
             <div className="p-3 pt-0 shrink-0">
-              <div className="mb-2 px-1">
-                <ThemeToggle />
-              </div>
-
               {isAdmin && (
                 <SidebarGroup className="group-data-[collapsible=icon]:hidden">
                   <div
@@ -449,6 +453,9 @@ export default function Layout({ children, currentPageName }) {
           </SidebarContent>
 
           <SidebarFooter className="border-t p-4 group-data-[collapsible=icon]:p-2" style={{ borderColor: '#096e4c20' }}>
+            <div className="mb-3 group-data-[collapsible=icon]:mb-2">
+              <ThemeToggle />
+            </div>
             <div className="flex items-center justify-between group-data-[collapsible=icon]:justify-center">
               <div className="flex items-center gap-3 flex-1 min-w-0 group-data-[collapsible=icon]:flex-none">
                 {user?.avatar_url ? (

@@ -484,7 +484,10 @@ const SidebarMenuButton = React.forwardRef((
         side="right"
         align="center"
         hidden={state !== "collapsed" || isMobile}
-        {...tooltip} />
+        {...tooltip}
+        sideOffset={tooltip?.sideOffset ?? 10}
+        className={cn("px-4", tooltip?.className)}
+      />
     </Tooltip>)
   );
 })

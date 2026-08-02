@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { User, Instagram, Trophy, Award, Star, Users, Upload, Check, XCircle, Edit3 } from 'lucide-react'
 import { notifyError, notifySuccess } from '@/lib/toast'
 import { C, heading, body } from '@/lib/theme'
+import { PageHeader, PageHeaderLabel, PointsBadge } from "@/components/layout/PageShell";
 
 const CATEGORY_LABELS = {
   voz_e_violao: 'Voz e Violão',
@@ -452,16 +453,10 @@ export default function Profile() {
       </Dialog>
 
       {/* Topbar */}
-      <div className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10" style={{ backgroundColor: `${C.black}F5`, backdropFilter: "blur(16px)", borderBottom: `1px solid rgba(var(--ink),0.05)` }}>
-        <div className="flex items-center gap-3">
-          <User size={16} style={{ color: C.lime }} />
-          <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: "0.06em", textTransform: "uppercase" }}>Perfil</span>
-        </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ backgroundColor: C.lime, color: C.onAccent }}>
-          <Star size={11} fill={C.onAccent} />
-          <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>{totalPoints} pts</span>
-        </div>
-      </div>
+      <PageHeader>
+        <PageHeaderLabel icon={User}>Perfil</PageHeaderLabel>
+        <PointsBadge points={totalPoints} />
+      </PageHeader>
 
       <div className="flex flex-col md:flex-row gap-6 px-4 sm:px-6 md:px-8 pt-5 md:pt-7 pb-8 md:pb-10 max-w-6xl mx-auto w-full min-w-0" style={{ minHeight: 0 }}>
         {/* ── LEFT: sidebar card ── */}

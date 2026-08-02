@@ -5,7 +5,7 @@ import { Eye, EyeOff, Instagram, Lock, Mail, Users } from 'lucide-react'
 import cuicaLogin from '@/assets/images/cuica_login.png'
 import iconGoogle from '@/assets/images/icon_google.png'
 import imageLogin from '@/assets/images/image_login.png'
-import { C, heading, body } from '@/lib/theme'
+import { loginColors as LC, heading, body } from '@/lib/theme'
 import { buildSignupProfilePayload, formatCpf } from '@/lib/profile-utils'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -318,8 +318,8 @@ export default function Login() {
 
   const inputCls = 'flex items-center pl-4 pr-1 h-[50px] rounded-xl bg-white'
   const inputStyle = { border: `1.5px solid ${error ? '#FF2255' : '#d9d9d6'}`, boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }
-  const labelStyle = { ...body, fontSize: 11, fontWeight: 700,  color: C.onAccent, letterSpacing: '0.05em' }
-  const textInputStyle = { ...body, fontSize: 14, color: C.onAccent }
+  const labelStyle = { ...body, fontSize: 11, fontWeight: 700,  color: LC.onAccent, letterSpacing: '0.05em' }
+  const textInputStyle = { ...body, fontSize: 14, color: LC.onAccent }
 
   const PasswordToggle = ({ visible, onToggle }) => (
     <button
@@ -333,9 +333,9 @@ export default function Login() {
   )
 
   return (
-    <div className="min-h-screen flex">
-      <div className="relative flex w-full min-h-screen overflow-hidden" style={{ backgroundColor: C.black }}>
-        <div className="absolute left-0 top-0 right-0 h-1.5 z-50 pointer-events-none" style={{ background: `linear-gradient(90deg, ${C.lime} 0%, ${C.lime}00 100%)` }} />
+    <div className="min-h-screen flex" style={{ backgroundColor: LC.cream }}>
+      <div className="relative flex w-full min-h-screen overflow-hidden" style={{ backgroundColor: LC.black }}>
+        <div className="absolute left-0 top-0 right-0 h-1.5 z-50 pointer-events-none" style={{ background: `linear-gradient(90deg, ${LC.lime} 0%, ${LC.lime}00 100%)` }} />
         <div className="relative flex-1 h-full min-h-screen overflow-hidden hidden md:block" style={{ minWidth: 0 }}>
           <img
             src={imageLogin}
@@ -343,17 +343,17 @@ export default function Login() {
             className="absolute inset-0 h-full w-full object-cover grayscale brightness-[.55]"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-[rgba(7,38,23,0.333)] to-[#1D1D1B]/80" />
-          <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: `linear-gradient(180deg, ${C.blue} 0%, ${C.blue}00 100%)` }} />
+          <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: `linear-gradient(180deg, ${LC.blue} 0%, ${LC.blue}00 100%)` }} />
           <div className="absolute inset-0 flex items-center justify-center pb-16">
             <img src={cuicaLogin} alt="CuícaLab logo" className="w-80 aspect-[288/312] object-contain drop-shadow-2xl" />
           </div>
-          <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center" style={{ backgroundColor: C.lime, height: 72 }}>
-            <span style={{ ...heading, fontSize: 26, fontWeight: 800, color: C.onAccent, letterSpacing: "-0.01em" }}>
+          <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center" style={{ backgroundColor: LC.lime, height: 72 }}>
+            <span style={{ ...heading, fontSize: 26, fontWeight: 800, color: LC.onAccent, letterSpacing: "-0.01em" }}>
               Conecte. Influencie. Cresça.
             </span>
           </div>
         </div>
-        <div className={`relative flex flex-col h-full min-h-screen shrink-0 overflow-y-auto w-full md:w-1/2 ${mode === 'signup' ? 'justify-start' : 'items-center justify-center'}`} style={{ maxWidth: 680, backgroundColor: C.cream }}>
+        <div className={`relative flex flex-col h-full min-h-screen shrink-0 overflow-y-auto w-full md:w-1/2 ${mode === 'signup' ? 'justify-start' : 'items-center justify-center'}`} style={{ maxWidth: 680, backgroundColor: LC.cream }}>
           <div className={`flex flex-col w-full px-6 py-10 ${mode === 'signup' ? 'gap-6 max-w-[440px] mx-auto' : 'gap-7 max-w-[400px]'}`}>
 
             {error && (
@@ -371,7 +371,7 @@ export default function Login() {
             {mode === 'login' ? (
               <>
                 <div className="flex flex-col gap-2">
-                  <h1 style={{ ...heading, fontWeight: 800, fontSize: 34, color: C.onAccent, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+                  <h1 style={{ ...heading, fontWeight: 800, fontSize: 34, color: LC.onAccent, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
                     Que bom ter você aqui!
                   </h1>
                   <p style={{ ...body, fontSize: 14, color: '#6b6b69' }}>Entre na sua conta para continuar.</p>
@@ -447,7 +447,7 @@ export default function Login() {
                         type="button"
                         onClick={handleOpenForgotModal}
                         disabled={forgotLoading || loading || forgotCooldown > 0}
-                        style={{ ...body, fontSize: 11, fontWeight: 500, color: C.blue }}
+                        style={{ ...body, fontSize: 11, fontWeight: 500, color: LC.blue }}
                         className="hover:underline disabled:opacity-50"
                       >
                         {forgotCooldown > 0 ? `Esqueceu a senha? (${forgotCooldown}s)` : 'Esqueceu a senha?'}
@@ -473,7 +473,7 @@ export default function Login() {
                     type="submit"
                     disabled={loading}
                     className="flex items-center justify-center w-full h-[54px] rounded-xl transition-all hover:brightness-110 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed mt-2"
-                    style={{ ...heading, backgroundColor: C.blue, boxShadow: `0 4px 20px ${C.blue}44`, color: C.cream, fontSize: 15, fontWeight: 700, letterSpacing: '0.04em', height: 38 }}
+                    style={{ ...heading, backgroundColor: LC.blue, boxShadow: `0 4px 20px ${LC.blue}44`, color: LC.cream, fontSize: 15, fontWeight: 700, letterSpacing: '0.04em', height: 38 }}
                   >
                     {loading ? 'Aguarde...' : 'Entrar'}
                   </button>
@@ -484,7 +484,7 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => setMode('signup')}
-                    style={{ ...body, fontSize: 13, fontWeight: 700, color: C.darkGreen, textDecoration: 'underline' }}
+                    style={{ ...body, fontSize: 13, fontWeight: 700, color: LC.darkGreen, textDecoration: 'underline' }}
                     className="hover:opacity-80 transition-opacity"
                   >
                     Cadastre-se
@@ -494,7 +494,7 @@ export default function Login() {
             ) : (
               <>
                 <div className="flex flex-col gap-1.5">
-                  <h1 style={{ ...heading, fontWeight: 800, fontSize: 32, color: C.onAccent, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+                  <h1 style={{ ...heading, fontWeight: 800, fontSize: 32, color: LC.onAccent, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
                     Crie sua conta
                   </h1>
                   <p style={{ ...body, fontSize: 14, color: '#6b6b69' }}>Junte-se à rede de influenciadores CuícaLab.</p>
@@ -662,7 +662,7 @@ export default function Login() {
                     type="submit"
                     disabled={loading}
                     className="flex items-center justify-center w-full h-[54px] rounded-xl transition-all hover:brightness-110 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ ...heading, backgroundColor: C.blue, boxShadow: `0 4px 20px ${C.blue}44`, color: C.cream, fontSize: 15, fontWeight: 700, letterSpacing: '0.04em' }}
+                    style={{ ...heading, backgroundColor: LC.blue, boxShadow: `0 4px 20px ${LC.blue}44`, color: LC.cream, fontSize: 15, fontWeight: 700, letterSpacing: '0.04em' }}
                   >
                     {loading ? 'Aguarde...' : 'Criar conta'}
                   </button>
@@ -673,7 +673,7 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => setMode('login')}
-                    style={{ ...body, fontSize: 13, fontWeight: 700, color: C.darkGreen, textDecoration: 'underline' }}
+                    style={{ ...body, fontSize: 13, fontWeight: 700, color: LC.darkGreen, textDecoration: 'underline' }}
                     className="hover:opacity-80 transition-opacity"
                   >
                     Entre aqui

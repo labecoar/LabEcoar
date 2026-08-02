@@ -1,6 +1,55 @@
 ﻿export const heading = { fontFamily: "'Bricolage Grotesque', sans-serif" };
 export const body = { fontFamily: "'DM Sans', sans-serif" };
 
+/** Fundo suave a partir de hex (#RRGGBB) ou rgb/rgba — evita `${rgba(...)}18` inválido */
+export function colorWithAlpha(color, alpha = 0.1) {
+  const value = String(color || "").trim();
+  if (!value) return `rgba(0,0,0,${alpha})`;
+
+  if (value.startsWith("#")) {
+    const hex = value.slice(1);
+    const expand = (h) => h + h;
+    const parse = (r, g, b) => `rgba(${r},${g},${b},${alpha})`;
+
+    if (hex.length === 3) {
+      return parse(
+        parseInt(expand(hex[0]), 16),
+        parseInt(expand(hex[1]), 16),
+        parseInt(expand(hex[2]), 16),
+      );
+    }
+    if (hex.length >= 6) {
+      return parse(
+        parseInt(hex.slice(0, 2), 16),
+        parseInt(hex.slice(2, 4), 16),
+        parseInt(hex.slice(4, 6), 16),
+      );
+    }
+  }
+
+  const rgbaMatch = value.match(
+    /rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*[\d.]+)?\s*\)/,
+  );
+  if (rgbaMatch) {
+    return `rgba(${rgbaMatch[1]},${rgbaMatch[2]},${rgbaMatch[3]},${alpha})`;
+  }
+
+  return value;
+}
+
+/** Opacidade do branco de cards/superfícies no tema claro */
+export const LIGHT_CARD_ALPHA = 0.6;
+
+/** Branco semitransparente para cards no tema claro */
+export const lightCardSurface = `rgba(255, 255, 255, ${LIGHT_CARD_ALPHA})`;
+
+/** Branco sólido para modais no tema claro (fora do card 0.6) */
+export const LIGHT_MODAL_BG = "#FFFFFF";
+
+export function getModalBackground(isLight) {
+  return isLight ? LIGHT_MODAL_BG : darkPalette.card;
+}
+
 /** Modo noturno (atual) */
 export const darkPalette = {
   black: "#111110",
@@ -28,47 +77,110 @@ export const darkPalette = {
 };
 
 
+/** Modo claro — referência Figma Make (creme quente, cards brancos, accent darkGreen) */
 export const lightPalette = {
-  black: "#e6e9e6",
-  darkGreen: "rgba(210, 232, 220, 1)",
-  blue: "rgba(0, 65, 200, 1)",
-  blue_back: "rgba(0, 65, 200, 0.08)",
-  lime: "rgba(170, 205, 0, 1)",
-  lime_back: "rgba(130, 175, 0, 0.14)",
-  cream: "#1c1d1b",
-  onAccent: "#111110",
+  black: "#FFFFDE",
+  darkGreen: "#072617",
+  blue: "#0000FF",
+  blue_back: "rgba(0, 0, 255, 0.08)",
+  lime: "#C8FF00",
+  lime_back: "rgba(200, 255, 0, 0.13)",
+  cream: "#1D1D1B",
+  onAccent: "#1D1D1B",
+  onSurface: "#FFFFDE",
   red: "rgba(190, 20, 20, 1)",
   red_back: "rgba(190, 20, 20, 0.09)",
-  orange: "rgba(205, 65, 0, 1)",
-  orange_back: "rgba(205, 65, 0, 0.13)",
+  orange: "#FF4500",
+  orange_back: "rgba(255, 69, 0, 0.13)",
   pink: "rgba(185, 40, 140, 1)",
   purple: "rgba(115, 65, 200, 1)",
   cyan: "rgba(0, 130, 175, 1)",
-  black_back: "rgba(248, 249, 247, 1)",
-  black_light: "rgba(213, 217, 212, 1)",
-  card: "#f7f8f6",
+  black_back: "#F5F5D8",
+  black_light: "#EEEECC",
+  card: lightCardSurface,
   notification_background: "rgba(130, 175, 0, 0.09)",
-  border: "rgba(22, 22, 22, 0.12)",
-  borderStrong: "rgba(22, 22, 22, 0.2)",
+  border: "rgba(29, 29, 27, 0.15)",
+  borderStrong: "rgba(29, 29, 27, 0.2)",
   overlay: "rgba(0, 0, 0, 0.05)",
 };
 
+/** Tokens semânticos — escuro espelha o comportamento atual; claro segue Figma Make */
+export function getThemeTokens(isLight) {
+  if (!isLight) {
+    return {
+      bg: darkPalette.black,
+      card: darkPalette.card,
+      cardDeep: darkPalette.black_back,
+      surface: darkPalette.black_light,
+      text: darkPalette.cream,
+      textSub: `${darkPalette.cream}60`,
+      textMuted: `${darkPalette.cream}40`,
+      textFaint: `${darkPalette.cream}28`,
+      border: "rgba(var(--ink),0.07)",
+      borderMid: "rgba(var(--ink),0.05)",
+      topbar: `${darkPalette.black}F5`,
+      topbarBdr: "rgba(var(--ink),0.05)",
+      progressBg: "rgba(var(--ink),0.07)",
+      itemBg: "rgba(var(--ink),0.06)",
+      accent: darkPalette.lime,
+      textOnColor: darkPalette.cream,
+    };
+  }
+
+  return {
+    bg: lightPalette.black,
+    card: lightPalette.card,
+    cardDeep: lightPalette.black_back,
+    surface: lightPalette.black_light,
+    text: lightPalette.cream,
+    textSub: "#3A3A38",
+    textMuted: "#5A5A58",
+    textFaint: "#8A8A88",
+    border: lightPalette.border,
+    borderMid: "rgba(29,29,27,0.08)",
+    topbar: lightPalette.black,
+    topbarBdr: "rgba(29,29,27,0.14)",
+    progressBg: "rgba(29,29,27,0.09)",
+    itemBg: "rgba(29,29,27,0.05)",
+    accent: lightPalette.darkGreen,
+    textOnColor: lightPalette.onSurface,
+  };
+}
+
+/** Cores fixas da tela de login — não segue o toggle claro/escuro do app */
+export const loginColors = darkPalette;
+
 export const THEME_STORAGE_KEY = "labecoar-theme";
+export const THEME_USER_CHOICE_KEY = "labecoar-theme-user-choice";
 
 const listeners = new Set();
 
-function readStoredMode() {
+/** Preferência explícita do usuário (null = nunca escolheu no toggle) */
+function readStoredPreference() {
   try {
+    const userChose = localStorage.getItem(THEME_USER_CHOICE_KEY) === "1";
+    if (!userChose) return null;
+
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
     if (stored === "light" || stored === "dark") return stored;
   } catch {
     /* ignore */
   }
-  return "dark";
+  return null;
 }
 
-let activeMode = typeof window !== "undefined" ? readStoredMode() : "dark";
-let activePalette = activeMode === "light" ? lightPalette : darkPalette;
+/** Tema do SO/navegador — usado só na primeira visita */
+export function getSystemThemeMode() {
+  if (typeof window === "undefined") return "dark";
+  try {
+    return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  } catch {
+    return "dark";
+  }
+}
+
+let activeMode = "dark";
+let activePalette = darkPalette;
 
 export function getThemeMode() {
   return activeMode;
@@ -88,7 +200,7 @@ function notifyThemeListeners() {
   listeners.forEach((listener) => listener());
 }
 
-export function applyThemeMode(mode) {
+export function applyThemeMode(mode, { persist = true } = {}) {
   activeMode = mode === "light" ? "light" : "dark";
   activePalette = activeMode === "light" ? lightPalette : darkPalette;
 
@@ -103,10 +215,13 @@ export function applyThemeMode(mode) {
     });
   }
 
-  try {
-    localStorage.setItem(THEME_STORAGE_KEY, activeMode);
-  } catch {
-    /* ignore */
+  if (persist) {
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, activeMode);
+      localStorage.setItem(THEME_USER_CHOICE_KEY, "1");
+    } catch {
+      /* ignore */
+    }
   }
 
   notifyThemeListeners();
@@ -115,7 +230,8 @@ export function applyThemeMode(mode) {
 
 // Aplica imediatamente no load para evitar flash
 if (typeof document !== "undefined") {
-  applyThemeMode(activeMode);
+  const stored = readStoredPreference();
+  applyThemeMode(stored ?? getSystemThemeMode(), { persist: Boolean(stored) });
 }
 
 /**

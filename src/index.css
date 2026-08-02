@@ -28,25 +28,25 @@
   }
 
   [data-theme="light"] {
-    --background: #e6e9e6;
-    --foreground: #1c1d1b;
-    --card: #f7f8f6;
-    --card-foreground: #1c1d1b;
-    --popover: #f7f8f6;
-    --popover-foreground: #1c1d1b;
-    --primary: #7DAE00;
-    --primary-foreground: #1c1d1b;
-    --secondary: #0041C8;
-    --secondary-foreground: #ffffff;
-    --muted: #dadfd9;
-    --muted-foreground: #5a5a55;
-    --accent: #CD4100;
-    --accent-foreground: #ffffff;
+    --background: #FFFFDE;
+    --foreground: #1D1D1B;
+    --card: rgba(255, 255, 255, 0.6);
+    --card-foreground: #1D1D1B;
+    --popover: rgba(255, 255, 255, 0.6);
+    --popover-foreground: #1D1D1B;
+    --primary: #C8FF00;
+    --primary-foreground: #1D1D1B;
+    --secondary: #0000FF;
+    --secondary-foreground: #FFFFDE;
+    --muted: #EEEECC;
+    --muted-foreground: #5A5A58;
+    --accent: #072617;
+    --accent-foreground: #FFFFDE;
     --destructive: #BE1414;
     --destructive-foreground: #ffffff;
-    --border: rgba(22, 22, 22, 0.12);
-    --input: #d5d9d4;
-    --ring: #7DAE00;
+    --border: rgba(29, 29, 27, 0.15);
+    --input: #EEEECC;
+    --ring: #072617;
     --radius: 0.5rem;
   }
 
@@ -61,7 +61,7 @@
   }
 
   [data-theme="light"] {
-    --ink: 22, 22, 22;
+    --ink: 29, 29, 27;
   }
 }
 

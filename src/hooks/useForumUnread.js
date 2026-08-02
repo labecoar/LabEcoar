@@ -107,13 +107,15 @@ export function useForumUnread() {
     }
   }, [seenRaw]);
 
-  const { data: topics = [] } = useQuery({
-    queryKey: ["forum-topics"],
+  const { data: topicsResult } = useQuery({
+    queryKey: ['forum-topics-unread'],
     queryFn: () => forumService.getTopics(),
     enabled: !!user?.id,
     refetchOnWindowFocus: true,
     refetchInterval: 15000,
   });
+
+  const topics = topicsResult?.topics ?? [];
 
   // Primeira visita: marca todos os tópicos atuais como vistos (não sinaliza histórico)
   useEffect(() => {

@@ -11,6 +11,7 @@ import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
 import { C, heading, body } from '@/lib/theme';
+import { PageHeader, PageHeaderLabel } from "@/components/layout/PageShell";
 import { METRICS_ADMIN_REVIEW_BUFFER_DAYS, METRICS_SUBMISSION_WINDOW_DAYS } from '@/lib/metrics-window';
 import MetricsFilesList from '@/components/metrics/MetricsFilesList';
 import LatePostingDates from '@/components/metrics/LatePostingDates';
@@ -294,15 +295,9 @@ export default function AdminMetrics() {
     <div className="min-h-screen" style={{ backgroundColor: C.black, ...body }}>
 
       {/* Header fixo */}
-      <div className="hidden md:flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 md:py-4 sticky top-0 z-10"
-        style={{ backgroundColor: `${C.black}F5`, backdropFilter: 'blur(16px)', borderBottom: `1px solid rgba(var(--ink),0.05)` }}>
-        <div className="flex items-center gap-3">
-          <BarChart2 size={16} style={{ color: C.lime }} />
-          <span style={{ ...heading, fontSize: 12, fontWeight: 700, color: `${C.cream}60`, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-            Aprovação de Métricas
-          </span>
-        </div>
-      </div>
+      <PageHeader>
+        <PageHeaderLabel icon={BarChart2}>Aprovação de Métricas</PageHeaderLabel>
+      </PageHeader>
 
       <div className="px-4 sm:px-6 md:px-8 pt-5 md:pt-7 pb-8 md:pb-10 max-w-6xl mx-auto w-full min-w-0 space-y-6 md:space-y-8">
 

@@ -3,6 +3,7 @@ import {
   applyThemeMode,
   getThemeMode,
   getThemePalette,
+  getThemeTokens,
   subscribeTheme,
   C,
 } from "@/lib/theme";
@@ -22,6 +23,8 @@ export function ThemeProvider({ children }) {
     applyThemeMode(getThemeMode() === "dark" ? "light" : "dark");
   }, []);
 
+  const tokens = useMemo(() => getThemeTokens(mode === "light"), [mode]);
+
   const value = useMemo(
     () => ({
       mode,
@@ -30,9 +33,11 @@ export function ThemeProvider({ children }) {
       isLight: mode === "light",
       isDark: mode === "dark",
       colors,
+      tokens,
+      T: tokens,
       C,
     }),
-    [mode, setMode, toggleTheme, colors]
+    [mode, setMode, toggleTheme, colors, tokens]
   );
 
   return (

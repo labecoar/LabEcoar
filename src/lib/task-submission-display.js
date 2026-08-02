@@ -131,7 +131,7 @@ export const getDeadlineState = (expiresAtValue) => {
 export const getTaskSteps = (task, submission) => {
   const steps = [];
   steps.push({ label: 'Candidatar-se', date: task?.posting_deadline || null });
-  steps.push({ label: 'Enviar link da tarefa', date: task?.posting_deadline || task?.expires_at || null });
+  steps.push({ label: 'Enviar conteúdo da tarefa', date: task?.posting_deadline || task?.expires_at || null });
   if (task?.category === 'campanha') {
     const submissionStatus = normalizeSubmissionStatus(submission?.status);
     let metricsDate = null;
