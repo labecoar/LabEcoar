@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { notifyError, notifySuccess } from "@/lib/toast";
 import { C, heading, body } from '@/lib/theme';
+import { useThemeMode } from '@/contexts/ThemeContext';
 import { PageHeader, PageHeaderLabel, PointsBadge } from "@/components/layout/PageShell";
 import { useUserScore } from "@/hooks/useScores";
 
@@ -30,7 +31,10 @@ const formatCpf = (value) => {
     .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 };
 
+const ON_DARK_SURFACE_LABEL = "rgba(255,255,222,0.75)";
+
 export default function MyPayments() {
+  const { isLight, T } = useThemeMode();
   const { user, profile } = useAuth();
   const { data: paymentInfo } = usePaymentInfo(user?.id);
   const { data: payments = [] } = useMyPayments(user?.id);
@@ -148,34 +152,34 @@ export default function MyPayments() {
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-none" style={{ ...heading, color: C.cream }}>
             Meus Pagamentos
           </h1>
-          <p style={{ fontSize: 14, color: `${C.cream}50`, marginTop: 6 }}>Histórico de recebimentos por campanhas.</p>
+          <p style={{ fontSize: 14, color: isLight ? T.textMuted : `${C.cream}50`, marginTop: 6 }}>Histórico de recebimentos por campanhas.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-7">
           <div className="p-5 rounded-2xl" style={{ backgroundColor: C.darkGreen, border: `1px solid ${C.lime}20` }}>
             <div className="flex items-center gap-2 mb-3">
               <Wallet size={14} style={{ color: C.lime }} />
-              <span style={{ fontSize: 11, color: `${C.cream}60` }}>Total recebido</span>
+              <span style={{ fontSize: 11, color: ON_DARK_SURFACE_LABEL }}>Total recebido</span>
             </div>
             <div className="text-2xl sm:text-3xl font-black leading-none tracking-tight" style={{ ...heading, color: C.lime }}>
               R$ {formatCurrency(totalReceived)}
             </div>
           </div>
-          <div className="p-5 rounded-2xl" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.06)` }}>
+          <div className="p-5 rounded-2xl" style={{ backgroundColor: C.card, border: `1px solid ${isLight ? T.border : "rgba(var(--ink),0.06)"}` }}>
             <div className="flex items-center gap-2 mb-3">
               <Clock size={14} style={{ color: C.orange }} />
-              <span style={{ fontSize: 11, color: `${C.cream}60` }}>A receber</span>
+              <span style={{ fontSize: 11, color: isLight ? T.textMuted : `${C.cream}60` }}>A receber</span>
             </div>
             <div className="text-2xl sm:text-3xl font-black leading-none tracking-tight" style={{ ...heading, color: C.orange }}>
               R$ {formatCurrency(awaiting)}
             </div>
           </div>
-          <div className="p-5 rounded-2xl" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.06)` }}>
+          <div className="p-5 rounded-2xl" style={{ backgroundColor: C.card, border: `1px solid ${isLight ? T.border : "rgba(var(--ink),0.06)"}` }}>
             <div className="flex items-center gap-2 mb-3">
-              <TrendingUp size={14} style={{ color: C.cream }} />
-              <span style={{ fontSize: 11, color: `${C.cream}60` }}>Campanhas pagas</span>
+              <TrendingUp size={14} style={{ color: isLight ? T.textSub : C.cream }} />
+              <span style={{ fontSize: 11, color: isLight ? T.textMuted : `${C.cream}60` }}>Campanhas pagas</span>
             </div>
-            <div style={{ ...heading, fontSize: 34, fontWeight: 900, color: C.cream, lineHeight: 1, letterSpacing: "-0.03em" }}>
+            <div style={{ ...heading, fontSize: 34, fontWeight: 900, color: isLight ? T.text : C.cream, lineHeight: 1, letterSpacing: "-0.03em" }}>
               {payments.filter(p => p.status === "pago").length}
             </div>
           </div>
