@@ -3,12 +3,20 @@ import React, { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useAdminRewardClaims, useUpdateRewardClaim } from '@/hooks/useRewards'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import { Gift, Clock, CheckCircle, AlertCircle, XCircle, Calendar, User, MapPin } from 'lucide-react'
+import { Gift, Clock, CheckCircle, AlertCircle, XCircle, Calendar, MapPin } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { notifyError, notifySuccess } from '@/lib/toast'
-import { C, heading, body } from '@/lib/theme'
+import { C, heading, body, getModalBackground } from '@/lib/theme'
 import { PageHeader, PageHeaderLabel } from "@/components/layout/PageShell";
+import {
+  usePageTheme,
+  AdminAccessDenied,
+  AdminLoading,
+  AdminEmptyState,
+  AdminTabButton,
+  AdminStatCard,
+} from '@/components/admin/AdminPageHelpers'
 
 const STATUS_LABELS = {
   pendente: 'Pendente',
@@ -39,8 +47,101 @@ const StatusIcon = ({ status, size = 13 }) => {
   return <Clock {...props} />
 }
 
+function ClaimCard({ claim, onOpen }) {
+  const {
+    isLight,
+    textColor,
+    mutedColor,
+    subColor,
+    faintColor,
+    labelColor,
+    cardBorder,
+    borderColor,
+    surfaceBgAlt,
+  } = usePageTheme()
+
+  return (
+    <div
+      onClick={() => onOpen(claim)}
+      className="p-5 rounded-2xl cursor-pointer transition-all hover:brightness-110"
+      style={{ backgroundColor: C.card, border: `1px solid ${cardBorder}` }}
+    >
+      {/* Top */}
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex-1 min-w-0">
+          <p style={{ ...heading, fontSize: 15, fontWeight: 700, color: textColor, lineHeight: 1.3 }} className="line-clamp-2">
+            {claim.reward_title || 'Recompensa'}
+          </p>
+          <div className="flex items-center gap-2 mt-2">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
+              style={{ backgroundColor: C.orange, color: isLight ? C.onSurface : C.cream }}>
+              {(claim.user_name || 'E').charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p style={{ fontSize: 12, color: subColor }} className="truncate font-medium">{claim.user_name || 'Ecoante'}</p>
+              <p style={{ fontSize: 11, color: faintColor }} className="truncate">{claim.user_email}</p>
+            </div>
+          </div>
+        </div>
+
+        <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold shrink-0"
+          style={{ backgroundColor: statusBg(claim.status), color: statusColor(claim.status) }}>
+          <StatusIcon status={claim.status} size={10} />
+          {STATUS_LABELS[claim.status] || claim.status}
+        </span>
+      </div>
+
+      {/* Pontos */}
+      <div className="flex items-center gap-2 px-3 py-2 rounded-xl mb-3"
+        style={{ backgroundColor: C.orange_back, border: `1px solid ${C.orange}20` }}>
+        <Gift size={13} style={{ color: C.orange }} />
+        <span style={{ fontSize: 13, fontWeight: 700, color: C.orange }}>
+          {Number(claim.points_spent || 0).toLocaleString('pt-BR')} pontos
+        </span>
+      </div>
+
+      {/* Notas */}
+      {claim.notes && (
+        <div className="px-3 py-2.5 rounded-xl mb-3"
+          style={{ backgroundColor: surfaceBgAlt, border: `1px solid ${cardBorder}` }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: labelColor, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 4 }}>Observações</p>
+          <p style={{ fontSize: 13, color: subColor, lineHeight: 1.5 }} className="line-clamp-2">{claim.notes}</p>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="flex flex-col gap-1.5 pt-3" style={{ borderTop: `1px solid ${borderColor}` }}>
+        <span className="flex items-center gap-1.5" style={{ fontSize: 11, color: faintColor }}>
+          <Calendar size={11} />
+          Resgatado em {format(new Date(claim.claimed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+        </span>
+        {claim.delivered_at && (
+          <span className="flex items-center gap-1.5" style={{ fontSize: 11, color: C.lime }}>
+            <CheckCircle size={11} />
+            Entregue em {format(new Date(claim.delivered_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function AdminRewardClaims() {
   const { profile } = useAuth()
+  const {
+    isLight,
+    textColor,
+    mutedColor,
+    subColor,
+    faintColor,
+    cardBorder,
+    borderColor,
+    surfaceBgAlt,
+    inputStyle,
+    pageTitleStyle,
+    pageSubtitleStyle,
+  } = usePageTheme()
+  const modalBg = getModalBackground(isLight)
   const [activeTab, setActiveTab] = useState('pendente')
   const [selectedClaim, setSelectedClaim] = useState(null)
   const [newStatus, setNewStatus] = useState(null)
@@ -50,15 +151,7 @@ export default function AdminRewardClaims() {
   const updateClaim = useUpdateRewardClaim()
 
   if (profile?.role !== 'admin') {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: C.black }}>
-        <div className="max-w-md p-8 rounded-2xl text-center" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.08)` }}>
-          <XCircle size={36} style={{ color: '#f87171', margin: '0 auto 16px' }} />
-          <h2 style={{ ...heading, fontSize: 20, fontWeight: 800, color: C.cream }}>Acesso Negado</h2>
-          <p style={{ color: `${C.cream}60`, fontSize: 14 }}>Você não tem permissão para acessar esta página.</p>
-        </div>
-      </div>
-    )
+    return <AdminAccessDenied icon={XCircle} message="Você não tem permissão para acessar esta página." />
   }
 
   const pendenteClaims = allClaims.filter((c) => c.status === 'pendente')
@@ -102,98 +195,14 @@ export default function AdminRewardClaims() {
     }
   }
 
-  const ClaimCard = ({ claim }) => (
-    <div
-      onClick={() => handleOpenClaim(claim)}
-      className="p-5 rounded-2xl cursor-pointer transition-all hover:brightness-110"
-      style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.07)` }}
-    >
-      {/* Top */}
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex-1 min-w-0">
-          <p style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream, lineHeight: 1.3 }} className="line-clamp-2">
-            {claim.reward_title || 'Recompensa'}
-          </p>
-          <div className="flex items-center gap-2 mt-2">
-            <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
-              style={{ backgroundColor: C.orange, color: C.cream }}>
-              {(claim.user_name || 'E').charAt(0).toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <p style={{ fontSize: 12, color: `${C.cream}70` }} className="truncate font-medium">{claim.user_name || 'Ecoante'}</p>
-              <p style={{ fontSize: 11, color: `${C.cream}40` }} className="truncate">{claim.user_email}</p>
-            </div>
-          </div>
-        </div>
-
-        <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold shrink-0"
-          style={{ backgroundColor: statusBg(claim.status), color: statusColor(claim.status) }}>
-          <StatusIcon status={claim.status} size={10} />
-          {STATUS_LABELS[claim.status] || claim.status}
-        </span>
-      </div>
-
-      {/* Pontos */}
-      <div className="flex items-center gap-2 px-3 py-2 rounded-xl mb-3"
-        style={{ backgroundColor: C.orange_back, border: `1px solid ${C.orange}20` }}>
-        <Gift size={13} style={{ color: C.orange }} />
-        <span style={{ fontSize: 13, fontWeight: 700, color: C.orange }}>
-          {Number(claim.points_spent || 0).toLocaleString('pt-BR')} pontos
-        </span>
-      </div>
-
-      {/* Notas */}
-      {claim.notes && (
-        <div className="px-3 py-2.5 rounded-xl mb-3"
-          style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)` }}>
-          <p style={{ fontSize: 10, fontWeight: 700, color: `${C.cream}50`, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 4 }}>Observações</p>
-          <p style={{ fontSize: 13, color: `${C.cream}70`, lineHeight: 1.5 }} className="line-clamp-2">{claim.notes}</p>
-        </div>
-      )}
-
-      {/* Footer */}
-      <div className="flex flex-col gap-1.5 pt-3" style={{ borderTop: `1px solid rgba(var(--ink),0.06)` }}>
-        <span className="flex items-center gap-1.5" style={{ fontSize: 11, color: `${C.cream}40` }}>
-          <Calendar size={11} />
-          Resgatado em {format(new Date(claim.claimed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-        </span>
-        {claim.delivered_at && (
-          <span className="flex items-center gap-1.5" style={{ fontSize: 11, color: C.lime }}>
-            <CheckCircle size={11} />
-            Entregue em {format(new Date(claim.delivered_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-          </span>
-        )}
-      </div>
-    </div>
-  )
-
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: C.black }}>
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: C.lime }} />
-          <p style={{ color: `${C.cream}50` }}>Carregando resgates...</p>
-        </div>
-      </div>
-    )
+    return <AdminLoading label="Carregando resgates..." />
   }
 
   const tabs = Object.entries(tabData).map(([key, data]) => ({
     key,
     label: `${data.label} (${data.items.length})`,
   }))
-
-  const EmptyState = () => (
-    <div className="flex flex-col items-center justify-center py-24 gap-4">
-      <Gift size={36} style={{ color: `${C.cream}20` }} />
-      <p style={{ ...heading, fontSize: 18, fontWeight: 700, color: `${C.cream}40` }}>
-        Nenhum resgate {tabData[activeTab].label.toLowerCase()}
-      </p>
-      <p style={{ fontSize: 14, color: `${C.cream}30` }}>
-        Resgates com status "{STATUS_LABELS[activeTab]}" aparecerão aqui.
-      </p>
-    </div>
-  )
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: C.black, ...body }}>
@@ -207,51 +216,41 @@ export default function AdminRewardClaims() {
 
         {/* Hero */}
         <div>
-          <h1 style={{ ...heading, fontSize: 40, fontWeight: 900, color: C.cream, letterSpacing: '-0.03em', lineHeight: 1 }}>
+          <h1 style={{ ...pageTitleStyle, fontSize: 40, fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1 }}>
             Resgates de Recompensas
           </h1>
-          <p style={{ fontSize: 14, color: `${C.cream}50`, marginTop: 6 }}>
+          <p style={pageSubtitleStyle}>
             Gerencie os resgates de recompensas dos ecoantes.
           </p>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Pendentes', value: pendenteClaims.length, status: 'pendente', icon: Clock },
-            { label: 'Processando', value: processandoClaims.length, status: 'processando', icon: AlertCircle },
-            { label: 'Entregues', value: entreguesClaims.length, status: 'entregue', icon: CheckCircle },
-            { label: 'Cancelados', value: canceladosClaims.length, status: 'cancelado', icon: XCircle },
-          ].map(({ label, value, status, icon: Icon }) => (
-            <div key={label} className="flex items-center gap-4 p-5 rounded-2xl"
-              style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: `1px solid rgba(var(--ink),0.06)` }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ backgroundColor: statusBg(status) }}>
-                <Icon size={16} style={{ color: statusColor(status) }} />
-              </div>
-              <div>
-                <div style={{ ...heading, fontSize: 28, fontWeight: 900, color: statusColor(status), lineHeight: 1, letterSpacing: '-0.02em' }}>{value}</div>
-                <div style={{ fontSize: 11, color: `${C.cream}50`, marginTop: 4 }}>{label}</div>
-              </div>
-            </div>
-          ))}
+          <AdminStatCard icon={Clock} label="Pendentes" value={pendenteClaims.length} color={statusColor('pendente')} iconBg={statusBg('pendente')} />
+          <AdminStatCard icon={AlertCircle} label="Processando" value={processandoClaims.length} color={statusColor('processando')} iconBg={statusBg('processando')} />
+          <AdminStatCard icon={CheckCircle} label="Entregues" value={entreguesClaims.length} color={statusColor('entregue')} iconBg={statusBg('entregue')} />
+          <AdminStatCard icon={XCircle} label="Cancelados" value={canceladosClaims.length} color={statusColor('cancelado')} iconBg={statusBg('cancelado')} />
         </div>
 
         {/* Tabs */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
           {tabs.map((t) => (
-            <button key={t.key} type="button" onClick={() => setActiveTab(t.key)}
-              className="shrink-0 px-4 py-2 rounded-xl transition-all duration-150"
-              style={{ backgroundColor: activeTab === t.key ? C.lime : 'rgba(var(--ink),0.06)', color: activeTab === t.key ? C.black : `${C.cream}70`, fontWeight: activeTab === t.key ? 700 : 400, ...heading, fontSize: 13 }}>
+            <AdminTabButton key={t.key} active={activeTab === t.key} onClick={() => setActiveTab(t.key)}>
               {t.label}
-            </button>
+            </AdminTabButton>
           ))}
         </div>
 
         {/* Conteúdo */}
-        {visibleItems.length === 0 ? <EmptyState /> : (
+        {visibleItems.length === 0 ? (
+          <AdminEmptyState
+            icon={Gift}
+            title={`Nenhum resgate ${tabData[activeTab].label.toLowerCase()}`}
+            subtitle={`Resgates com status "${STATUS_LABELS[activeTab]}" aparecerão aqui.`}
+          />
+        ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {visibleItems.map((claim) => <ClaimCard key={claim.id} claim={claim} />)}
+            {visibleItems.map((claim) => <ClaimCard key={claim.id} claim={claim} onOpen={handleOpenClaim} />)}
           </div>
         )}
       </div>
@@ -261,15 +260,15 @@ export default function AdminRewardClaims() {
         <Dialog open={!!selectedClaim} onOpenChange={(open) => !open && setSelectedClaim(null)}>
           <DialogContent aria-describedby={undefined} className="sm:max-w-2xl p-0 border-0 bg-transparent overflow-hidden shadow-none">
             <DialogTitle className="sr-only">Detalhes do Resgate</DialogTitle>
-            <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.1)` }}>
+            <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: modalBg, border: `1px solid ${cardBorder}` }}>
 
               {/* Modal header */}
-              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
+              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid ${borderColor}` }}>
                 <div className="flex items-center gap-2">
                   <Gift size={15} style={{ color: C.lime }} />
-                  <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream }}>{selectedClaim.reward_title}</span>
+                  <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: textColor }}>{selectedClaim.reward_title}</span>
                 </div>
-                <button onClick={() => setSelectedClaim(null)} style={{ color: `${C.cream}50` }}>
+                <button onClick={() => setSelectedClaim(null)} style={{ color: mutedColor }}>
                   <XCircle size={18} />
                 </button>
               </div>
@@ -277,10 +276,10 @@ export default function AdminRewardClaims() {
               <div className="p-6 flex flex-col gap-4 max-h-[75vh] overflow-y-auto">
 
                 {/* Ecoante */}
-                <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)` }}>
-                  <p style={{ fontSize: 10, color: `${C.cream}50`, marginBottom: 6 }}>Ecoante</p>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: C.cream }}>{selectedClaim.user_name}</p>
-                  <p style={{ fontSize: 12, color: `${C.cream}50`, marginTop: 2 }}>{selectedClaim.user_email}</p>
+                <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: surfaceBgAlt, border: `1px solid ${cardBorder}` }}>
+                  <p style={{ fontSize: 10, color: mutedColor, marginBottom: 6 }}>Ecoante</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: textColor }}>{selectedClaim.user_name}</p>
+                  <p style={{ fontSize: 12, color: mutedColor, marginTop: 2 }}>{selectedClaim.user_email}</p>
                 </div>
 
                 {/* Pontos */}
@@ -293,7 +292,7 @@ export default function AdminRewardClaims() {
 
                 {/* Status */}
                 <div>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 8 }}>Status</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: subColor, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 8 }}>Status</p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     {Object.entries(STATUS_LABELS).map(([key, label]) => (
                       <button
@@ -301,9 +300,9 @@ export default function AdminRewardClaims() {
                         onClick={() => setNewStatus(key)}
                         className="px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:brightness-110"
                         style={{
-                          backgroundColor: newStatus === key ? statusBg(key) : 'rgba(var(--ink),0.04)',
-                          color: newStatus === key ? statusColor(key) : `${C.cream}50`,
-                          border: `1px solid ${newStatus === key ? statusColor(key) + '40' : 'rgba(var(--ink),0.08)'}`,
+                          backgroundColor: newStatus === key ? statusBg(key) : surfaceBgAlt,
+                          color: newStatus === key ? statusColor(key) : mutedColor,
+                          border: `1px solid ${newStatus === key ? statusColor(key) + '40' : cardBorder}`,
                           fontWeight: newStatus === key ? 700 : 400,
                         }}
                       >
@@ -315,10 +314,10 @@ export default function AdminRewardClaims() {
 
                 {/* Endereço */}
                 {(selectedClaim.cep || selectedClaim.endereco) && (
-                  <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)` }}>
+                  <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: surfaceBgAlt, border: `1px solid ${cardBorder}` }}>
                     <div className="flex items-center gap-2 mb-3">
                       <MapPin size={13} style={{ color: C.lime }} />
-                      <p style={{ fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Endereço de Entrega</p>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: subColor, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Endereço de Entrega</p>
                     </div>
                     <div className="flex flex-col gap-1.5">
                       {[
@@ -330,8 +329,8 @@ export default function AdminRewardClaims() {
                         { label: 'Cidade', value: selectedClaim.cidade && `${selectedClaim.cidade}${selectedClaim.estado ? ` - ${selectedClaim.estado}` : ''}` },
                       ].filter(({ value }) => value).map(({ label, value }) => (
                         <div key={label} className="flex gap-2">
-                          <span style={{ fontSize: 12, color: `${C.cream}40`, minWidth: 80 }}>{label}:</span>
-                          <span style={{ fontSize: 12, color: `${C.cream}80` }}>{value}</span>
+                          <span style={{ fontSize: 12, color: faintColor, minWidth: 80 }}>{label}:</span>
+                          <span style={{ fontSize: 12, color: subColor }}>{value}</span>
                         </div>
                       ))}
                     </div>
@@ -340,12 +339,12 @@ export default function AdminRewardClaims() {
 
                 {/* Observações */}
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: `${C.cream}60`, letterSpacing: '0.05em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: subColor, letterSpacing: '0.05em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
                     Observações
                   </label>
                   <textarea
                     className="w-full px-4 py-3 rounded-xl outline-none resize-none"
-                    style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.12)`, color: C.cream, fontSize: 13, ...body }}
+                    style={inputStyle}
                     rows={4}
                     placeholder="Adicione observações sobre este resgate..."
                     value={notes}
@@ -358,7 +357,7 @@ export default function AdminRewardClaims() {
                   <button
                     onClick={() => setSelectedClaim(null)}
                     className="flex-1 h-12 rounded-xl flex items-center justify-center transition-all hover:brightness-110"
-                    style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)`, color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}
+                    style={{ backgroundColor: surfaceBgAlt, border: `1px solid ${cardBorder}`, color: subColor, ...heading, fontWeight: 700, fontSize: 14 }}
                   >
                     Cancelar
                   </button>

@@ -13,8 +13,9 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { C, heading, body } from '@/lib/theme'
+import { C, heading, body, getModalBackground } from '@/lib/theme'
 import { PageHeader, PageHeaderLabel } from "@/components/layout/PageShell";
+import { usePageTheme, AdminAccessDenied, AdminEmptyState, AdminTabButton } from '@/components/admin/AdminPageHelpers';
 
 const PAGE_SIZE = 10
 
@@ -87,22 +88,6 @@ const formatShortDate = (value) => {
 }
 
 const aInputCls = 'w-full px-4 py-2.5 rounded-xl outline-none transition-all'
-const aInputStyle = {
-  border: '1px solid rgba(var(--ink),0.12)',
-  backgroundColor: 'rgba(var(--ink),0.04)',
-  color: C.cream,
-  fontSize: 13,
-  ...body,
-}
-const aSelectStyle = {
-  ...aInputStyle,
-  cursor: 'pointer',
-  appearance: 'none',
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23FFFFDE' stroke-width='2' stroke-opacity='0.4'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
-  backgroundRepeat: 'no-repeat',
-  backgroundPosition: 'right 12px center',
-  paddingRight: 32,
-}
 
 const exportCsv = (headers, rows, filename) => {
   const escape = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
@@ -119,9 +104,13 @@ const exportCsv = (headers, rows, filename) => {
 }
 
 function StatusBadge({ status }) {
+  const { isLight, T } = usePageTheme()
   const normalized = normalizeSubmissionStatus(status)
   const label = SUBMISSION_STATUS_LABELS[normalized] || status || '—'
-  const colors = SUBMISSION_STATUS_COLORS[normalized] || { bg: 'rgba(var(--ink),0.08)', color: `${C.cream}70` }
+  const colors = SUBMISSION_STATUS_COLORS[normalized] || {
+    bg: isLight ? T.itemBg : 'rgba(var(--ink),0.08)',
+    color: isLight ? T.textSub : `${C.cream}70`,
+  }
   return (
     <span className="px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap" style={{ backgroundColor: colors.bg, color: colors.color }}>
       {label}
@@ -130,10 +119,11 @@ function StatusBadge({ status }) {
 }
 
 function Pagination({ page, totalPages, onPageChange }) {
+  const { mutedColor, textColor, borderColor } = usePageTheme()
   if (totalPages <= 1) return null
   return (
-    <div className="flex items-center justify-between px-6 py-4" style={{ borderTop: '1px solid rgba(var(--ink),0.07)' }}>
-      <span style={{ fontSize: 12, color: `${C.cream}50` }}>
+    <div className="flex items-center justify-between px-6 py-4" style={{ borderTop: `1px solid ${borderColor}` }}>
+      <span style={{ fontSize: 12, color: mutedColor }}>
         Página {page} de {totalPages}
       </span>
       <div className="flex items-center gap-2">
@@ -142,7 +132,7 @@ function Pagination({ page, totalPages, onPageChange }) {
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
           className="h-8 w-8 rounded-lg flex items-center justify-center transition-all disabled:opacity-30"
-          style={{ border: '1px solid rgba(var(--ink),0.12)', color: C.cream }}
+          style={{ border: `1px solid ${borderColor}`, color: textColor }}
         >
           <ChevronLeft size={14} />
         </button>
@@ -151,7 +141,7 @@ function Pagination({ page, totalPages, onPageChange }) {
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
           className="h-8 w-8 rounded-lg flex items-center justify-center transition-all disabled:opacity-30"
-          style={{ border: '1px solid rgba(var(--ink),0.12)', color: C.cream }}
+          style={{ border: `1px solid ${borderColor}`, color: textColor }}
         >
           <ChevronRight size={14} />
         </button>
@@ -161,13 +151,19 @@ function Pagination({ page, totalPages, onPageChange }) {
 }
 
 function SortButton({ label, field, sortField, sortDir, onSort }) {
+  const { isLight, T } = usePageTheme()
   const active = sortField === field
   return (
     <button
       type="button"
       onClick={() => onSort(field)}
       className="inline-flex items-center gap-1 hover:opacity-80 transition-opacity"
-      style={{ color: active ? C.lime : `${C.cream}40`, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em' }}
+      style={{
+        color: active ? (isLight ? T.accent : C.lime) : (isLight ? T.textFaint : `${C.cream}40`),
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: '0.08em',
+      }}
     >
       {label}
       <ArrowUpDown size={10} style={{ opacity: active ? 1 : 0.4, transform: active && sortDir === 'asc' ? 'rotate(180deg)' : 'none' }} />
@@ -177,6 +173,12 @@ function SortButton({ label, field, sortField, sortDir, onSort }) {
 
 export default function AdminMonitoring() {
   const { profile } = useAuth()
+  const {
+    isLight, T, mutedColor, subColor, faintColor, textColor,
+    borderColor, cardBorder, surfaceBg, surfaceBgAlt, itemBg,
+    inputStyle, selectStyle, optionStyle, pageTitleStyle, pageSubtitleStyle,
+  } = usePageTheme()
+  const modalBg = getModalBackground(isLight)
   const [activeTab, setActiveTab] = useState('tasks')
   const [taskSearch, setTaskSearch] = useState('')
   const [userSearch, setUserSearch] = useState('')
@@ -409,13 +411,10 @@ export default function AdminMonitoring() {
 
   if (profile?.role !== 'admin') {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: C.black }}>
-        <div className="max-w-md p-8 rounded-2xl text-center" style={{ backgroundColor: C.card, border: '1px solid rgba(var(--ink),0.08)' }}>
-          <Shield size={36} style={{ color: '#f87171', margin: '0 auto 16px' }} />
-          <h2 style={{ ...heading, fontSize: 20, fontWeight: 800, color: C.cream }} className="mb-2">Acesso Negado</h2>
-          <p style={{ color: `${C.cream}60`, fontSize: 14 }}>Apenas administradores podem acessar o painel de monitoramento.</p>
-        </div>
-      </div>
+      <AdminAccessDenied
+        icon={Shield}
+        message="Apenas administradores podem acessar o painel de monitoramento."
+      />
     )
   }
 
@@ -436,10 +435,10 @@ export default function AdminMonitoring() {
 
         {/* Hero */}
         <div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-none" style={{ ...heading, color: C.cream }}>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-none" style={{ ...pageTitleStyle }}>
             Monitoramento
           </h1>
-          <p className="text-sm mt-1.5 md:mt-2 leading-relaxed" style={{ color: `${C.cream}50` }}>
+          <p className="text-sm mt-1.5 md:mt-2 leading-relaxed" style={pageSubtitleStyle}>
             Visão completa de tarefas, inscrições e participação dos usuários no sistema.
           </p>
         </div>
@@ -447,15 +446,15 @@ export default function AdminMonitoring() {
         {/* Stats principais */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
           {[
-            { label: 'Usuários', value: overview.totalUsers, color: C.cream },
+            { label: 'Usuários', value: overview.totalUsers, color: textColor },
             { label: 'Ecoantes ativos', value: overview.activeUsers, color: C.lime },
-            { label: 'Tarefas', value: overview.totalTasks, color: C.cream },
+            { label: 'Tarefas', value: overview.totalTasks, color: textColor },
             { label: 'Tarefas ativas', value: overview.activeTasks, color: C.cyan },
             { label: 'Inscrições', value: overview.totalSubmissions, color: C.orange },
             { label: 'Concluídas', value: overview.completedSubmissions, color: C.lime },
           ].map(({ label, value, color }) => (
-            <div key={label} className="p-4 sm:p-5 rounded-2xl" style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: '1px solid rgba(var(--ink),0.06)' }}>
-              <div style={{ fontSize: 11, color: `${C.cream}50`, marginBottom: 6 }}>{label}</div>
+            <div key={label} className="p-4 sm:p-5 rounded-2xl" style={{ backgroundColor: surfaceBg, border: `1px solid ${cardBorder}` }}>
+              <div style={{ fontSize: 11, color: mutedColor, marginBottom: 6 }}>{label}</div>
               <div className="text-xl sm:text-2xl md:text-3xl font-black leading-none tracking-tight" style={{ ...heading, color }}>{value}</div>
             </div>
           ))}
@@ -463,49 +462,49 @@ export default function AdminMonitoring() {
 
         {/* Insights */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="p-5 rounded-2xl" style={{ backgroundColor: 'rgba(var(--ink),0.02)', border: '1px solid rgba(var(--ink),0.07)' }}>
+          <div className="p-5 rounded-2xl" style={{ backgroundColor: isLight ? C.card : 'rgba(var(--ink),0.02)', border: `1px solid ${borderColor}` }}>
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp size={14} style={{ color: C.lime }} />
-              <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: C.cream }}>Tarefas mais populares</span>
+              <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: textColor }}>Tarefas mais populares</span>
             </div>
             {overview.taskPopularity.length === 0 ? (
-              <p style={{ fontSize: 13, color: `${C.cream}40` }}>Nenhuma inscrição registrada ainda.</p>
+              <p style={{ fontSize: 13, color: faintColor }}>Nenhuma inscrição registrada ainda.</p>
             ) : (
               <div className="space-y-3">
                 {overview.taskPopularity.map(({ task, count }, i) => (
                   <div key={task.id} className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <span style={{ ...heading, fontSize: 12, fontWeight: 800, color: `${C.cream}30`, width: 16 }}>{i + 1}</span>
+                      <span style={{ ...heading, fontSize: 12, fontWeight: 800, color: isLight ? T.textFaint : `${C.cream}30`, width: 16 }}>{i + 1}</span>
                       <div className="min-w-0">
-                        <p className="truncate" style={{ fontSize: 13, fontWeight: 600, color: C.cream }}>{task.title}</p>
-                        <p style={{ fontSize: 11, color: `${C.cream}40` }}>{CATEGORY_LABELS[task.category] || task.category}</p>
+                        <p className="truncate" style={{ fontSize: 13, fontWeight: 600, color: textColor }}>{task.title}</p>
+                        <p style={{ fontSize: 11, color: faintColor }}>{CATEGORY_LABELS[task.category] || task.category}</p>
                       </div>
                     </div>
-                    <span style={{ ...heading, fontSize: 14, fontWeight: 800, color: C.lime, flexShrink: 0 }}>{count}</span>
+                    <span style={{ ...heading, fontSize: 14, fontWeight: 800, color: isLight ? C.darkGreen : C.lime, flexShrink: 0 }}>{count}</span>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          <div className="p-5 rounded-2xl" style={{ backgroundColor: 'rgba(var(--ink),0.02)', border: '1px solid rgba(var(--ink),0.07)' }}>
+          <div className="p-5 rounded-2xl" style={{ backgroundColor: isLight ? C.card : 'rgba(var(--ink),0.02)', border: `1px solid ${borderColor}` }}>
             <div className="flex items-center gap-2 mb-4">
               <Users size={14} style={{ color: C.orange }} />
-              <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: C.cream }}>Usuários mais ativos</span>
+              <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: textColor }}>Usuários mais ativos</span>
             </div>
             {overview.userActivity.length === 0 ? (
-              <p style={{ fontSize: 13, color: `${C.cream}40` }}>Nenhuma participação registrada ainda.</p>
+              <p style={{ fontSize: 13, color: faintColor }}>Nenhuma participação registrada ainda.</p>
             ) : (
               <div className="space-y-3">
                 {overview.userActivity.map(({ user, count, completed }, i) => (
                   <div key={user.id} className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <span style={{ ...heading, fontSize: 12, fontWeight: 800, color: `${C.cream}30`, width: 16 }}>{i + 1}</span>
+                      <span style={{ ...heading, fontSize: 12, fontWeight: 800, color: isLight ? T.textFaint : `${C.cream}30`, width: 16 }}>{i + 1}</span>
                       <div className="min-w-0">
-                        <p className="truncate" style={{ fontSize: 13, fontWeight: 600, color: C.cream }}>
+                        <p className="truncate" style={{ fontSize: 13, fontWeight: 600, color: textColor }}>
                           {user.full_name || user.display_name || 'Sem nome'}
                         </p>
-                        <p style={{ fontSize: 11, color: `${C.cream}40` }}>{completed} concluída(s)</p>
+                        <p style={{ fontSize: 11, color: faintColor }}>{completed} concluída(s)</p>
                       </div>
                     </div>
                     <span style={{ ...heading, fontSize: 14, fontWeight: 800, color: C.orange, flexShrink: 0 }}>{count}</span>
@@ -519,42 +518,35 @@ export default function AdminMonitoring() {
         {/* Tabs */}
         <div className="flex flex-wrap gap-2">
           {tabs.map(({ id, label, icon: Icon }) => (
-            <button
+            <AdminTabButton
               key={id}
               type="button"
+              active={activeTab === id}
               onClick={() => setActiveTab(id)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full transition-all"
-              style={{
-                backgroundColor: activeTab === id ? C.lime : 'rgba(var(--ink),0.04)',
-                color: activeTab === id ? C.black : `${C.cream}70`,
-                border: `1px solid ${activeTab === id ? C.lime : 'rgba(var(--ink),0.08)'}`,
-                fontSize: 13,
-                fontWeight: 700,
-                ...heading,
-              }}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full"
             >
               <Icon size={14} />
               {label}
-            </button>
+            </AdminTabButton>
           ))}
         </div>
 
         {/* Tab: Por Tarefas */}
         {activeTab === 'tasks' && (
-          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'rgba(var(--ink),0.02)', border: '1px solid rgba(var(--ink),0.07)' }}>
+          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: isLight ? C.card : 'rgba(var(--ink),0.02)', border: `1px solid ${borderColor}` }}>
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 px-6 py-4"
-              style={{ borderBottom: '1px solid rgba(var(--ink),0.07)' }}>
+              style={{ borderBottom: `1px solid ${borderColor}` }}>
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: C.lime }} />
-                <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>Tarefas</span>
-                <span style={{ fontSize: 12, color: `${C.cream}40` }}>{filteredTasks.length} exibida(s)</span>
+                <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: textColor }}>Tarefas</span>
+                <span style={{ fontSize: 12, color: faintColor }}>{filteredTasks.length} exibida(s)</span>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
                 <div className="relative flex-1 sm:min-w-[200px]">
-                  <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: `${C.cream}40` }} />
+                  <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: faintColor }} />
                   <input
-                    className={aInputCls}
-                    style={{ ...aInputStyle, paddingLeft: 34 }}
+                    className={`${aInputCls} ${isLight ? 'placeholder:text-[#8A8A88]' : ''}`}
+                    style={{ ...inputStyle, paddingLeft: 34 }}
                     value={taskSearch}
                     onChange={(e) => { setTaskSearch(e.target.value); setTaskPage(1) }}
                     placeholder="Buscar tarefa..."
@@ -562,31 +554,31 @@ export default function AdminMonitoring() {
                 </div>
                 <select
                   className={aInputCls}
-                  style={{ ...aSelectStyle, minWidth: 140 }}
+                  style={{ ...selectStyle, minWidth: 140 }}
                   value={taskCategoryFilter}
                   onChange={(e) => { setTaskCategoryFilter(e.target.value); setTaskPage(1) }}
                 >
-                  <option value="all" style={{ backgroundColor: C.card }}>Todas categorias</option>
+                  <option value="all" style={optionStyle}>Todas categorias</option>
                   {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
-                    <option key={value} value={value} style={{ backgroundColor: C.card }}>{label}</option>
+                    <option key={value} value={value} style={optionStyle}>{label}</option>
                   ))}
                 </select>
                 <select
                   className={aInputCls}
-                  style={{ ...aSelectStyle, minWidth: 120 }}
+                  style={{ ...selectStyle, minWidth: 120 }}
                   value={taskStatusFilter}
                   onChange={(e) => { setTaskStatusFilter(e.target.value); setTaskPage(1) }}
                 >
-                  <option value="all" style={{ backgroundColor: C.card }}>Todos status</option>
+                  <option value="all" style={optionStyle}>Todos status</option>
                   {Object.entries(TASK_STATUS_LABELS).map(([value, label]) => (
-                    <option key={value} value={value} style={{ backgroundColor: C.card }}>{label}</option>
+                    <option key={value} value={value} style={optionStyle}>{label}</option>
                   ))}
                 </select>
                 <button
                   type="button"
                   onClick={handleExportTasks}
                   className="h-10 px-4 rounded-xl flex items-center gap-2 transition-all hover:brightness-110 shrink-0"
-                  style={{ border: '1px solid rgba(var(--ink),0.12)', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
+                  style={{ border: `1px solid ${isLight ? T.border : 'rgba(var(--ink),0.12)'}`, color: isLight ? T.textSub : `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
                 >
                   <Download size={13} /> Exportar
                 </button>
@@ -594,32 +586,29 @@ export default function AdminMonitoring() {
             </div>
 
             {isLoading ? (
-              <div className="py-16 text-center" style={{ color: `${C.cream}50` }}>Carregando dados...</div>
+              <div className="py-16 text-center" style={{ color: mutedColor }}>Carregando dados...</div>
             ) : paginatedTasks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 gap-4">
-                <Target size={32} style={{ color: `${C.cream}20` }} />
-                <p style={{ ...heading, fontSize: 16, color: `${C.cream}40` }}>Nenhuma tarefa encontrada.</p>
-              </div>
+              <AdminEmptyState icon={Target} title="Nenhuma tarefa encontrada." />
             ) : (
               <>
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead>
-                      <tr style={{ borderBottom: '1px solid rgba(var(--ink),0.06)' }}>
+                      <tr style={{ borderBottom: `1px solid ${isLight ? T.borderMid : 'rgba(var(--ink),0.06)'}` }}>
                         <th className="text-left px-5 py-3">
                           <SortButton label="TAREFA" field="title" sortField={taskSort.field} sortDir={taskSort.dir} onSort={handleTaskSort} />
                         </th>
                         <th className="text-left px-5 py-3">
                           <SortButton label="CATEGORIA" field="category" sortField={taskSort.field} sortDir={taskSort.dir} onSort={handleTaskSort} />
                         </th>
-                        <th className="text-left px-5 py-3" style={{ fontSize: 10, fontWeight: 700, color: `${C.cream}40`, letterSpacing: '0.08em' }}>STATUS</th>
+                        <th className="text-left px-5 py-3" style={{ fontSize: 10, fontWeight: 700, color: faintColor, letterSpacing: '0.08em' }}>STATUS</th>
                         <th className="text-left px-5 py-3">
                           <SortButton label="VAGAS" field="participants" sortField={taskSort.field} sortDir={taskSort.dir} onSort={handleTaskSort} />
                         </th>
                         <th className="text-left px-5 py-3">
                           <SortButton label="INSCRIÇÕES" field="submissions" sortField={taskSort.field} sortDir={taskSort.dir} onSort={handleTaskSort} />
                         </th>
-                        <th className="text-left px-5 py-3" style={{ fontSize: 10, fontWeight: 700, color: `${C.cream}40`, letterSpacing: '0.08em' }}>CONCLUÍDAS</th>
+                        <th className="text-left px-5 py-3" style={{ fontSize: 10, fontWeight: 700, color: faintColor, letterSpacing: '0.08em' }}>CONCLUÍDAS</th>
                         <th className="text-left px-5 py-3" />
                       </tr>
                     </thead>
@@ -628,39 +617,39 @@ export default function AdminMonitoring() {
                         <tr
                           key={task.id}
                           style={{
-                            backgroundColor: i % 2 === 0 ? 'transparent' : 'rgba(var(--ink),0.015)',
-                            borderBottom: '1px solid rgba(var(--ink),0.04)',
+                            backgroundColor: i % 2 === 0 ? 'transparent' : (isLight ? T.itemBg : 'rgba(var(--ink),0.015)'),
+                            borderBottom: `1px solid ${isLight ? T.borderMid : 'rgba(var(--ink),0.04)'}`,
                           }}
                         >
                           <td className="px-5 py-3">
-                            <p style={{ fontWeight: 600, color: C.cream, fontSize: 13 }} className="max-w-[240px] truncate">{task.title}</p>
-                            <p style={{ fontSize: 11, color: `${C.cream}40` }}>{formatShortDate(task.created_at)}</p>
+                            <p style={{ fontWeight: 600, color: textColor, fontSize: 13 }} className="max-w-[240px] truncate">{task.title}</p>
+                            <p style={{ fontSize: 11, color: faintColor }}>{formatShortDate(task.created_at)}</p>
                           </td>
                           <td className="px-5 py-3">
-                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: `${C.lime}12`, color: C.lime }}>
+                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: `${C.lime}12`, color: isLight ? C.darkGreen : C.lime }}>
                               {CATEGORY_LABELS[task.category] || task.category}
                             </span>
                           </td>
                           <td className="px-5 py-3">
                             <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{
-                              backgroundColor: task.status === 'active' ? `${C.lime}18` : 'rgba(var(--ink),0.08)',
-                              color: task.status === 'active' ? C.lime : `${C.cream}50`,
+                              backgroundColor: task.status === 'active' ? `${C.lime}18` : (isLight ? T.itemBg : 'rgba(var(--ink),0.08)'),
+                              color: task.status === 'active' ? (isLight ? C.darkGreen : C.lime) : mutedColor,
                             }}>
                               {TASK_STATUS_LABELS[task.status] || task.status}
                             </span>
                           </td>
-                          <td className="px-5 py-3" style={{ color: `${C.cream}70`, fontSize: 13 }}>
+                          <td className="px-5 py-3" style={{ color: isLight ? T.textSub : `${C.cream}70`, fontSize: 13 }}>
                             {task.current_participants ?? 0}
                             {task.max_participants != null ? ` / ${task.max_participants}` : ''}
                           </td>
                           <td className="px-5 py-3" style={{ ...heading, fontWeight: 800, color: C.orange, fontSize: 14 }}>{task.submissionCount}</td>
-                          <td className="px-5 py-3" style={{ ...heading, fontWeight: 800, color: C.lime, fontSize: 14 }}>{task.completedCount}</td>
+                          <td className="px-5 py-3" style={{ ...heading, fontWeight: 800, color: isLight ? C.darkGreen : C.lime, fontSize: 14 }}>{task.completedCount}</td>
                           <td className="px-5 py-3">
                             <button
                               type="button"
                               onClick={() => setSelectedTask(task)}
                               className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110"
-                              style={{ border: '1px solid rgba(var(--ink),0.12)', backgroundColor: 'transparent', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
+                              style={{ border: `1px solid ${isLight ? T.border : 'rgba(var(--ink),0.12)'}`, backgroundColor: 'transparent', color: isLight ? T.textSub : `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
                             >
                               <Eye size={12} /> Detalhes
                             </button>
@@ -678,20 +667,20 @@ export default function AdminMonitoring() {
 
         {/* Tab: Por Usuários */}
         {activeTab === 'users' && (
-          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'rgba(var(--ink),0.02)', border: '1px solid rgba(var(--ink),0.07)' }}>
+          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: isLight ? C.card : 'rgba(var(--ink),0.02)', border: `1px solid ${borderColor}` }}>
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 px-6 py-4"
-              style={{ borderBottom: '1px solid rgba(var(--ink),0.07)' }}>
+              style={{ borderBottom: `1px solid ${borderColor}` }}>
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: C.orange }} />
-                <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>Usuários</span>
-                <span style={{ fontSize: 12, color: `${C.cream}40` }}>{filteredUsers.length} exibido(s)</span>
+                <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: textColor }}>Usuários</span>
+                <span style={{ fontSize: 12, color: faintColor }}>{filteredUsers.length} exibido(s)</span>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
                 <div className="relative flex-1 sm:min-w-[200px]">
-                  <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: `${C.cream}40` }} />
+                  <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: faintColor }} />
                   <input
-                    className={aInputCls}
-                    style={{ ...aInputStyle, paddingLeft: 34 }}
+                    className={`${aInputCls} ${isLight ? 'placeholder:text-[#8A8A88]' : ''}`}
+                    style={{ ...inputStyle, paddingLeft: 34 }}
                     value={userSearch}
                     onChange={(e) => { setUserSearch(e.target.value); setUserPage(1) }}
                     placeholder="Buscar usuário..."
@@ -699,29 +688,29 @@ export default function AdminMonitoring() {
                 </div>
                 <select
                   className={aInputCls}
-                  style={{ ...aSelectStyle, minWidth: 120 }}
+                  style={{ ...selectStyle, minWidth: 120 }}
                   value={userStatusFilter}
                   onChange={(e) => { setUserStatusFilter(e.target.value); setUserPage(1) }}
                 >
-                  <option value="all" style={{ backgroundColor: C.card }}>Todos status</option>
-                  <option value="active" style={{ backgroundColor: C.card }}>Ativos</option>
-                  <option value="inactive" style={{ backgroundColor: C.card }}>Inativos</option>
+                  <option value="all" style={optionStyle}>Todos status</option>
+                  <option value="active" style={optionStyle}>Ativos</option>
+                  <option value="inactive" style={optionStyle}>Inativos</option>
                 </select>
                 <select
                   className={aInputCls}
-                  style={{ ...aSelectStyle, minWidth: 120 }}
+                  style={{ ...selectStyle, minWidth: 120 }}
                   value={userRoleFilter}
                   onChange={(e) => { setUserRoleFilter(e.target.value); setUserPage(1) }}
                 >
-                  <option value="all" style={{ backgroundColor: C.card }}>Todas funções</option>
-                  <option value="user" style={{ backgroundColor: C.card }}>Usuários</option>
-                  <option value="admin" style={{ backgroundColor: C.card }}>Admins</option>
+                  <option value="all" style={optionStyle}>Todas funções</option>
+                  <option value="user" style={optionStyle}>Usuários</option>
+                  <option value="admin" style={optionStyle}>Admins</option>
                 </select>
                 <button
                   type="button"
                   onClick={handleExportUsers}
                   className="h-10 px-4 rounded-xl flex items-center gap-2 transition-all hover:brightness-110 shrink-0"
-                  style={{ border: '1px solid rgba(var(--ink),0.12)', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
+                  style={{ border: `1px solid ${isLight ? T.border : 'rgba(var(--ink),0.12)'}`, color: isLight ? T.textSub : `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
                 >
                   <Download size={13} /> Exportar
                 </button>
@@ -729,30 +718,27 @@ export default function AdminMonitoring() {
             </div>
 
             {isLoading ? (
-              <div className="py-16 text-center" style={{ color: `${C.cream}50` }}>Carregando dados...</div>
+              <div className="py-16 text-center" style={{ color: mutedColor }}>Carregando dados...</div>
             ) : paginatedUsers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 gap-4">
-                <Users size={32} style={{ color: `${C.cream}20` }} />
-                <p style={{ ...heading, fontSize: 16, color: `${C.cream}40` }}>Nenhum usuário encontrado.</p>
-              </div>
+              <AdminEmptyState icon={Users} title="Nenhum usuário encontrado." />
             ) : (
               <>
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead>
-                      <tr style={{ borderBottom: '1px solid rgba(var(--ink),0.06)' }}>
+                      <tr style={{ borderBottom: `1px solid ${isLight ? T.borderMid : 'rgba(var(--ink),0.06)'}` }}>
                         <th className="text-left px-5 py-3">
                           <SortButton label="USUÁRIO" field="name" sortField={userSort.field} sortDir={userSort.dir} onSort={handleUserSort} />
                         </th>
-                        <th className="text-left px-5 py-3" style={{ fontSize: 10, fontWeight: 700, color: `${C.cream}40`, letterSpacing: '0.08em' }}>STATUS</th>
+                        <th className="text-left px-5 py-3" style={{ fontSize: 10, fontWeight: 700, color: faintColor, letterSpacing: '0.08em' }}>STATUS</th>
                         <th className="text-left px-5 py-3">
                           <SortButton label="INSCRIÇÕES" field="submissions" sortField={userSort.field} sortDir={userSort.dir} onSort={handleUserSort} />
                         </th>
                         <th className="text-left px-5 py-3">
                           <SortButton label="CONCLUÍDAS" field="completed" sortField={userSort.field} sortDir={userSort.dir} onSort={handleUserSort} />
                         </th>
-                        <th className="text-left px-5 py-3" style={{ fontSize: 10, fontWeight: 700, color: `${C.cream}40`, letterSpacing: '0.08em' }}>PENDENTES</th>
-                        <th className="text-left px-5 py-3" style={{ fontSize: 10, fontWeight: 700, color: `${C.cream}40`, letterSpacing: '0.08em' }}>CATEGORIA</th>
+                        <th className="text-left px-5 py-3" style={{ fontSize: 10, fontWeight: 700, color: faintColor, letterSpacing: '0.08em' }}>PENDENTES</th>
+                        <th className="text-left px-5 py-3" style={{ fontSize: 10, fontWeight: 700, color: faintColor, letterSpacing: '0.08em' }}>CATEGORIA</th>
                         <th className="text-left px-5 py-3" />
                       </tr>
                     </thead>
@@ -761,8 +747,8 @@ export default function AdminMonitoring() {
                         <tr
                           key={user.id}
                           style={{
-                            backgroundColor: i % 2 === 0 ? 'transparent' : 'rgba(var(--ink),0.015)',
-                            borderBottom: '1px solid rgba(var(--ink),0.04)',
+                            backgroundColor: i % 2 === 0 ? 'transparent' : (isLight ? T.itemBg : 'rgba(var(--ink),0.015)'),
+                            borderBottom: `1px solid ${isLight ? T.borderMid : 'rgba(var(--ink),0.04)'}`,
                           }}
                         >
                           <td className="px-5 py-3">
@@ -772,25 +758,25 @@ export default function AdminMonitoring() {
                                 {(user.full_name || user.display_name || 'U').charAt(0).toUpperCase()}
                               </div>
                               <div>
-                                <p style={{ fontWeight: 600, color: C.cream, fontSize: 13 }}>
+                                <p style={{ fontWeight: 600, color: textColor, fontSize: 13 }}>
                                   {user.full_name || user.display_name || 'Sem nome'}
                                 </p>
-                                <p style={{ fontSize: 11, color: `${C.cream}40` }}>{user.email}</p>
+                                <p style={{ fontSize: 11, color: faintColor }}>{user.email}</p>
                               </div>
                             </div>
                           </td>
                           <td className="px-5 py-3">
                             <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{
                               backgroundColor: user.is_active === false ? 'rgba(248,113,113,0.12)' : `${C.lime}18`,
-                              color: user.is_active === false ? '#f87171' : C.lime,
+                              color: user.is_active === false ? '#f87171' : (isLight ? C.darkGreen : C.lime),
                             }}>
                               {user.is_active === false ? 'Inativo' : 'Ativo'}
                             </span>
                           </td>
                           <td className="px-5 py-3" style={{ ...heading, fontWeight: 800, color: C.orange, fontSize: 14 }}>{user.submissionCount}</td>
-                          <td className="px-5 py-3" style={{ ...heading, fontWeight: 800, color: C.lime, fontSize: 14 }}>{user.completedCount}</td>
+                          <td className="px-5 py-3" style={{ ...heading, fontWeight: 800, color: isLight ? C.darkGreen : C.lime, fontSize: 14 }}>{user.completedCount}</td>
                           <td className="px-5 py-3" style={{ ...heading, fontWeight: 800, color: C.purple, fontSize: 14 }}>{user.pendingCount}</td>
-                          <td className="px-5 py-3" style={{ color: `${C.cream}60`, fontSize: 12 }}>
+                          <td className="px-5 py-3" style={{ color: subColor, fontSize: 12 }}>
                             {USER_CATEGORY_LABELS[user.current_category] || user.current_category || '—'}
                           </td>
                           <td className="px-5 py-3">
@@ -798,7 +784,7 @@ export default function AdminMonitoring() {
                               type="button"
                               onClick={() => setSelectedUser(user)}
                               className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110"
-                              style={{ border: '1px solid rgba(var(--ink),0.12)', backgroundColor: 'transparent', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
+                              style={{ border: `1px solid ${isLight ? T.border : 'rgba(var(--ink),0.12)'}`, backgroundColor: 'transparent', color: isLight ? T.textSub : `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
                             >
                               <Eye size={12} /> Detalhes
                             </button>
@@ -820,12 +806,12 @@ export default function AdminMonitoring() {
         <DialogContent aria-describedby={undefined} className="sm:max-w-3xl p-0 border-0 bg-transparent overflow-hidden shadow-none max-h-[90vh]">
           <DialogTitle className="sr-only">Detalhes da Tarefa</DialogTitle>
           {selectedTask && (
-            <div className="w-full rounded-2xl overflow-hidden flex flex-col max-h-[90vh]" style={{ backgroundColor: C.card, border: '1px solid rgba(var(--ink),0.1)' }}>
-              <div className="flex items-center gap-3 px-6 py-4 shrink-0" style={{ borderBottom: '1px solid rgba(var(--ink),0.07)' }}>
+            <div className="w-full rounded-2xl overflow-hidden flex flex-col max-h-[90vh]" style={{ backgroundColor: modalBg, border: `1px solid ${isLight ? T.border : 'rgba(var(--ink),0.1)'}` }}>
+              <div className="flex items-center gap-3 px-6 py-4 shrink-0" style={{ borderBottom: `1px solid ${borderColor}` }}>
                 <Target size={15} style={{ color: C.lime }} />
                 <div className="min-w-0">
-                  <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream }} className="block truncate">{selectedTask.title}</span>
-                  <span style={{ fontSize: 12, color: `${C.cream}50` }}>{CATEGORY_LABELS[selectedTask.category] || selectedTask.category}</span>
+                  <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: textColor }} className="block truncate">{selectedTask.title}</span>
+                  <span style={{ fontSize: 12, color: mutedColor }}>{CATEGORY_LABELS[selectedTask.category] || selectedTask.category}</span>
                 </div>
               </div>
 
@@ -842,17 +828,17 @@ export default function AdminMonitoring() {
                     { label: 'Prazo prova', value: formatShortDate(selectedTask.delivery_deadline || selectedTask.posting_deadline) },
                     { label: 'Inscrições', value: selectedTaskParticipants.length },
                   ].map(({ label, value }) => (
-                    <div key={label} className="p-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: '1px solid rgba(var(--ink),0.06)' }}>
-                      <div style={{ fontSize: 10, color: `${C.cream}40`, marginBottom: 4, fontWeight: 700, letterSpacing: '0.05em' }}>{label.toUpperCase()}</div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.cream }}>{value}</div>
+                    <div key={label} className="p-3 rounded-xl" style={{ backgroundColor: surfaceBgAlt, border: `1px solid ${cardBorder}` }}>
+                      <div style={{ fontSize: 10, color: faintColor, marginBottom: 4, fontWeight: 700, letterSpacing: '0.05em' }}>{label.toUpperCase()}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: textColor }}>{value}</div>
                     </div>
                   ))}
                 </div>
 
                 {selectedTask.description && (
                   <div>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: `${C.cream}50`, marginBottom: 8, letterSpacing: '0.05em' }}>DESCRIÇÃO</p>
-                    <p style={{ fontSize: 13, color: `${C.cream}80`, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{selectedTask.description}</p>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: mutedColor, marginBottom: 8, letterSpacing: '0.05em' }}>DESCRIÇÃO</p>
+                    <p style={{ fontSize: 13, color: isLight ? T.textSub : `${C.cream}80`, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{selectedTask.description}</p>
                   </div>
                 )}
 
@@ -860,40 +846,40 @@ export default function AdminMonitoring() {
                 <div>
                   <div className="flex items-center gap-2 mb-4">
                     <ClipboardList size={14} style={{ color: C.lime }} />
-                    <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: C.cream }}>
+                    <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: textColor }}>
                       Inscritos ({selectedTaskParticipants.length})
                     </span>
                   </div>
 
                   {selectedTaskParticipants.length === 0 ? (
-                    <p style={{ fontSize: 13, color: `${C.cream}40` }}>Nenhum usuário inscrito nesta tarefa.</p>
+                    <p style={{ fontSize: 13, color: faintColor }}>Nenhum usuário inscrito nesta tarefa.</p>
                   ) : (
-                    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(var(--ink),0.07)' }}>
+                    <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${borderColor}` }}>
                       <table className="min-w-full text-sm">
                         <thead>
-                          <tr style={{ backgroundColor: 'rgba(var(--ink),0.03)', borderBottom: '1px solid rgba(var(--ink),0.06)' }}>
+                          <tr style={{ backgroundColor: surfaceBgAlt, borderBottom: `1px solid ${isLight ? T.borderMid : 'rgba(var(--ink),0.06)'}` }}>
                             {['Usuário', 'Instagram', 'Seguidores', 'Status', 'Inscrição'].map((h) => (
-                              <th key={h} className="text-left px-4 py-2.5" style={{ fontSize: 10, fontWeight: 700, color: `${C.cream}40`, letterSpacing: '0.06em' }}>{h}</th>
+                              <th key={h} className="text-left px-4 py-2.5" style={{ fontSize: 10, fontWeight: 700, color: faintColor, letterSpacing: '0.06em' }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
                           {selectedTaskParticipants.map((sub, i) => (
-                            <tr key={sub.id} style={{ borderBottom: '1px solid rgba(var(--ink),0.04)', backgroundColor: i % 2 === 0 ? 'transparent' : 'rgba(var(--ink),0.015)' }}>
+                            <tr key={sub.id} style={{ borderBottom: `1px solid ${isLight ? T.borderMid : 'rgba(var(--ink),0.04)'}`, backgroundColor: i % 2 === 0 ? 'transparent' : (isLight ? T.itemBg : 'rgba(var(--ink),0.015)') }}>
                               <td className="px-4 py-2.5">
-                                <p style={{ fontSize: 13, fontWeight: 600, color: C.cream }}>
+                                <p style={{ fontSize: 13, fontWeight: 600, color: textColor }}>
                                   {sub.profile?.display_name || sub.profile?.full_name || '—'}
                                 </p>
-                                <p style={{ fontSize: 11, color: `${C.cream}40` }}>{sub.profile?.email}</p>
+                                <p style={{ fontSize: 11, color: faintColor }}>{sub.profile?.email}</p>
                               </td>
-                              <td className="px-4 py-2.5" style={{ fontSize: 12, color: `${C.cream}60` }}>
+                              <td className="px-4 py-2.5" style={{ fontSize: 12, color: subColor }}>
                                 {sub.profile?.instagram_handle ? `@${sub.profile.instagram_handle.replace('@', '')}` : '—'}
                               </td>
-                              <td className="px-4 py-2.5" style={{ fontSize: 12, color: `${C.cream}60` }}>
+                              <td className="px-4 py-2.5" style={{ fontSize: 12, color: subColor }}>
                                 {sub.profile?.followers_count ?? '—'}
                               </td>
                               <td className="px-4 py-2.5"><StatusBadge status={sub.status} /></td>
-                              <td className="px-4 py-2.5" style={{ fontSize: 11, color: `${C.cream}40` }}>{formatDate(sub.created_at)}</td>
+                              <td className="px-4 py-2.5" style={{ fontSize: 11, color: faintColor }}>{formatDate(sub.created_at)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -912,14 +898,14 @@ export default function AdminMonitoring() {
         <DialogContent aria-describedby={undefined} className="sm:max-w-3xl p-0 border-0 bg-transparent overflow-hidden shadow-none max-h-[90vh]">
           <DialogTitle className="sr-only">Detalhes do Usuário</DialogTitle>
           {selectedUser && (
-            <div className="w-full rounded-2xl overflow-hidden flex flex-col max-h-[90vh]" style={{ backgroundColor: C.card, border: '1px solid rgba(var(--ink),0.1)' }}>
-              <div className="flex items-center gap-3 px-6 py-4 shrink-0" style={{ borderBottom: '1px solid rgba(var(--ink),0.07)' }}>
+            <div className="w-full rounded-2xl overflow-hidden flex flex-col max-h-[90vh]" style={{ backgroundColor: modalBg, border: `1px solid ${isLight ? T.border : 'rgba(var(--ink),0.1)'}` }}>
+              <div className="flex items-center gap-3 px-6 py-4 shrink-0" style={{ borderBottom: `1px solid ${borderColor}` }}>
                 <UserRound size={15} style={{ color: C.orange }} />
                 <div className="min-w-0">
-                  <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream }} className="block truncate">
+                  <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: textColor }} className="block truncate">
                     {selectedUser.full_name || selectedUser.display_name || 'Sem nome'}
                   </span>
-                  <span style={{ fontSize: 12, color: `${C.cream}50` }}>{selectedUser.email}</span>
+                  <span style={{ fontSize: 12, color: mutedColor }}>{selectedUser.email}</span>
                 </div>
               </div>
 
@@ -928,14 +914,14 @@ export default function AdminMonitoring() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
                     { label: 'Total inscrições', value: selectedUser.submissionCount, icon: ClipboardList, color: C.orange },
-                    { label: 'Concluídas', value: selectedUser.completedCount, icon: CheckCircle, color: C.lime },
+                    { label: 'Concluídas', value: selectedUser.completedCount, icon: CheckCircle, color: isLight ? C.darkGreen : C.lime },
                     { label: 'Pendentes', value: selectedUser.pendingCount, icon: Clock, color: C.purple },
                     { label: 'Rejeitadas', value: selectedUser.rejectedCount, icon: XCircle, color: '#f87171' },
                   ].map(({ label, value, icon: Icon, color }) => (
-                    <div key={label} className="p-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: '1px solid rgba(var(--ink),0.06)' }}>
+                    <div key={label} className="p-3 rounded-xl" style={{ backgroundColor: surfaceBgAlt, border: `1px solid ${cardBorder}` }}>
                       <div className="flex items-center gap-1.5 mb-2">
                         <Icon size={12} style={{ color }} />
-                        <span style={{ fontSize: 10, color: `${C.cream}40`, fontWeight: 700, letterSpacing: '0.05em' }}>{label.toUpperCase()}</span>
+                        <span style={{ fontSize: 10, color: faintColor, fontWeight: 700, letterSpacing: '0.05em' }}>{label.toUpperCase()}</span>
                       </div>
                       <div style={{ ...heading, fontSize: 24, fontWeight: 900, color, lineHeight: 1 }}>{value}</div>
                     </div>
@@ -952,9 +938,9 @@ export default function AdminMonitoring() {
                     { label: 'Trimestre', value: selectedUser.current_quarter || '—' },
                     { label: 'Membro desde', value: formatShortDate(selectedUser.created_at) },
                   ].map(({ label, value }) => (
-                    <div key={label} className="p-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: '1px solid rgba(var(--ink),0.06)' }}>
-                      <div style={{ fontSize: 10, color: `${C.cream}40`, marginBottom: 4, fontWeight: 700, letterSpacing: '0.05em' }}>{label.toUpperCase()}</div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.cream }}>{value}</div>
+                    <div key={label} className="p-3 rounded-xl" style={{ backgroundColor: surfaceBgAlt, border: `1px solid ${cardBorder}` }}>
+                      <div style={{ fontSize: 10, color: faintColor, marginBottom: 4, fontWeight: 700, letterSpacing: '0.05em' }}>{label.toUpperCase()}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: textColor }}>{value}</div>
                     </div>
                   ))}
                 </div>
@@ -963,44 +949,44 @@ export default function AdminMonitoring() {
                 <div>
                   <div className="flex items-center gap-2 mb-4">
                     <ClipboardList size={14} style={{ color: C.orange }} />
-                    <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: C.cream }}>
+                    <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: textColor }}>
                       Histórico de participação ({selectedUser.submissions?.length || 0})
                     </span>
                   </div>
 
                   {!selectedUser.submissions?.length ? (
-                    <p style={{ fontSize: 13, color: `${C.cream}40` }}>Este usuário ainda não participou de nenhuma tarefa.</p>
+                    <p style={{ fontSize: 13, color: faintColor }}>Este usuário ainda não participou de nenhuma tarefa.</p>
                   ) : (
-                    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(var(--ink),0.07)' }}>
+                    <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${borderColor}` }}>
                       <table className="min-w-full text-sm">
                         <thead>
-                          <tr style={{ backgroundColor: 'rgba(var(--ink),0.03)', borderBottom: '1px solid rgba(var(--ink),0.06)' }}>
+                          <tr style={{ backgroundColor: surfaceBgAlt, borderBottom: `1px solid ${isLight ? T.borderMid : 'rgba(var(--ink),0.06)'}` }}>
                             {['Tarefa', 'Categoria', 'Status', 'Pontos', 'Inscrição', 'Atualização'].map((h) => (
-                              <th key={h} className="text-left px-4 py-2.5" style={{ fontSize: 10, fontWeight: 700, color: `${C.cream}40`, letterSpacing: '0.06em' }}>{h}</th>
+                              <th key={h} className="text-left px-4 py-2.5" style={{ fontSize: 10, fontWeight: 700, color: faintColor, letterSpacing: '0.06em' }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
                           {selectedUser.submissions.map((sub, i) => (
-                            <tr key={sub.id} style={{ borderBottom: '1px solid rgba(var(--ink),0.04)', backgroundColor: i % 2 === 0 ? 'transparent' : 'rgba(var(--ink),0.015)' }}>
+                            <tr key={sub.id} style={{ borderBottom: `1px solid ${isLight ? T.borderMid : 'rgba(var(--ink),0.04)'}`, backgroundColor: i % 2 === 0 ? 'transparent' : (isLight ? T.itemBg : 'rgba(var(--ink),0.015)') }}>
                               <td className="px-4 py-2.5">
-                                <p style={{ fontSize: 13, fontWeight: 600, color: C.cream }} className="max-w-[180px] truncate">
+                                <p style={{ fontSize: 13, fontWeight: 600, color: textColor }} className="max-w-[180px] truncate">
                                   {sub.task?.title || '—'}
                                 </p>
                               </td>
                               <td className="px-4 py-2.5">
-                                <span className="px-2 py-0.5 rounded-full text-xs font-semibold" style={{ backgroundColor: `${C.lime}12`, color: C.lime }}>
+                                <span className="px-2 py-0.5 rounded-full text-xs font-semibold" style={{ backgroundColor: `${C.lime}12`, color: isLight ? C.darkGreen : C.lime }}>
                                   {CATEGORY_LABELS[sub.task?.category] || sub.task?.category || '—'}
                                 </span>
                               </td>
                               <td className="px-4 py-2.5"><StatusBadge status={sub.status} /></td>
-                              <td className="px-4 py-2.5" style={{ fontSize: 12, color: `${C.cream}60` }}>
+                              <td className="px-4 py-2.5" style={{ fontSize: 12, color: subColor }}>
                                 {sub.task?.category === 'campanha'
                                   ? '—'
                                   : (sub.points_awarded > 0 ? sub.points_awarded : (sub.task?.points ?? '—'))}
                               </td>
-                              <td className="px-4 py-2.5" style={{ fontSize: 11, color: `${C.cream}40` }}>{formatDate(sub.created_at)}</td>
-                              <td className="px-4 py-2.5" style={{ fontSize: 11, color: `${C.cream}40` }}>{formatDate(sub.validated_at || sub.updated_at)}</td>
+                              <td className="px-4 py-2.5" style={{ fontSize: 11, color: faintColor }}>{formatDate(sub.created_at)}</td>
+                              <td className="px-4 py-2.5" style={{ fontSize: 11, color: faintColor }}>{formatDate(sub.validated_at || sub.updated_at)}</td>
                             </tr>
                           ))}
                         </tbody>

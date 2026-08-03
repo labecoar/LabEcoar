@@ -2,12 +2,18 @@
 import React, { useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useAdminPayments, useUpdatePaymentStatus } from '@/hooks/usePayments'
-import { DollarSign, Clock, CheckCircle, AlertCircle, RefreshCw, Calendar, User } from 'lucide-react'
+import { DollarSign, Clock, CheckCircle, AlertCircle, RefreshCw, Calendar } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { notifyError, notifyInfo, notifySuccess } from '@/lib/toast'
 import { C, heading, body } from '@/lib/theme'
 import { PageHeader, PageHeaderLabel } from "@/components/layout/PageShell";
+import {
+  usePageTheme,
+  AdminAccessDenied,
+  AdminEmptyState,
+  AdminTabButton,
+} from '@/components/admin/AdminPageHelpers'
 
 const STATUS_LABELS = {
   pendente: 'Pendente',
@@ -20,6 +26,18 @@ const formatCurrency = (value) => Number(value || 0).toLocaleString('pt-BR', { m
 
 export default function AdminPayments() {
   const { profile } = useAuth()
+  const {
+    isLight,
+    textColor,
+    mutedColor,
+    subColor,
+    faintColor,
+    cardBorder,
+    borderColor,
+    inputStyle,
+    pageTitleStyle,
+    pageSubtitleStyle,
+  } = usePageTheme()
   const [activeTab, setActiveTab] = useState('pendente')
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -39,15 +57,7 @@ export default function AdminPayments() {
   }, [payments, searchTerm])
 
   if (profile?.role !== 'admin') {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: C.black }}>
-        <div className="max-w-md p-8 rounded-2xl text-center" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.08)` }}>
-          <AlertCircle size={36} style={{ color: '#f87171', margin: '0 auto 16px' }} />
-          <h2 style={{ ...heading, fontSize: 20, fontWeight: 800, color: C.cream }}>Acesso Negado</h2>
-          <p style={{ color: `${C.cream}60`, fontSize: 14 }}>Apenas administradores podem acessar esta página.</p>
-        </div>
-      </div>
-    )
+    return <AdminAccessDenied icon={AlertCircle} />
   }
 
   const handleStatusUpdate = async (payment, nextStatus) => {
@@ -94,14 +104,6 @@ export default function AdminPayments() {
     { key: 'all', label: 'Todos' },
   ]
 
-  const EmptyState = ({ icon: Icon, title, subtitle }) => (
-    <div className="flex flex-col items-center justify-center py-24 gap-4">
-      <Icon size={36} style={{ color: `${C.cream}20` }} />
-      <p style={{ ...heading, fontSize: 18, fontWeight: 700, color: `${C.cream}40` }}>{title}</p>
-      {subtitle && <p style={{ fontSize: 14, color: `${C.cream}30` }}>{subtitle}</p>}
-    </div>
-  )
-
   return (
     <div className="min-h-screen" style={{ backgroundColor: C.black, ...body }}>
 
@@ -114,10 +116,10 @@ export default function AdminPayments() {
 
         {/* Hero */}
         <div>
-          <h1 style={{ ...heading, fontSize: 40, fontWeight: 900, color: C.cream, letterSpacing: '-0.03em', lineHeight: 1 }}>
+          <h1 style={{ ...pageTitleStyle, fontSize: 40, fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1 }}>
             Fila de Pagamentos
           </h1>
-          <p style={{ fontSize: 14, color: `${C.cream}50`, marginTop: 6 }}>
+          <p style={pageSubtitleStyle}>
             Acompanhe pagamentos pendentes, processando e pagos após aprovação de métricas.
           </p>
         </div>
@@ -134,11 +136,9 @@ export default function AdminPayments() {
         <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
           <div className="flex items-center gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
             {tabs.map((t) => (
-              <button key={t.key} type="button" onClick={() => setActiveTab(t.key)}
-                className="shrink-0 px-4 py-2 rounded-xl transition-all duration-150"
-                style={{ backgroundColor: activeTab === t.key ? C.lime : 'rgba(var(--ink),0.06)', color: activeTab === t.key ? C.black : `${C.cream}70`, fontWeight: activeTab === t.key ? 700 : 400, ...heading, fontSize: 13 }}>
+              <AdminTabButton key={t.key} active={activeTab === t.key} onClick={() => setActiveTab(t.key)}>
                 {t.label}
-              </button>
+              </AdminTabButton>
             ))}
           </div>
 
@@ -148,7 +148,7 @@ export default function AdminPayments() {
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Buscar por ecoante, email, campanha..."
             className="w-full md:w-80 px-4 py-2.5 rounded-xl outline-none transition-all"
-            style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.12)`, color: C.cream, fontSize: 13, ...body }}
+            style={inputStyle}
           />
         </div>
 
@@ -157,17 +157,17 @@ export default function AdminPayments() {
           <div className="flex items-center justify-center py-24">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: C.lime }} />
-              <p style={{ color: `${C.cream}50` }}>Carregando pagamentos...</p>
+              <p style={{ color: mutedColor }}>Carregando pagamentos...</p>
             </div>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <AlertCircle size={36} style={{ color: '#f87171' }} />
             <p style={{ ...heading, fontSize: 18, fontWeight: 700, color: '#f87171' }}>Erro ao carregar pagamentos</p>
-            <p style={{ fontSize: 14, color: `${C.cream}40` }}>{error?.message || 'Falha ao consultar pagamentos no banco.'}</p>
+            <p style={{ fontSize: 14, color: faintColor }}>{error?.message || 'Falha ao consultar pagamentos no banco.'}</p>
           </div>
         ) : filteredPayments.length === 0 ? (
-          <EmptyState icon={DollarSign} title="Nenhum pagamento encontrado" subtitle="Quando houver registros, eles aparecerão aqui." />
+          <AdminEmptyState icon={DollarSign} title="Nenhum pagamento encontrado" subtitle="Quando houver registros, eles aparecerão aqui." />
         ) : (
           <div className="flex flex-col gap-4">
             {filteredPayments.map((payment) => {
@@ -183,22 +183,22 @@ export default function AdminPayments() {
 
               return (
                 <div key={payment.id} className="p-5 rounded-2xl"
-                  style={{ backgroundColor: C.card, border: `1px solid ${isError ? 'rgba(248,113,113,0.2)' : 'rgba(var(--ink),0.07)'}` }}>
+                  style={{ backgroundColor: C.card, border: `1px solid ${isError ? 'rgba(248,113,113,0.2)' : cardBorder}` }}>
 
                   {/* Top */}
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-4">
                     <div className="flex-1 min-w-0">
-                      <p style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream, lineHeight: 1.3 }} className="line-clamp-2">
+                      <p style={{ ...heading, fontSize: 16, fontWeight: 700, color: textColor, lineHeight: 1.3 }} className="line-clamp-2">
                         {campaignTitle}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
                         <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
-                          style={{ backgroundColor: C.orange, color: C.cream }}>
+                          style={{ backgroundColor: C.orange, color: isLight ? C.onSurface : C.cream }}>
                           {ecoante.charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0">
-                          <p style={{ fontSize: 12, color: `${C.cream}70` }} className="truncate font-medium">{ecoante}</p>
-                          <p style={{ fontSize: 11, color: `${C.cream}40` }} className="truncate">{payment.profile?.email || 'sem email'}</p>
+                          <p style={{ fontSize: 12, color: subColor }} className="truncate font-medium">{ecoante}</p>
+                          <p style={{ fontSize: 11, color: faintColor }} className="truncate">{payment.profile?.email || 'sem email'}</p>
                         </div>
                       </div>
                     </div>
@@ -229,7 +229,7 @@ export default function AdminPayments() {
                   </div>
 
                   {/* Ações */}
-                  <div className="flex flex-wrap gap-2 pt-4" style={{ borderTop: `1px solid rgba(var(--ink),0.06)` }}>
+                  <div className="flex flex-wrap gap-2 pt-4" style={{ borderTop: `1px solid ${borderColor}` }}>
                     {(isPending || isError) && (
                       <button onClick={() => handleStatusUpdate(payment, 'processando')} disabled={updatePaymentStatus.isPending}
                         className="flex items-center gap-2 px-4 h-9 rounded-xl transition-all hover:brightness-110 disabled:opacity-50"
@@ -273,6 +273,7 @@ export default function AdminPayments() {
 }
 
 function StatusCard({ title, status }) {
+  const { surfaceBg, cardBorder, mutedColor } = usePageTheme()
   const { data: items = [] } = useAdminPayments(status)
 
   const Icon = status === 'pago' ? CheckCircle : status === 'processando' ? Clock : status === 'erro' ? AlertCircle : DollarSign
@@ -281,24 +282,25 @@ function StatusCard({ title, status }) {
 
   return (
     <div className="flex items-center gap-4 p-5 rounded-2xl"
-      style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: `1px solid rgba(var(--ink),0.06)` }}>
+      style={{ backgroundColor: surfaceBg, border: `1px solid ${cardBorder}` }}>
       <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: iconBg }}>
         <Icon size={16} style={{ color }} />
       </div>
       <div>
         <div style={{ ...heading, fontSize: 28, fontWeight: 900, color, lineHeight: 1, letterSpacing: '-0.02em' }}>{items.length}</div>
-        <div style={{ fontSize: 11, color: `${C.cream}50`, marginTop: 4 }}>{title}</div>
+        <div style={{ fontSize: 11, color: mutedColor, marginTop: 4 }}>{title}</div>
       </div>
     </div>
   )
 }
 
 function InfoChip({ label, value, hasIcon = false }) {
+  const { surfaceBgAlt, cardBorder, labelColor, textColor, mutedColor } = usePageTheme()
   return (
-    <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)` }}>
-      <p style={{ fontSize: 10, color: `${C.cream}50`, marginBottom: 4 }}>{label}</p>
-      <p className="flex items-center gap-1" style={{ fontSize: 13, fontWeight: 700, color: C.cream }}>
-        {hasIcon && <Calendar size={11} style={{ color: `${C.cream}50` }} />}
+    <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: surfaceBgAlt, border: `1px solid ${cardBorder}` }}>
+      <p style={{ fontSize: 10, color: labelColor, marginBottom: 4 }}>{label}</p>
+      <p className="flex items-center gap-1" style={{ fontSize: 13, fontWeight: 700, color: textColor }}>
+        {hasIcon && <Calendar size={11} style={{ color: mutedColor }} />}
         {value}
       </p>
     </div>

@@ -317,13 +317,19 @@ export default function Tasks() {
   // ─── TaskCard ──────────────────────────────────────────────────────────────
   const TaskCard = ({ task }) => {
     const isSidequestBlockedThisMonth = task.category === 'sidequest_teste' && isSidequestCompletedThisMonth(task.id);
-    const { color: accent, bg: accentBg } = getCategoryStyle(task.category);
+    const { color: categoryAccent, bg: categoryAccentBg } = getCategoryStyle(task.category);
+    const accent = isLight && categoryAccent === C.lime ? C.blue : categoryAccent;
+    const accentBg = isLight && categoryAccent === C.lime ? C.blue_back : categoryAccentBg;
+    const accentText = accent === C.lime
+      ? C.onAccent
+      : accent === C.blue
+        ? C.onSurface
+        : C.cream;
     const submission = getTaskSubmission(task.id);
     const metricsSubmission = getTaskMetricsSubmission(task.id);
     const steps = getTaskSteps(task, submission);
     const completedSteps = getCompletedStepsCount(task, submission, metricsSubmission);
     const Icon = CATEGORY_ICONS[task.category] || Target;
-    const accentText = accent === C.lime ? C.onAccent : C.cream;
     const isCampaignTask = task.category === 'campanha';
     const isMissionTask = task.category === 'sidequest_teste';
     const isPaidTask = task.category === 'campanha' || Number(task.offered_value || 0) > 0;
@@ -397,7 +403,9 @@ export default function Tasks() {
       <div
         onClick={() => !isSidequestBlockedThisMonth && setSelectedTask(task)}
         style={{
-          background: isScheduled ? colorWithAlpha('#FFFFFF', 0.4) : C.card,
+          background: isScheduled
+            ? (isLight ? colorWithAlpha('#FFFFFF', 0.4) : T.surface)
+            : C.card,
           borderRadius: 16,
           border: `1px solid ${isScheduled ? 'rgba(170,102,255,0.22)' : (isLight ? T.border : BORDER_COLOR)}`,
           overflow: "hidden",
@@ -405,7 +413,7 @@ export default function Tasks() {
           flexDirection: "column",
           cursor: isSidequestBlockedThisMonth ? 'default' : 'pointer',
           transition: "all 0.2s",
-          opacity: isSidequestBlockedThisMonth ? 0.4 : 1,
+          opacity: isScheduled && isLight ? 0.88 : isSidequestBlockedThisMonth ? 0.4 : 1,
           boxShadow: isLight && !isScheduled ? "0 2px 12px rgba(29,29,27,0.07)" : "none",
         }}
         onMouseEnter={e => {

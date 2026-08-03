@@ -43,6 +43,12 @@ import { getCampaignAdminVisibilityDeadline, isCampaignVisibleForAdminReview } f
 import { C, heading, body } from '@/lib/theme'
 import { PageHeader, PageHeaderLabel, usePageHeaderTheme } from "@/components/layout/PageShell";
 import {
+  usePageTheme,
+  AdminAccessDenied,
+  AdminStatCard,
+  AdminTabButton,
+} from '@/components/admin/AdminPageHelpers';
+import {
   formatDateTimeLocalValue as formatLaunchDateTimeLocalValue,
   formatLaunchDateTime,
   isTaskScheduled,
@@ -208,6 +214,24 @@ const getTaskDeadlineState = (task) => {
 
 export default function AdminContentManagement() {
   const { barStyle } = usePageHeaderTheme();
+  const {
+    isLight, T, mutedColor, subColor, faintColor, labelColor, textColor,
+    borderColor, cardBorder, surfaceBg, surfaceBgAlt, itemBg,
+    inputStyle, selectStyle, optionStyle,
+    pageTitleStyle, pageSubtitleStyle,
+  } = usePageTheme()
+  const labelStyle = {
+    fontSize: 11,
+    fontWeight: 700,
+    color: labelColor,
+    display: 'block',
+    marginBottom: 6,
+    letterSpacing: '0.05em',
+    ...body,
+  }
+  const textareaStyle = { ...inputStyle, resize: 'vertical' }
+  const aInputCls = "w-full px-4 py-2.5 rounded-xl outline-none transition-all"
+  const datetimeCalendarStroke = isLight ? '%231D1D1B' : 'white'
   const { user, profile } = useAuth()
   const { data: tasks = [], isLoading } = useAdminTasks()
   const { data: forumTopicsData, isLoading: loadingForum } = useForumTopics()
@@ -227,34 +251,6 @@ export default function AdminContentManagement() {
   const [forumForm, setForumForm] = useState(initialForumForm)
   const [editingForumTopic, setEditingForumTopic] = useState(null)
   const [error, setError] = useState('')
-
-  // ── Dark-theme input styles (from design v2) ──────────────────────────────
-  const aInputCls = "w-full px-4 py-2.5 rounded-xl outline-none transition-all"
-  const aInputStyle = {
-    border: `1px solid rgba(var(--ink),0.12)`,
-    backgroundColor: C.black_light,
-    color: C.cream,
-    fontSize: 13,
-    ...body,
-  }
-  const labelStyle = {
-    fontSize: 11,
-    fontWeight: 700,
-    color: `${C.cream}60`,
-    display: 'block',
-    marginBottom: 6,
-    letterSpacing: '0.05em',
-  }
-  const aSelectStyle = {
-    ...aInputStyle,
-    cursor: 'pointer',
-    appearance: 'none',
-    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23FFFFDE' stroke-width='2' stroke-opacity='0.4'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
-    backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'right 12px center',
-    paddingRight: 32,
-  }
-  const textareaStyle = { ...aInputStyle, resize: 'vertical' }
 
   const isCampaign = formData.category === 'campanha'
   const isSidequestTest = formData.category === 'sidequest_teste'
@@ -283,12 +279,7 @@ export default function AdminContentManagement() {
 
   if (profile?.role !== 'admin') {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: C.black }}>
-        <div className="max-w-md p-8 rounded-2xl text-center" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.08)` }}>
-          <h2 style={{ ...heading, fontSize: 20, fontWeight: 800, color: C.cream }} className="mb-2">Acesso Negado</h2>
-          <p style={{ color: `${C.cream}60`, fontSize: 14 }}>Você não tem permissão para acessar esta página.</p>
-        </div>
-      </div>
+      <AdminAccessDenied message="Você não tem permissão para acessar esta página." />
     )
   }
 
@@ -633,15 +624,13 @@ export default function AdminContentManagement() {
     <div className="min-h-screen" style={{ backgroundColor: C.black, ...body }}>
       <style>{`
         input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 24 24' fill='none' stroke= "white" stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E");
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 24 24' fill='none' stroke='${datetimeCalendarStroke}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E");
           width: 18px;
           height: 18px;
           background-size: contain;
           cursor: pointer;
         }
-        input[type="datetime-local"] {
-          color-scheme: dark;
-        }
+        ${!isLight ? 'input[type="datetime-local"] { color-scheme: dark; }' : ''}
       `}</style>
 
       <PageHeader>
@@ -658,93 +647,43 @@ export default function AdminContentManagement() {
 
         {/* ── Hero ── */}
         <div>
-          <h1 style={{ ...heading, fontSize: 40, fontWeight: 900, color: C.cream, letterSpacing: '-0.03em', lineHeight: 1 }}>
+          <h1 style={{ ...pageTitleStyle, fontSize: 40, fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1 }}>
             Gerenciar Conteúdo
           </h1>
-          <p style={{ fontSize: 14, color: `${C.cream}50`, marginTop: 6 }}>
+          <p style={pageSubtitleStyle}>
             Crie tarefas e tópicos do fórum para os Ecoantes.
           </p>
         </div>
 
         {/* ── Stats ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
-          {[
-            { icon: Target, label: 'Tarefas Ativas', value: activeTasks.length, color: C.lime, iconBg: "rgba(200, 255, 0, 0.08)" },
-            { icon: Megaphone, label: 'Campanhas Ativas', value: campaignCount, color: C.orange, iconBg: "rgba(255, 69, 0, 0.08)" },
-          ].map(({ icon: Icon, label, value, color, iconBg }) => (
-            <div
-              key={label}
-              className="flex items-center gap-4 p-5 rounded-2xl"
-              style={{
-                backgroundColor: C.black_back,
-                border: `1px solid rgba(var(--ink),0.06)`
-              }}
-            >
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ backgroundColor: iconBg }}
-              >
-                <Icon size={16} style={{ color }} />
-              </div>
-
-              <div>
-                <div
-                  style={{
-                    ...heading,
-                    fontSize: 28,
-                    fontWeight: 900,
-                    color,
-                    lineHeight: 1,
-                    letterSpacing: '-0.02em'
-                  }}
-                >
-                  {value}
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: `${C.cream}50`,
-                    marginTop: 4
-                  }}
-                >
-                  {label}
-                </div>
-              </div>
-            </div>
-          ))}
+          <AdminStatCard icon={Target} label="Tarefas Ativas" value={activeTasks.length} color={C.lime} iconBg="rgba(200, 255, 0, 0.08)" />
+          <AdminStatCard icon={Megaphone} label="Campanhas Ativas" value={campaignCount} color={C.orange} iconBg="rgba(255, 69, 0, 0.08)" />
         </div>
 
         {/* ── Tabs ── */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
           {tabs.map((t) => (
-            <button
+            <AdminTabButton
               key={t.key}
               type="button"
+              active={activeTab === t.key}
               onClick={() => setActiveTab(t.key)}
-              className="shrink-0 px-4 py-2 rounded-xl transition-all duration-150"
-              style={{
-                backgroundColor: activeTab === t.key ? C.lime : 'rgba(var(--ink),0.06)',
-                color: activeTab === t.key ? C.black : `${C.cream}70`,
-                fontWeight: activeTab === t.key ? 700 : 400,
-                ...heading,
-                fontSize: 13,
-              }}
             >
               {t.label}
-            </button>
+            </AdminTabButton>
           ))}
         </div>
 
         {/*  TAB: CRIAR TAREFA */}
         {activeTab === 'create' && (
           <div className="flex flex-col gap-5 w-full">
-            <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.black_back, border: `1px solid rgba(var(--ink),0.07)` }}>
+            <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: surfaceBgAlt, border: `1px solid ${borderColor}` }}>
 
               {/* Card header */}
-              <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
+              <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid ${borderColor}` }}>
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: C.lime }} />
-                <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>
+                <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: textColor }}>
                   {editingTask ? 'Editar Tarefa' : 'Nova Tarefa'}
                 </span>
               </div>
@@ -758,7 +697,7 @@ export default function AdminContentManagement() {
                       <label style={labelStyle}>TÍTULO <span style={{ color: C.orange }}>*</span></label>
                       <input
                         className={aInputCls}
-                        style={aInputStyle}
+                        style={inputStyle}
                         value={formData.title}
                         onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
                         placeholder="Ex: Post sobre Dia da Terra"
@@ -768,7 +707,7 @@ export default function AdminContentManagement() {
                       <label style={labelStyle}>CATEGORIA <span style={{ color: C.orange }}>*</span></label>
                       <select
                         className={aInputCls}
-                        style={aSelectStyle}
+                        style={selectStyle}
                         value={formData.category}
                         onChange={(e) => setFormData((prev) => ({
                           ...prev,
@@ -777,7 +716,7 @@ export default function AdminContentManagement() {
                         }))}
                       >
                         {CATEGORY_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value} style={{ backgroundColor: C.surface }}>
+                          <option key={option.value} value={option.value} style={optionStyle}>
                             {option.label}
                           </option>
                         ))}
@@ -791,7 +730,7 @@ export default function AdminContentManagement() {
                       <label style={{ ...labelStyle, color: '#f59e0b' }}>PONTUAÇÃO DA MISSÃO <span style={{ color: C.orange }}>*</span></label>
                       <input
                         className={aInputCls}
-                        style={aInputStyle}
+                        style={inputStyle}
                         type="number"
                         min="1"
                         value={formData.points}
@@ -808,13 +747,13 @@ export default function AdminContentManagement() {
                       <label style={labelStyle}>TIPO DE FOLHETIM</label>
                       <select
                         className={aInputCls}
-                        style={aSelectStyle}
+                        style={selectStyle}
                         value={formData.folhetim_type}
                         onChange={(e) => setFormData((prev) => ({ ...prev, folhetim_type: e.target.value }))}
                       >
-                        <option value="" style={{ backgroundColor: C.surface }}>Selecione o tipo</option>
-                        <option value="compartilhar" style={{ backgroundColor: C.surface }}>Compartilhar</option>
-                        <option value="criar" style={{ backgroundColor: C.surface }}>Criar Conteúdo</option>
+                        <option value="" style={optionStyle}>Selecione o tipo</option>
+                        <option value="compartilhar" style={optionStyle}>Compartilhar</option>
+                        <option value="criar" style={optionStyle}>Criar Conteúdo</option>
                       </select>
                     </div>
                   )}
@@ -829,9 +768,9 @@ export default function AdminContentManagement() {
                   </div>
 
                   {/* Tipo de conteúdo */}
-                  <div className="rounded-xl p-5 flex flex-col" style={{ border: `1px solid rgba(var(--ink),0.10)`, backgroundColor: 'rgba(var(--ink),0.03)' }}>
-                    <div style={{ ...heading, fontSize: 13, fontWeight: 700, color: C.cream, marginBottom: 4 }}>Tipo de Conteúdo a Produzir</div>
-                    <div style={{ fontSize: 12, color: `${C.cream}50`, marginBottom: 12 }}>Selecione um ou mais formatos</div>
+                  <div className="rounded-xl p-5 flex flex-col" style={{ border: `1px solid ${borderColor}`, backgroundColor: surfaceBg }}>
+                    <div style={{ ...heading, fontSize: 13, fontWeight: 700, color: textColor, marginBottom: 4 }}>Tipo de Conteúdo a Produzir</div>
+                    <div style={{ fontSize: 12, color: mutedColor, marginBottom: 12 }}>Selecione um ou mais formatos</div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-8">
                       {CONTENT_TYPE_OPTIONS.map((format) => (
                         <label key={format} className="flex items-center gap-2.5 cursor-pointer">
@@ -841,14 +780,14 @@ export default function AdminContentManagement() {
                             checked={formData.content_formats.includes(format)}
                             onChange={() => toggleContentFormat(format)}
                           />
-                          <span style={{ fontSize: 13, color: `${C.cream}80` }}>{format}</span>
+                          <span style={{ fontSize: 13, color: isLight ? T.textSub : `${C.cream}80` }}>{format}</span>
                         </label>
                       ))}
                     </div>
                     {formData.content_formats.includes('Outro') && (
                       <input
                         className={aInputCls}
-                        style={{ ...aInputStyle, marginTop: 12 }}
+                        style={{ ...inputStyle, marginTop: 12 }}
                         value={formData.content_type_other}
                         onChange={(e) => setFormData((prev) => ({ ...prev, content_type_other: e.target.value }))}
                         placeholder="Especifique o tipo de conteúdo..."
@@ -863,7 +802,7 @@ export default function AdminContentManagement() {
                         <label style={labelStyle}>VALOR OFERECIDO (R$) <span style={{ color: C.orange }}>*</span></label>
                         <input
                           className={aInputCls}
-                          style={aInputStyle}
+                          style={inputStyle}
                           type="number"
                           min="1"
                           value={formData.offered_value}
@@ -877,7 +816,7 @@ export default function AdminContentManagement() {
                         <label style={labelStyle}>PONTOS DA CATEGORIA</label>
                         <input
                           className={aInputCls}
-                          style={{ ...aInputStyle, opacity: 0.5 }}
+                          style={{ ...inputStyle, opacity: 0.5 }}
                           value={selectedCategory?.points || 50}
                           disabled
                         />
@@ -892,14 +831,14 @@ export default function AdminContentManagement() {
                         <Clock3 size={14} style={{ color: C.orange }} />
                         <label style={{ ...labelStyle, marginBottom: 0 }}>DATA E HORA FINAL DA TAREFA <span style={{ color: C.orange }}>*</span></label>
                       </div>
-                      <p style={{ fontSize: 11, color: `${C.cream}45`, marginBottom: 8 }}>
+                      <p style={{ fontSize: 11, color: faintColor, marginBottom: 8 }}>
                         Se a data final ficar em até 3 dias úteis, a campanha vira{' '}
                         <span style={{ color: C.lime, fontWeight: 600 }}>Resposta Rápida</span>.
                       </p>
                       <input
                         type="datetime-local"
                         className={aInputCls}
-                        style={{ ...aInputStyle, maxWidth: 260 }}
+                        style={{ ...inputStyle, maxWidth: 260 }}
                         value={formData.posting_deadline}
                         onChange={(e) => setFormData((prev) => ({ ...prev, posting_deadline: e.target.value }))}
                       />
@@ -920,12 +859,12 @@ export default function AdminContentManagement() {
                           checked={formData.without_deadline}
                           onChange={(e) => setFormData((prev) => ({ ...prev, without_deadline: e.target.checked }))}
                         />
-                        <span style={{ fontSize: 13, color: `${C.cream}80` }}>Sem data (tempo indeterminado)</span>
+                        <span style={{ fontSize: 13, color: isLight ? T.textSub : `${C.cream}80` }}>Sem data (tempo indeterminado)</span>
                       </label>
                       <input
                         type="datetime-local"
                         className={aInputCls}
-                        style={{ ...aInputStyle, maxWidth: 260, opacity: formData.without_deadline ? 0.4 : 1 }}
+                        style={{ ...inputStyle, maxWidth: 260, opacity: formData.without_deadline ? 0.4 : 1 }}
                         value={formData.posting_deadline}
                         onChange={(e) => setFormData((prev) => ({ ...prev, posting_deadline: e.target.value }))}
                         disabled={formData.without_deadline}
@@ -946,18 +885,18 @@ export default function AdminContentManagement() {
                           launch_at: e.target.checked ? prev.launch_at : '',
                         }))}
                       />
-                      <span style={{ fontSize: 13, fontWeight: 600, color: `${C.cream}80` }}>Agendar lançamento</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: isLight ? T.textSub : `${C.cream}80` }}>Agendar lançamento</span>
                     </label>
                     {formData.schedule_launch && (
                       <>
-                        <p style={{ fontSize: 11, color: `${C.cream}45`, marginBottom: 8 }}>
+                        <p style={{ fontSize: 11, color: faintColor, marginBottom: 8 }}>
                           A tarefa ficará visível antes do horário, mas só poderá ser feita após o lançamento.
                           {isCampaign && ' Campanhas agendadas recebem e-mail apenas quando forem liberadas.'}
                         </p>
                         <input
                           type="datetime-local"
                           className={aInputCls}
-                          style={{ ...aInputStyle, maxWidth: 260 }}
+                          style={{ ...inputStyle, maxWidth: 260 }}
                           value={formData.launch_at}
                           onChange={(e) => setFormData((prev) => ({ ...prev, launch_at: e.target.value }))}
                         />
@@ -971,7 +910,7 @@ export default function AdminContentManagement() {
                       <label style={labelStyle}>MÁXIMO DE PARTICIPANTES {isCampaign ? <span style={{ color: C.orange }}>*</span> : '(OPCIONAL)'}</label>
                       <input
                         className={aInputCls}
-                        style={aInputStyle}
+                        style={inputStyle}
                         type="number"
                         min="1"
                         value={formData.max_participants}
@@ -984,12 +923,12 @@ export default function AdminContentManagement() {
                         <label style={labelStyle}>TIPO DE CAMPANHA</label>
                         <select
                           className={aInputCls}
-                          style={{ ...aSelectStyle, opacity: 0.5 }}
+                          style={{ ...selectStyle, opacity: 0.5 }}
                           value={formData.campaign_type}
                           disabled
                         >
-                          <option value="comum" style={{ backgroundColor: C.surface }}>Comum</option>
-                          <option value="resposta_rapida" style={{ backgroundColor: C.surface }}>Resposta Rápida</option>
+                          <option value="comum" style={optionStyle}>Comum</option>
+                          <option value="resposta_rapida" style={optionStyle}>Resposta Rápida</option>
                         </select>
                       </div>
                     )}
@@ -1003,13 +942,13 @@ export default function AdminContentManagement() {
                       checked={formData.requires_application}
                       onChange={(e) => setFormData((prev) => ({ ...prev, requires_application: e.target.checked }))}
                     />
-                    <span style={{ fontSize: 13, fontWeight: 600, color: `${C.cream}80` }}>Requer inscrição</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: isLight ? T.textSub : `${C.cream}80` }}>Requer inscrição</span>
                   </label>
 
                   {/* Requisitos de inscrição */}
                   {formData.requires_application && (
-                    <div className="rounded-xl p-5 flex flex-col gap-4" style={{ border: `1px solid rgba(var(--ink),0.10)`, backgroundColor: 'rgba(var(--ink),0.03)' }}>
-                      <div style={{ ...heading, fontSize: 13, fontWeight: 700, color: C.cream }}>Requisitos de Inscrição</div>
+                    <div className="rounded-xl p-5 flex flex-col gap-4" style={{ border: `1px solid ${borderColor}`, backgroundColor: surfaceBg }}>
+                      <div style={{ ...heading, fontSize: 13, fontWeight: 700, color: textColor }}>Requisitos de Inscrição</div>
                       <div>
                         <label style={labelStyle}>REQUISITOS DE PERFIL</label>
                         <textarea
@@ -1026,7 +965,7 @@ export default function AdminContentManagement() {
                           <label style={labelStyle}>MÍNIMO DE SEGUIDORES</label>
                           <input
                             className={aInputCls}
-                            style={aInputStyle}
+                            style={inputStyle}
                             type="number"
                             min="0"
                             value={formData.min_followers}
@@ -1038,7 +977,7 @@ export default function AdminContentManagement() {
                           <label style={labelStyle}>PÚBLICO-ALVO</label>
                           <input
                             className={aInputCls}
-                            style={aInputStyle}
+                            style={inputStyle}
                             value={formData.target_audience}
                             onChange={(e) => setFormData((prev) => ({ ...prev, target_audience: e.target.value }))}
                             placeholder="Ex: jovens interessados em sustentabilidade"
@@ -1062,7 +1001,7 @@ export default function AdminContentManagement() {
                         type="button"
                         onClick={resetForm}
                         className="flex-1 h-[52px] rounded-xl transition-all"
-                        style={{ border: `1px solid rgba(var(--ink),0.15)`, backgroundColor: 'transparent', color: `${C.cream}80`, ...heading, fontSize: 15, fontWeight: 700 }}
+                        style={{ border: `1px solid ${borderColor}`, backgroundColor: 'transparent', color: isLight ? T.textSub : `${C.cream}80`, ...heading, fontSize: 15, fontWeight: 700 }}
                       >
                         Cancelar
                       </button>
@@ -1089,20 +1028,20 @@ export default function AdminContentManagement() {
             TAB: ATIVAS
         ══════════════════════════════════════════ */}
         {activeTab === 'active' && (
-          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.07)` }}>
-            <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
+          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: isLight ? C.card : C.card, border: `1px solid ${borderColor}` }}>
+            <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid ${borderColor}` }}>
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: C.lime }} />
-              <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>Tarefas Ativas</span>
+              <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: textColor }}>Tarefas Ativas</span>
             </div>
             <div className="p-6">
               {isLoading ? (
-                <div style={{ color: `${C.cream}50`, textAlign: 'center', padding: '40px 0' }}>Carregando tarefas...</div>
+                <div style={{ color: mutedColor, textAlign: 'center', padding: '40px 0' }}>Carregando tarefas...</div>
               ) : activeTasks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-4">
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.08)` }}>
-                    <Target size={24} style={{ color: `${C.cream}30` }} />
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: itemBg, border: `1px solid ${cardBorder}` }}>
+                    <Target size={24} style={{ color: faintColor }} />
                   </div>
-                  <p style={{ ...heading, fontSize: 16, color: `${C.cream}50`, textAlign: 'center' }}>Nenhuma tarefa ativa no momento.</p>
+                  <p style={{ ...heading, fontSize: 16, color: mutedColor, textAlign: 'center' }}>Nenhuma tarefa ativa no momento.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1126,7 +1065,6 @@ export default function AdminContentManagement() {
                         deleteIsPending={deleteTask.isPending}
                         deactivateIsPending={deactivateTask.isPending}
                         heading={heading}
-                        body={body}
                       />
                     )
                   })}
@@ -1140,20 +1078,20 @@ export default function AdminContentManagement() {
             TAB: INATIVAS
         ══════════════════════════════════════════ */}
         {activeTab === 'inactive' && (
-          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.07)` }}>
-            <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
+          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: isLight ? C.card : C.card, border: `1px solid ${borderColor}` }}>
+            <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid ${borderColor}` }}>
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: C.orange }} />
-              <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>Tarefas Inativas</span>
+              <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: textColor }}>Tarefas Inativas</span>
             </div>
             <div className="p-6">
               {isLoading ? (
-                <div style={{ color: `${C.cream}50`, textAlign: 'center', padding: '40px 0' }}>Carregando tarefas...</div>
+                <div style={{ color: mutedColor, textAlign: 'center', padding: '40px 0' }}>Carregando tarefas...</div>
               ) : inactiveTasks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-4">
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.08)` }}>
-                    <ToggleLeft size={24} style={{ color: `${C.cream}30` }} />
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: itemBg, border: `1px solid ${cardBorder}` }}>
+                    <ToggleLeft size={24} style={{ color: faintColor }} />
                   </div>
-                  <p style={{ ...heading, fontSize: 16, color: `${C.cream}50`, textAlign: 'center' }}>Nenhuma tarefa inativa no momento.</p>
+                  <p style={{ ...heading, fontSize: 16, color: mutedColor, textAlign: 'center' }}>Nenhuma tarefa inativa no momento.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1174,7 +1112,6 @@ export default function AdminContentManagement() {
                         deleteIsPending={deleteTask.isPending}
                         reactivateIsPending={reactivateTask.isPending}
                         heading={heading}
-                        body={body}
                         dimmed
                         inactive
                       />
@@ -1190,20 +1127,20 @@ export default function AdminContentManagement() {
             TAB: CONCLUÍDAS
         ══════════════════════════════════════════ */}
         {activeTab === 'completed' && (
-          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.07)` }}>
-            <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: `${C.cream}30` }} />
-              <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>Tarefas Concluídas / Expiradas</span>
+          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: isLight ? C.card : C.card, border: `1px solid ${borderColor}` }}>
+            <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid ${borderColor}` }}>
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: isLight ? T.textFaint : `${C.cream}30` }} />
+              <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: textColor }}>Tarefas Concluídas / Expiradas</span>
             </div>
             <div className="p-6">
               {isLoading ? (
-                <div style={{ color: `${C.cream}50`, textAlign: 'center', padding: '40px 0' }}>Carregando tarefas...</div>
+                <div style={{ color: mutedColor, textAlign: 'center', padding: '40px 0' }}>Carregando tarefas...</div>
               ) : completedTasks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-4">
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.08)` }}>
-                    <Archive size={24} style={{ color: `${C.cream}30` }} />
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: itemBg, border: `1px solid ${cardBorder}` }}>
+                    <Archive size={24} style={{ color: faintColor }} />
                   </div>
-                  <p style={{ ...heading, fontSize: 16, color: `${C.cream}50`, textAlign: 'center' }}>Nenhuma tarefa concluída ou expirada.</p>
+                  <p style={{ ...heading, fontSize: 16, color: mutedColor, textAlign: 'center' }}>Nenhuma tarefa concluída ou expirada.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1222,7 +1159,6 @@ export default function AdminContentManagement() {
                         onDelete={handleDeleteTask}
                         deleteIsPending={deleteTask.isPending}
                         heading={heading}
-                        body={body}
                         dimmed
                       />
                     )
@@ -1238,10 +1174,10 @@ export default function AdminContentManagement() {
         ══════════════════════════════════════════ */}
         {activeTab === 'forum' && (
           <div className="flex flex-col gap-5 w-full">
-            <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.07)` }}>
-              <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
+            <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: isLight ? C.card : C.card, border: `1px solid ${borderColor}` }}>
+              <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: `1px solid ${borderColor}` }}>
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: C.lime }} />
-                <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>
+                <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: textColor }}>
                   {editingForumTopic ? 'Editar Tópico do Fórum' : 'Criar Tópico do Fórum'}
                 </span>
               </div>
@@ -1252,7 +1188,7 @@ export default function AdminContentManagement() {
                     <label style={labelStyle}>TÍTULO <span style={{ color: C.orange }}>*</span></label>
                     <input
                       className={aInputCls}
-                      style={aInputStyle}
+                      style={inputStyle}
                       value={forumForm.title}
                       onChange={(e) => setForumForm((prev) => ({ ...prev, title: e.target.value }))}
                       placeholder="Ex: Dicas para engajamento sustentável"
@@ -1275,16 +1211,16 @@ export default function AdminContentManagement() {
                     <label style={labelStyle}>CATEGORIA <span style={{ color: C.orange }}>*</span></label>
                     <select
                       className={aInputCls}
-                      style={aSelectStyle}
+                      style={selectStyle}
                       value={forumForm.category}
                       onChange={(e) => setForumForm((prev) => ({ ...prev, category: e.target.value }))}
                     >
-                      <option value="dicas" style={{ backgroundColor: C.surface }}>Dicas</option>
-                      <option value="duvidas" style={{ backgroundColor: C.surface }}>Dúvidas</option>
-                      <option value="conquistas" style={{ backgroundColor: C.surface }}>Conquistas</option>
-                      <option value="campanhas" style={{ backgroundColor: C.surface }}>Campanhas</option>
-                      <option value="geral" style={{ backgroundColor: C.surface }}>Geral</option>
-                      <option value="sugestoes" style={{ backgroundColor: C.surface }}>Sugestões</option>
+                      <option value="dicas" style={optionStyle}>Dicas</option>
+                      <option value="duvidas" style={optionStyle}>Dúvidas</option>
+                      <option value="conquistas" style={optionStyle}>Conquistas</option>
+                      <option value="campanhas" style={optionStyle}>Campanhas</option>
+                      <option value="geral" style={optionStyle}>Geral</option>
+                      <option value="sugestoes" style={optionStyle}>Sugestões</option>
                     </select>
                   </div>
 
@@ -1294,7 +1230,7 @@ export default function AdminContentManagement() {
                         type="button"
                         onClick={resetForumForm}
                         className="flex-1 h-[52px] rounded-xl transition-all"
-                        style={{ border: `1px solid rgba(var(--ink),0.15)`, backgroundColor: 'transparent', color: `${C.cream}80`, ...heading, fontSize: 15, fontWeight: 700 }}
+                        style={{ border: `1px solid ${borderColor}`, backgroundColor: 'transparent', color: isLight ? T.textSub : `${C.cream}80`, ...heading, fontSize: 15, fontWeight: 700 }}
                       >
                         Cancelar
                       </button>
@@ -1316,43 +1252,43 @@ export default function AdminContentManagement() {
             </div>
 
             {/* Lista / gerenciar tópicos */}
-            <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.07)` }}>
-              <div className="flex items-center justify-between gap-3 px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
+            <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: isLight ? C.card : C.card, border: `1px solid ${borderColor}` }}>
+              <div className="flex items-center justify-between gap-3 px-6 py-4" style={{ borderBottom: `1px solid ${borderColor}` }}>
                 <div className="flex items-center gap-3">
                   <MessageSquare size={16} style={{ color: C.orange }} />
-                  <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>
+                  <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: textColor }}>
                     Gerenciar tópicos
                   </span>
                 </div>
-                <span style={{ fontSize: 12, color: `${C.cream}45`, fontWeight: 600 }}>
+                <span style={{ fontSize: 12, color: faintColor, fontWeight: 600 }}>
                   {forumTopics.length} tópico{forumTopics.length === 1 ? '' : 's'}
                 </span>
               </div>
 
               <div className="p-6">
                 {loadingForum ? (
-                  <p style={{ fontSize: 13, color: `${C.cream}50` }}>Carregando tópicos...</p>
+                  <p style={{ fontSize: 13, color: mutedColor }}>Carregando tópicos...</p>
                 ) : forumTopics.length === 0 ? (
-                  <p style={{ fontSize: 13, color: `${C.cream}50` }}>Nenhum tópico cadastrado ainda.</p>
+                  <p style={{ fontSize: 13, color: mutedColor }}>Nenhum tópico cadastrado ainda.</p>
                 ) : (
                   <div className="space-y-3">
                     {forumTopics.map((topic) => (
                       <div
                         key={topic.id}
                         className="rounded-2xl p-5"
-                        style={{ border: `1px solid rgba(var(--ink),0.07)`, backgroundColor: 'rgba(var(--ink),0.02)' }}
+                        style={{ border: `1px solid ${borderColor}`, backgroundColor: surfaceBgAlt }}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                            <p style={{ ...heading, color: C.cream, fontSize: 15, fontWeight: 700 }}>{topic.title}</p>
-                            <p style={{ color: `${C.cream}55`, fontSize: 13, marginTop: 4 }} className="line-clamp-2">{topic.description}</p>
-                            <p style={{ fontSize: 11, color: `${C.cream}35`, marginTop: 6 }}>{topic.author_name || topic.author_email || 'Admin'}</p>
+                            <p style={{ ...heading, color: textColor, fontSize: 15, fontWeight: 700 }}>{topic.title}</p>
+                            <p style={{ color: subColor, fontSize: 13, marginTop: 4 }} className="line-clamp-2">{topic.description}</p>
+                            <p style={{ fontSize: 11, color: faintColor, marginTop: 6 }}>{topic.author_name || topic.author_email || 'Admin'}</p>
                           </div>
                           <div className="flex flex-col items-end gap-2 shrink-0">
                             <span
                               style={{
                                 backgroundColor: `${C.lime}20`,
-                                color: C.lime,
+                                color: isLight ? C.darkGreen : C.lime,
                                 fontSize: 11,
                                 fontWeight: 700,
                                 padding: '3px 10px',
@@ -1366,7 +1302,7 @@ export default function AdminContentManagement() {
                                 type="button"
                                 onClick={() => handleEditForumTopic(topic)}
                                 className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110"
-                                style={{ border: `1px solid rgba(var(--ink),0.12)`, backgroundColor: 'transparent', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
+                                style={{ border: `1px solid ${isLight ? T.border : 'rgba(var(--ink),0.12)'}`, backgroundColor: 'transparent', color: isLight ? T.textSub : `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
                               >
                                 <Pencil size={12} /> Editar
                               </button>
@@ -1411,16 +1347,17 @@ function TaskCard({
   deactivateIsPending = false,
   reactivateIsPending = false,
   heading,
-  body,
   dimmed = false,
   inactive = false,
 }) {
+  const { isLight, T, textColor, subColor, faintColor, borderColor, surfaceBg, surfaceBgAlt } = usePageTheme()
+
   return (
     <div
       className="relative rounded-2xl p-5 transition-all"
       style={{
-        border: `1px solid ${scheduled ? 'rgba(170,102,255,0.25)' : 'rgba(var(--ink),0.07)'}`,
-        backgroundColor: scheduled ? 'rgba(170,102,255,0.06)' : dimmed ? 'rgba(var(--ink),0.01)' : 'rgba(var(--ink),0.03)',
+        border: `1px solid ${scheduled ? 'rgba(170,102,255,0.25)' : borderColor}`,
+        backgroundColor: scheduled ? 'rgba(170,102,255,0.06)' : dimmed ? (isLight ? T.itemBg : 'rgba(var(--ink),0.01)') : surfaceBgAlt,
         opacity: dimmed ? 0.75 : 1,
       }}
     >
@@ -1436,7 +1373,7 @@ function TaskCard({
             <ToggleLeft size={11} /> Inativa
           </span>
         )}
-        <span style={{ backgroundColor: `${C.lime}20`, color: C.lime, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        <span style={{ backgroundColor: `${C.lime}20`, color: isLight ? C.darkGreen : C.lime, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
           <Icon size={11} /> {categoryMeta.label}
         </span>
         <span style={{ backgroundColor: `${C.blue}18`, color: C.blue, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -1448,8 +1385,8 @@ function TaskCard({
 
       {/* Content */}
       <div style={{ paddingRight: '46%' }}>
-        <h3 style={{ ...heading, color: C.cream, fontSize: 17, fontWeight: 700 }} className="break-words">{task.title}</h3>
-        <p style={{ color: `${C.cream}55`, fontSize: 13, marginTop: 6 }} className="line-clamp-2">{stripFormattingForPreview(task.description)}</p>
+        <h3 style={{ ...heading, color: textColor, fontSize: 17, fontWeight: 700 }} className="break-words">{task.title}</h3>
+        <p style={{ color: subColor, fontSize: 13, marginTop: 6 }} className="line-clamp-2">{stripFormattingForPreview(task.description)}</p>
       </div>
 
       {/* Meta */}
@@ -1460,11 +1397,11 @@ function TaskCard({
             backgroundColor: deadline.isExpired
               ? 'rgba(248,113,113,0.12)' : deadline.isCritical
                 ? 'rgba(251,146,60,0.12)' : deadline.isWarning
-                  ? 'rgba(250,204,21,0.10)' : 'rgba(var(--ink),0.06)',
+                  ? 'rgba(250,204,21,0.10)' : (isLight ? T.itemBg : 'rgba(var(--ink),0.06)'),
             color: deadline.isExpired
               ? '#f87171' : deadline.isCritical
                 ? '#fb923c' : deadline.isWarning
-                  ? '#facc15' : `${C.cream}60`,
+                  ? '#facc15' : (isLight ? T.textSub : `${C.cream}60`),
           }}
         >
           <Calendar size={12} />
@@ -1474,7 +1411,7 @@ function TaskCard({
               ? `${new Date(task.expires_at).toLocaleString('pt-BR')} (${deadline.timeLabel})`
               : 'Sem data'}
         </span>
-        <span className="inline-flex items-center gap-1.5" style={{ color: `${C.cream}45` }}>
+        <span className="inline-flex items-center gap-1.5" style={{ color: faintColor }}>
           <Target size={12} /> Conteúdo: {getProofTypeLabel(task)}
         </span>
       </div>
@@ -1484,7 +1421,7 @@ function TaskCard({
         <button
           onClick={() => onEdit(task)}
           className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110"
-          style={{ border: `1px solid rgba(var(--ink),0.12)`, backgroundColor: 'transparent', color: `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
+          style={{ border: `1px solid ${isLight ? T.border : 'rgba(var(--ink),0.12)'}`, backgroundColor: 'transparent', color: isLight ? T.textSub : `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
         >
           <Pencil size={12} /> Editar
         </button>

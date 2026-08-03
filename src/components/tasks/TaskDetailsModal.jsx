@@ -217,8 +217,14 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
   const isCampaignTask = task?.category === 'campanha';
   const isSidequestTask = task?.category === 'sidequest_teste';
-  const { color: accent, bg: accentBg } = getCategoryStyle(task.category);
-  const accentText = accent === C.lime ? C.onAccent : C.cream;
+  const { color: categoryAccent, bg: categoryAccentBg } = getCategoryStyle(task.category);
+  const accent = isLight && categoryAccent === C.lime ? C.blue : categoryAccent;
+  const accentBg = isLight && categoryAccent === C.lime ? C.blue_back : categoryAccentBg;
+  const accentText = accent === C.lime
+    ? C.onAccent
+    : accent === C.blue
+      ? C.onSurface
+      : C.cream;
   const actionButtonClassName = "w-full flex justify-center items-center min-h-[48px] px-4 py-3 rounded-xl text-center transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100";
   const actionButtonStyle = { backgroundColor: accent, color: accentText, ...heading, fontSize: 14, fontWeight: 700 };
   const displayCategory = CATEGORY_NAMES[task.category] || task.category;

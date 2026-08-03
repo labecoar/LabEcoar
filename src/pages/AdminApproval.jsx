@@ -11,8 +11,16 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
-import { C, heading, body } from '@/lib/theme';
+import { C, heading, body, getModalBackground, colorWithAlpha } from '@/lib/theme';
 import { PageHeader, PageHeaderLabel } from "@/components/layout/PageShell";
+import {
+  usePageTheme,
+  AdminAccessDenied,
+  AdminLoading,
+  AdminEmptyState,
+  AdminTabButton,
+  AdminStatCard,
+} from '@/components/admin/AdminPageHelpers';
 
 const normalizeSubmissionStatus = (status) => {
   const normalized = String(status || '').trim().toLowerCase();
@@ -36,6 +44,50 @@ const addHours = (baseDate, hoursToAdd) => {
   return new Date(new Date(baseDate).getTime() + hoursToAdd * 60 * 60 * 1000);
 };
 
+const sameUrlHost = (a, b) => {
+  try {
+    return new URL(a).host === new URL(b).host;
+  } catch {
+    return false;
+  }
+};
+
+/** Une proof_url + arquivos parseados da description numa lista só (sem duplicar) */
+const getSubmissionFiles = (submission) => {
+  const desc = submission?.description || '';
+  const fromDesc = [...desc.matchAll(/Arquivo (\d+): (https?:\/\/\S+)/g)]
+    .map((m) => ({ index: Number(m[1]), url: m[2] }))
+    .sort((a, b) => a.index - b.index);
+
+  const proofUrl = String(submission?.proof_url || '').trim();
+  const descUrls = new Set(fromDesc.map((f) => f.url));
+
+  if (!proofUrl && fromDesc.length === 0) return [];
+
+  if (fromDesc.length === 0) {
+    return [{ url: proofUrl, label: 'Comprovante' }];
+  }
+
+  if (proofUrl && descUrls.has(proofUrl)) {
+    return fromDesc.map((f) => ({ url: f.url, label: `Arquivo ${f.index}` }));
+  }
+
+  if (proofUrl && !descUrls.has(proofUrl)) {
+    if (sameUrlHost(proofUrl, fromDesc[0]?.url)) {
+      return [
+        { url: proofUrl, label: 'Arquivo 1' },
+        ...fromDesc.map((f, i) => ({ url: f.url, label: `Arquivo ${i + 2}` })),
+      ];
+    }
+    return [
+      { url: proofUrl, label: 'Link' },
+      ...fromDesc.map((f) => ({ url: f.url, label: `Arquivo ${f.index}` })),
+    ];
+  }
+
+  return fromDesc.map((f) => ({ url: f.url, label: `Arquivo ${f.index}` }));
+};
+
 export default function AdminApproval() {
   const [activeTab, setActiveTab] = useState('pending');
   const [selectedSubmission, setSelectedSubmission] = useState(null);
@@ -44,6 +96,12 @@ export default function AdminApproval() {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [, setNowTick] = useState(Date.now());
   const { profile } = useAuth();
+  const {
+    textColor, mutedColor, subColor, faintColor, cardBorder,
+    surfaceBg, surfaceBgAlt, labelColor, inputStyle, pageTitleStyle, pageSubtitleStyle, isLight, T,
+  } = usePageTheme();
+  const modalBg = getModalBackground(isLight);
+  const accentColor = T.accent;
 
   const { data: pendingSubmissions = [], isLoading } = usePendingSubmissions();
   const { data: approvalHistory = [] } = useApprovalHistory(200);
@@ -119,15 +177,7 @@ export default function AdminApproval() {
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
   if (profile?.role !== 'admin') {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: C.black }}>
-        <div className="max-w-md p-8 rounded-2xl text-center" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.08)` }}>
-          <XCircle size={36} style={{ color: '#f87171', margin: '0 auto 16px' }} />
-          <h2 style={{ ...heading, fontSize: 20, fontWeight: 800, color: C.cream }}>Acesso Negado</h2>
-          <p style={{ color: `${C.cream}60`, fontSize: 14 }}>Você não tem permissão para acessar esta página.</p>
-        </div>
-      </div>
-    );
+    return <AdminAccessDenied message="Você não tem permissão para acessar esta página." icon={XCircle} />;
   }
 
   const handleApprove = async (submission) => {
@@ -161,7 +211,6 @@ export default function AdminApproval() {
   };
 
   const aInputCls = "w-full px-4 py-2.5 rounded-xl outline-none transition-all";
-  const aInputStyle = { border: `1px solid rgba(var(--ink),0.12)`, backgroundColor: 'rgba(var(--ink),0.04)', color: C.cream, fontSize: 13, ...body };
 
   const SubmissionCard = ({ submission }) => {
     const status = normalizeSubmissionStatus(submission.status);
@@ -175,21 +224,21 @@ export default function AdminApproval() {
         className="p-5 rounded-2xl cursor-pointer transition-all hover:brightness-110"
         style={{
           backgroundColor: C.card,
-          border: `1px solid ${overdue ? 'rgba(248,113,113,0.3)' : critical ? `${C.orange}30` : 'rgba(var(--ink),0.07)'}`,
+          border: `1px solid ${overdue ? 'rgba(248,113,113,0.3)' : critical ? `${C.orange}30` : cardBorder}`,
         }}
       >
         {/* Top */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex-1 min-w-0">
-            <p style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream, lineHeight: 1.3 }} className="line-clamp-2">
+            <p style={{ ...heading, fontSize: 15, fontWeight: 700, color: textColor, lineHeight: 1.3 }} className="line-clamp-2">
               {submission.task?.title || 'Tarefa'}
             </p>
             <div className="flex items-center gap-2 mt-2">
               <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
-                style={{ backgroundColor: C.orange, color: C.cream }}>
+                style={{ backgroundColor: C.orange, color: isLight ? C.onSurface : C.cream }}>
                 {(submission.profile?.full_name || submission.profile?.email || 'U').charAt(0).toUpperCase()}
               </div>
-              <p style={{ fontSize: 12, color: `${C.cream}60` }} className="truncate">
+              <p style={{ fontSize: 12, color: subColor }} className="truncate">
                 {submission.profile?.full_name || submission.profile?.email || 'Usuário'}
               </p>
             </div>
@@ -238,17 +287,17 @@ export default function AdminApproval() {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-3" style={{ borderTop: `1px solid rgba(var(--ink),0.06)` }}>
-          <span className="flex items-center gap-1.5" style={{ fontSize: 11, color: `${C.cream}40` }}>
+        <div className="flex items-center justify-between pt-3" style={{ borderTop: `1px solid ${cardBorder}` }}>
+          <span className="flex items-center gap-1.5" style={{ fontSize: 11, color: faintColor }}>
             <Calendar size={11} />
             {format(new Date(submission.proof_submitted_at || submission.updated_at || submission.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
           </span>
           {status === 'approved' && latestProofApprovalBySubmission[submission.id] ? (
-            <span style={{ fontSize: 11, color: `${C.cream}40` }}>
+            <span style={{ fontSize: 11, color: faintColor }}>
               Por {latestProofApprovalBySubmission[submission.id].approver_name || 'Admin'}
             </span>
           ) : (
-            <span style={{ fontSize: 11, color: `${C.cream}30` }}>Toque para abrir</span>
+            <span style={{ fontSize: 11, color: faintColor }}>Toque para abrir</span>
           )}
         </div>
       </div>
@@ -256,14 +305,7 @@ export default function AdminApproval() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: C.black }}>
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: C.lime }} />
-          <p style={{ color: `${C.cream}50` }}>Carregando submissões...</p>
-        </div>
-      </div>
-    );
+    return <AdminLoading label="Carregando submissões..." />;
   }
 
   const tabs = [
@@ -271,14 +313,6 @@ export default function AdminApproval() {
     { key: 'approved', label: `Aprovados (${approvedSubmissions.length})` },
     { key: 'rejected', label: `Recusados (${rejectedSubmissions.length})` },
   ];
-
-  const EmptyState = ({ icon: Icon, title, subtitle }) => (
-    <div className="flex flex-col items-center justify-center py-24 gap-4">
-      <Icon size={36} style={{ color: `${C.cream}20` }} />
-      <p style={{ ...heading, fontSize: 18, fontWeight: 700, color: `${C.cream}40` }}>{title}</p>
-      {subtitle && <p style={{ fontSize: 14, color: `${C.cream}30` }}>{subtitle}</p>}
-    </div>
-  );
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: C.black, ...body }}>
@@ -292,48 +326,39 @@ export default function AdminApproval() {
 
         {/* Hero */}
         <div>
-          <h1 style={{ ...heading, fontSize: 40, fontWeight: 900, color: C.cream, letterSpacing: '-0.03em', lineHeight: 1 }}>
+          <h1 style={{ ...pageTitleStyle, fontSize: 40, fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1 }}>
             Aprovação de Provas
           </h1>
-          <p style={{ fontSize: 14, color: `${C.cream}50`, marginTop: 6 }}>
+          <p style={pageSubtitleStyle}>
             Valide as provas enviadas após aprovação de inscrição.
           </p>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
-          {[
-            { icon: Clock, label: 'Provas Aguardando Análise', value: proofPendingSubmissions.length, color: C.orange, iconBg: `${C.orange}12`, urgent: false },
-            { icon: Clock, label: 'Com Prazo Expirado', value: overdueProofSubmissions.length, color: overdueProofSubmissions.length > 0 ? '#f87171' : `${C.cream}50`, iconBg: overdueProofSubmissions.length > 0 ? 'rgba(248,113,113,0.12)' : 'rgba(var(--ink),0.04)', urgent: overdueProofSubmissions.length > 0 },
-          ].map(({ icon: Icon, label, value, color, iconBg, urgent }) => (
-            <div key={label} className="flex items-center gap-4 p-5 rounded-2xl"
-              style={{ backgroundColor: 'rgba(var(--ink),0.03)', border: `1px solid ${urgent ? 'rgba(248,113,113,0.2)' : 'rgba(var(--ink),0.06)'}` }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: iconBg }}>
-                <Icon size={16} style={{ color }} />
-              </div>
-              <div>
-                <div style={{ ...heading, fontSize: 28, fontWeight: 900, color, lineHeight: 1, letterSpacing: '-0.02em' }}>{value}</div>
-                <div style={{ fontSize: 11, color: `${C.cream}50`, marginTop: 4 }}>{label}</div>
-              </div>
-            </div>
-          ))}
+          <AdminStatCard icon={Clock} label="Provas Aguardando Análise" value={proofPendingSubmissions.length} color={C.orange} iconBg={`${C.orange}12`} />
+          <AdminStatCard
+            icon={Clock}
+            label="Com Prazo Expirado"
+            value={overdueProofSubmissions.length}
+            color={overdueProofSubmissions.length > 0 ? '#f87171' : mutedColor}
+            iconBg={overdueProofSubmissions.length > 0 ? 'rgba(248,113,113,0.12)' : surfaceBgAlt}
+          />
         </div>
 
         {/* Tabs */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
           {tabs.map((t) => (
-            <button key={t.key} type="button" onClick={() => setActiveTab(t.key)}
-              className="shrink-0 px-4 py-2 rounded-xl transition-all duration-150"
-              style={{ backgroundColor: activeTab === t.key ? C.lime : 'rgba(var(--ink),0.06)', color: activeTab === t.key ? C.black : `${C.cream}70`, fontWeight: activeTab === t.key ? 700 : 400, ...heading, fontSize: 13 }}>
+            <AdminTabButton key={t.key} active={activeTab === t.key} onClick={() => setActiveTab(t.key)}>
               {t.label}
-            </button>
+            </AdminTabButton>
           ))}
         </div>
 
         {/* Conteúdo */}
         {activeTab === 'pending' && (
           proofPendingSubmissions.length === 0
-            ? <EmptyState icon={CheckCircle} title="Nenhuma prova pendente" subtitle="Todas as provas enviadas já foram analisadas." />
+            ? <AdminEmptyState icon={CheckCircle} title="Nenhuma prova pendente" subtitle="Todas as provas enviadas já foram analisadas." />
             : <div className="space-y-6">
               {overdueProofSubmissions.length > 0 && (
                 <div>
@@ -353,7 +378,7 @@ export default function AdminApproval() {
                 <div>
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: C.lime }} />
-                    <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: C.cream }}>Demais Provas Pendentes</span>
+                    <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: textColor }}>Demais Provas Pendentes</span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {activeProofSubmissions.map((s) => <SubmissionCard key={s.id} submission={s} />)}
@@ -365,7 +390,7 @@ export default function AdminApproval() {
 
         {activeTab === 'approved' && (
           approvedSubmissions.length === 0
-            ? <EmptyState icon={CheckCircle} title="Nenhuma prova aprovada" subtitle="As provas aprovadas aparecerão aqui no histórico." />
+            ? <AdminEmptyState icon={CheckCircle} title="Nenhuma prova aprovada" subtitle="As provas aprovadas aparecerão aqui no histórico." />
             : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {approvedSubmissions.map((s) => <SubmissionCard key={s.id} submission={s} />)}
             </div>
@@ -373,7 +398,7 @@ export default function AdminApproval() {
 
         {activeTab === 'rejected' && (
           rejectedSubmissions.length === 0
-            ? <EmptyState icon={XCircle} title="Nenhuma prova recusada" subtitle="As recusas de prova aparecerão aqui no histórico." />
+            ? <AdminEmptyState icon={XCircle} title="Nenhuma prova recusada" subtitle="As recusas de prova aparecerão aqui no histórico." />
             : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {rejectedSubmissions.map((s) => <SubmissionCard key={s.id} submission={s} />)}
             </div>
@@ -385,13 +410,13 @@ export default function AdminApproval() {
         <Dialog open={!!selectedSubmission} onOpenChange={() => { setSelectedSubmission(null); setIsDescriptionExpanded(false); setIsRejecting(false); setRejectionReason(''); }}>
           <DialogContent aria-describedby={undefined} className="sm:max-w-2xl p-0 border-0 bg-transparent overflow-hidden shadow-none">
             <DialogTitle className="sr-only">Detalhes da Prova</DialogTitle>
-            <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid rgba(var(--ink),0.1)` }}>
+            <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: modalBg, border: `1px solid ${cardBorder}` }}>
 
               {/* Modal header */}
-              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid rgba(var(--ink),0.07)` }}>
-                <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: C.cream }}>Detalhes da Prova</span>
+              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid ${cardBorder}` }}>
+                <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: textColor }}>Detalhes da Prova</span>
                 <button onClick={() => { setSelectedSubmission(null); setIsRejecting(false); setRejectionReason(''); }}
-                  style={{ color: `${C.cream}50` }} className="hover:opacity-100 transition-opacity">
+                  style={{ color: mutedColor }} className="hover:opacity-100 transition-opacity">
                   <XCircle size={18} />
                 </button>
               </div>
@@ -400,12 +425,12 @@ export default function AdminApproval() {
 
                 {/* Título + status */}
                 <div>
-                  <h3 style={{ ...heading, fontSize: 17, fontWeight: 700, color: C.cream, marginBottom: 8 }}>
+                  <h3 style={{ ...heading, fontSize: 17, fontWeight: 700, color: textColor, marginBottom: 8 }}>
                     {selectedSubmission.task?.title || 'Tarefa'}
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     <span className="px-2.5 py-1 rounded-full text-xs font-semibold"
-                      style={{ backgroundColor: 'rgba(var(--ink),0.06)', color: `${C.cream}60` }}>
+                      style={{ backgroundColor: surfaceBgAlt, color: subColor }}>
                       {STATUS_LABELS[selectedSubmission.status] || selectedSubmission.status}
                     </span>
                     {selectedSubmission.task?.category === 'campanha' && (
@@ -426,7 +451,7 @@ export default function AdminApproval() {
                         if (cat === 'sidequest_teste' || cat === 'sidequest') return 'Missão';
                         if (cat === 'campanha') return 'Campanha';
                         return cat || '-';
-                      })(), color: C.lime
+                      })(), color: accentColor
                     },
                     {
                       label: 'Valor / Pontuação',
@@ -442,22 +467,22 @@ export default function AdminApproval() {
                         "dd/MM/yyyy 'às' HH:mm",
                         { locale: ptBR }
                       ),
-                      color: C.cream,
+                      color: textColor,
                     },
-                    { label: 'Prazo de revisão', value: formatRemainingReviewTime(selectedSubmission), color: C.cream },
+                    { label: 'Prazo de revisão', value: formatRemainingReviewTime(selectedSubmission), color: textColor },
                   ].map(({ label, value, color }) => (
-                    <div key={label} className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)` }}>
-                      <p style={{ fontSize: 10, color: `${C.cream}50`, marginBottom: 4 }}>{label}</p>
+                    <div key={label} className="px-4 py-3 rounded-xl" style={{ backgroundColor: surfaceBgAlt, border: `1px solid ${cardBorder}` }}>
+                      <p style={{ fontSize: 10, color: labelColor, marginBottom: 4 }}>{label}</p>
                       <p style={{ fontSize: 14, fontWeight: 700, color }}>{value}</p>
                     </div>
                   ))}
                 </div>
 
                 {/* Enviado por */}
-                <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)` }}>
-                  <p style={{ fontSize: 10, color: `${C.cream}50`, marginBottom: 6 }}>Enviado por</p>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: C.cream }}>{selectedSubmission.profile?.full_name || 'Usuário'}</p>
-                  <p style={{ fontSize: 12, color: `${C.cream}50`, marginTop: 2 }}>{selectedSubmission.profile?.email || 'sem email'}</p>
+                <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: surfaceBgAlt, border: `1px solid ${cardBorder}` }}>
+                  <p style={{ fontSize: 10, color: labelColor, marginBottom: 6 }}>Enviado por</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: textColor }}>{selectedSubmission.profile?.full_name || 'Usuário'}</p>
+                  <p style={{ fontSize: 12, color: mutedColor, marginTop: 2 }}>{selectedSubmission.profile?.email || 'sem email'}</p>
                 </div>
 
                 {/* Descrição */}
@@ -467,17 +492,17 @@ export default function AdminApproval() {
                     .trim();
                   if (!cleanDesc) return null;
                   return (
-                    <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)` }}>
-                      <p style={{ fontSize: 10, color: `${C.cream}50`, marginBottom: 6 }}>Descrição</p>
+                    <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: surfaceBgAlt, border: `1px solid ${cardBorder}` }}>
+                      <p style={{ fontSize: 10, color: labelColor, marginBottom: 6 }}>Descrição</p>
                       <div
                         className={isDescriptionExpanded ? '' : 'line-clamp-2'}
-                        style={{ fontSize: 13, color: `${C.cream}70`, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
+                        style={{ fontSize: 13, color: subColor, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
                       >
                         {cleanDesc}
                       </div>
                       {cleanDesc.length > 100 && (
                         <button type="button" onClick={() => setIsDescriptionExpanded((v) => !v)}
-                          style={{ fontSize: 12, color: C.lime, fontWeight: 600, marginTop: 6 }}>
+                          style={{ fontSize: 12, color: accentColor, fontWeight: 600, marginTop: 6 }}>
                           {isDescriptionExpanded ? 'Ver menos' : 'Ver mais'}
                         </button>
                       )}
@@ -485,45 +510,27 @@ export default function AdminApproval() {
                   );
                 })()}
 
-                {/* Comprovante */}
-                {selectedSubmission.proof_url && (
-                  <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)` }}>
-                    <p style={{ fontSize: 10, color: `${C.cream}50`, marginBottom: 8 }}>Comprovante</p>
-                    <a href={selectedSubmission.proof_url} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:brightness-110"
-                      style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.1)` }}>
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                        style={{ backgroundColor: `${C.lime}14`, color: C.lime }}>
-                        <ExternalLink size={16} />
-                      </div>
-                      <div>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: C.cream }}>Abrir arquivo</p>
-                        <p style={{ fontSize: 11, color: `${C.cream}50` }}>Clique para visualizar o comprovante enviado</p>
-                      </div>
-                    </a>
-                  </div>
-                )}
-
-                {/* Arquivos extras na descrição */}
+                {/* Arquivos enviados (proof_url + uploads na description, sem duplicar) */}
                 {(() => {
-                  const desc = selectedSubmission.description || '';
-                  const arquivoLinks = [...desc.matchAll(/Arquivo \d+: (https?:\/\/\S+)/g)].map(m => m[1]);
-                  if (arquivoLinks.length === 0) return null;
+                  const files = getSubmissionFiles(selectedSubmission);
+                  if (files.length === 0) return null;
                   return (
-                    <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)` }}>
-                      <p style={{ fontSize: 10, color: `${C.cream}50`, marginBottom: 8 }}>Arquivos adicionais</p>
+                    <div className="px-4 py-3 rounded-xl" style={{ backgroundColor: surfaceBgAlt, border: `1px solid ${cardBorder}` }}>
+                      <p style={{ fontSize: 10, color: labelColor, marginBottom: 8 }}>
+                        {files.length === 1 ? 'Comprovante' : 'Arquivos enviados'}
+                      </p>
                       <div className="flex flex-col gap-2">
-                        {arquivoLinks.map((url, i) => (
-                          <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                        {files.map(({ url, label }) => (
+                          <a key={url} href={url} target="_blank" rel="noopener noreferrer"
                             className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:brightness-110"
-                            style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.1)` }}>
+                            style={{ backgroundColor: surfaceBg, border: `1px solid ${cardBorder}` }}>
                             <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                              style={{ backgroundColor: `${C.lime}14`, color: C.lime }}>
+                              style={{ backgroundColor: colorWithAlpha(accentColor, 0.1), color: accentColor }}>
                               <ExternalLink size={16} />
                             </div>
                             <div>
-                              <p style={{ fontSize: 13, fontWeight: 600, color: C.cream }}>Arquivo {i + 1}</p>
-                              <p style={{ fontSize: 11, color: `${C.cream}50` }}>Clique para visualizar</p>
+                              <p style={{ fontSize: 13, fontWeight: 600, color: textColor }}>{label}</p>
+                              <p style={{ fontSize: 11, color: mutedColor }}>Clique para visualizar</p>
                             </div>
                           </a>
                         ))}
@@ -558,7 +565,7 @@ export default function AdminApproval() {
                       <label style={{ fontSize: 11, fontWeight: 700, color: '#f87171', letterSpacing: '0.05em' }}>MOTIVO DA REJEIÇÃO</label>
                       <textarea
                         className="w-full px-4 py-3 rounded-xl outline-none resize-none"
-                        style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.12)`, color: C.cream, fontSize: 13, ...body }}
+                        style={{ ...inputStyle }}
                         rows={4}
                         value={rejectionReason}
                         onChange={(e) => setRejectionReason(e.target.value)}
@@ -576,7 +583,7 @@ export default function AdminApproval() {
                         <button
                           onClick={() => { setIsRejecting(false); setRejectionReason(''); }}
                           className="flex-1 h-12 rounded-xl flex items-center justify-center transition-all hover:brightness-110"
-                          style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: `1px solid rgba(var(--ink),0.07)`, color: `${C.cream}80`, ...heading, fontWeight: 700, fontSize: 14 }}
+                          style={{ backgroundColor: surfaceBgAlt, border: `1px solid ${cardBorder}`, color: subColor, ...heading, fontWeight: 700, fontSize: 14 }}
                         >
                           Cancelar
                         </button>
