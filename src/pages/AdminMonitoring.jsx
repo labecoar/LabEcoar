@@ -38,6 +38,9 @@ const SUBMISSION_STATUS_LABELS = {
   application_pending: 'Inscrição pendente',
   application_approved: 'Selecionado',
   application_rejected: 'Inscrição rejeitada',
+  script_pending: 'Roteiro em análise',
+  script_approved: 'Roteiro aprovado',
+  script_rejected: 'Roteiro rejeitado',
   proof_pending: 'Prova em análise',
   approved: 'Concluída',
   rejected: 'Prova rejeitada',
@@ -48,6 +51,9 @@ const SUBMISSION_STATUS_COLORS = {
   application_pending: { bg: 'rgba(255,165,0,0.12)', color: C.orange },
   application_approved: { bg: `${C.cyan}18`, color: C.cyan },
   application_rejected: { bg: 'rgba(248,113,113,0.12)', color: '#f87171' },
+  script_pending: { bg: `${C.blue}18`, color: C.blue },
+  script_approved: { bg: `${C.cyan}18`, color: C.cyan },
+  script_rejected: { bg: 'rgba(248,113,113,0.12)', color: '#f87171' },
   proof_pending: { bg: `${C.purple}18`, color: C.purple },
   approved: { bg: `${C.lime}18`, color: C.lime },
   rejected: { bg: 'rgba(248,113,113,0.12)', color: '#f87171' },
@@ -70,10 +76,10 @@ const normalizeSubmissionStatus = (status) => {
 }
 
 const isCompletedStatus = (status) => normalizeSubmissionStatus(status) === 'approved'
-const isRejectedStatus = (status) => ['application_rejected', 'rejected'].includes(normalizeSubmissionStatus(status))
+const isRejectedStatus = (status) => ['application_rejected', 'rejected', 'script_rejected'].includes(normalizeSubmissionStatus(status))
 const isPendingStatus = (status) => {
   const s = normalizeSubmissionStatus(status)
-  return ['application_pending', 'application_approved', 'proof_pending', 'pending'].includes(s)
+  return ['application_pending', 'application_approved', 'script_pending', 'script_approved', 'proof_pending', 'pending'].includes(s)
 }
 
 const formatDate = (value) => {

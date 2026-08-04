@@ -32,7 +32,7 @@ export default function Dashboard() {
   const { data: groupProgress } = useGroupProgress(selectedQuarter);
 
   const approvedSubmissions = submissions.filter((s) => s.status === 'approved');
-  const pendingSubmissions = submissions.filter((s) => ['pending', 'application_pending', 'proof_pending', 'application_approved'].includes(s.status));
+  const pendingSubmissions = submissions.filter((s) => ['pending', 'application_pending', 'script_pending', 'script_approved', 'proof_pending', 'application_approved'].includes(s.status));
 
   const currentPoints = userScore?.total_points || 0;
   const collectivePoints = groupProgress?.collective_points || 0;

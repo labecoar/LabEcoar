@@ -17,6 +17,7 @@ import { getGroupCategory } from "@/components/dashboard/GroupProgress";
 import { getCurrentQuarterKey } from "@/services/scores.service";
 import { useForumUnread } from "@/hooks/useForumUnread";
 import { useForumRealtime } from "@/hooks/useForumRealtime";
+import { useAdminNavBadges } from "@/hooks/useAdminNavBadges";
 
 import {
   Sidebar,
@@ -108,17 +109,26 @@ const adminNavigationItems = [
     title: "Seleção",
     url: createPageUrl("AdminApplications"),
     icon: User,
+    badgeKey: "selection",
+  },
+  {
+    title: "Roteiros",
+    url: createPageUrl("AdminScriptApproval"),
+    icon: FileCheck,
+    badgeKey: "scripts",
   },
   {
     title: "Aprovação",
     url: createPageUrl("AdminApproval"),
     icon: Shield,
+    badgeKey: "proofs",
   },
 
   {
     title: "Métricas",
     url: createPageUrl("AdminMetrics"),
     icon: BarChart3,
+    badgeKey: "metrics",
   },
   {
     title: "Pagamentos",
@@ -147,7 +157,7 @@ const adminNavigationItems = [
   },
 ];
 
-function NavigationMenu({ items, isNavItemActive, hasForumUnread = false }) {
+function NavigationMenu({ items, isNavItemActive, navBadges = {} }) {
   const { isMobile, setOpenMobile } = useSidebar();
 
   const handleNavigationClick = () => {
@@ -156,9 +166,27 @@ function NavigationMenu({ items, isNavItemActive, hasForumUnread = false }) {
     }
   };
 
+  const getItemBadge = (item) => {
+    if (item.badgeKey) return Boolean(navBadges[item.badgeKey]);
+    if (item.showUnreadDot) return Boolean(navBadges.forum);
+    return false;
+  };
+
+  const getItemBadgeLabel = (item) => {
+    if (item.badgeKey === 'selection') return 'Inscrições pendentes';
+    if (item.badgeKey === 'scripts') return 'Roteiros pendentes';
+    if (item.badgeKey === 'proofs') return 'Provas pendentes';
+    if (item.badgeKey === 'metrics') return 'Métricas pendentes';
+    if (item.showUnreadDot) return 'Novidades no fórum';
+    return 'Novidades';
+  };
+
   return (
     <SidebarMenu>
-      {items.map((item) => (
+      {items.map((item) => {
+        const showBadge = getItemBadge(item);
+
+        return (
         <SidebarMenuItem key={item.title} className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
           <SidebarMenuButton
             asChild
@@ -176,14 +204,14 @@ function NavigationMenu({ items, isNavItemActive, hasForumUnread = false }) {
             >
               <span className="relative inline-flex shrink-0">
                 <item.icon className="w-4 h-4" />
-                {item.showUnreadDot && hasForumUnread && (
+                {showBadge && (
                   <span
                     className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
                     style={{
                       backgroundColor: "#ce161c",
                       boxShadow: "0 0 0 2px rgba(0,0,255,0.9)",
                     }}
-                    aria-label="Novidades no fórum"
+                    aria-label={getItemBadgeLabel(item)}
                   />
                 )}
               </span>
@@ -199,7 +227,8 @@ function NavigationMenu({ items, isNavItemActive, hasForumUnread = false }) {
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
-      ))}
+        );
+      })}
     </SidebarMenu>
   );
 }
@@ -242,6 +271,7 @@ export default function Layout({ children, currentPageName }) {
   const { user, profile, isAdmin, signOut } = useAuth();
   const { mode, colors } = useThemeMode();
   const { hasUnread: hasForumUnread } = useForumUnread();
+  const adminNavBadges = useAdminNavBadges();
   useForumRealtime(!!user?.id);
   const { data: userScore } = useUserScore(user?.id);
   const visibleNavigationItems = isAdmin ? adminNavigationItems : navigationItems;
@@ -339,7 +369,10 @@ export default function Layout({ children, currentPageName }) {
                   <NavigationMenu
                     items={visibleNavigationItems}
                     isNavItemActive={isNavItemActive}
-                    hasForumUnread={hasForumUnread}
+                    navBadges={{
+                      forum: hasForumUnread,
+                      ...adminNavBadges,
+                    }}
                   />
                 </SidebarGroupContent>
               </SidebarGroup>

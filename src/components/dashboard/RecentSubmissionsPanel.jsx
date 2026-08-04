@@ -46,7 +46,7 @@ function StatusBadge({ submission, metricsSubmission }) {
 
 function resolveRejectionReason(submission, metricsSubmission) {
   const submissionStatus = normalizeSubmissionStatus(submission?.status);
-  if (['application_rejected', 'rejected'].includes(submissionStatus)) {
+  if (['application_rejected', 'rejected', 'script_rejected'].includes(submissionStatus)) {
     if (isSubmissionReopenedByDateChange(submission?.task, submission)) return null;
     const reason = String(submission?.rejection_reason || '').trim();
     if (reason) return reason;
@@ -134,7 +134,7 @@ export default function RecentSubmissionsPanel({ submissions = [], metricsSubmis
 
   const isTaskClaimed = (submission) => {
     const status = normalizeSubmissionStatus(submission?.status);
-    return ['application_pending', 'application_approved', 'proof_pending', 'pending'].includes(status);
+    return ['application_pending', 'application_approved', 'script_pending', 'script_approved', 'script_rejected', 'proof_pending', 'pending'].includes(status);
   };
 
   return (

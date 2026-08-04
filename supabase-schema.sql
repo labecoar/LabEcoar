@@ -254,7 +254,7 @@ CREATE TABLE IF NOT EXISTS submissions (
   proof_url TEXT,
   
   -- Status e validação
-  status TEXT DEFAULT 'application_pending' CHECK (status IN ('application_pending', 'application_approved', 'application_rejected', 'proof_pending', 'approved', 'rejected', 'pending')),
+  status TEXT DEFAULT 'application_pending' CHECK (status IN ('application_pending', 'application_approved', 'application_rejected', 'script_pending', 'script_approved', 'script_rejected', 'proof_pending', 'approved', 'rejected', 'pending')),
   points_awarded INTEGER DEFAULT 0,
   rejection_reason TEXT,
   
@@ -268,9 +268,12 @@ CREATE TABLE IF NOT EXISTS submissions (
 ALTER TABLE submissions DROP CONSTRAINT IF EXISTS submissions_status_check;
 ALTER TABLE submissions
   ADD CONSTRAINT submissions_status_check
-  CHECK (status IN ('application_pending', 'application_approved', 'application_rejected', 'proof_pending', 'approved', 'rejected', 'pending'));
+  CHECK (status IN ('application_pending', 'application_approved', 'application_rejected', 'script_pending', 'script_approved', 'script_rejected', 'proof_pending', 'approved', 'rejected', 'pending'));
 
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS proof_submitted_at TIMESTAMPTZ;
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS script_url TEXT;
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS script_description TEXT;
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS script_submitted_at TIMESTAMPTZ;
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS organization_id UUID;
 
 DO $$
@@ -300,7 +303,7 @@ CREATE TABLE IF NOT EXISTS submission_approval_history (
   task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
   task_title TEXT,
   applicant_user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
-  action TEXT NOT NULL CHECK (action IN ('application_approved', 'proof_approved')),
+  action TEXT NOT NULL CHECK (action IN ('application_approved', 'script_approved', 'proof_approved')),
   approver_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   approver_name TEXT,
   approver_email TEXT,
@@ -818,16 +821,50 @@ CREATE POLICY "Users can create submissions"
   ON submissions FOR INSERT
   WITH CHECK (user_id = auth.uid());
 
--- Usuários podem atualizar apenas suas submissões aprovadas para enviar prova
+-- Usuários podem enviar roteiro (campanha)
+DROP POLICY IF EXISTS "Users can submit script on approved applications" ON submissions;
+CREATE POLICY "Users can submit script on approved applications"
+  ON submissions FOR UPDATE
+  USING (
+    user_id = auth.uid()
+    AND status IN ('application_approved', 'script_rejected')
+    AND EXISTS (
+      SELECT 1
+      FROM tasks t
+      WHERE t.id = submissions.task_id
+        AND t.category = 'campanha'
+    )
+  )
+  WITH CHECK (user_id = auth.uid() AND status = 'script_pending');
+
+-- Usuários podem enviar prova
 DROP POLICY IF EXISTS "Users can submit proof on approved applications" ON submissions;
 CREATE POLICY "Users can submit proof on approved applications"
   ON submissions FOR UPDATE
   USING (
     user_id = auth.uid()
     AND (
-      status = 'application_approved'
+      (
+        status IN ('script_approved', 'rejected')
+        AND EXISTS (
+          SELECT 1
+          FROM tasks t
+          WHERE t.id = submissions.task_id
+            AND t.category = 'campanha'
+        )
+      )
       OR (
-        status = 'application_pending'
+        status IN ('application_approved', 'rejected')
+        AND EXISTS (
+          SELECT 1
+          FROM tasks t
+          WHERE t.id = submissions.task_id
+            AND t.category <> 'campanha'
+            AND t.category <> 'sidequest_teste'
+        )
+      )
+      OR (
+        status IN ('application_pending', 'application_approved', 'rejected')
         AND EXISTS (
           SELECT 1
           FROM tasks t

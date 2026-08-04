@@ -74,7 +74,7 @@ const isTaskVisibleAndAvailable = (task, profile, submission) => {
   if (!isTaskLaunched(task)) return false
 
   const submissionStatus = normalizeSubmissionStatus(submission?.status)
-  if (['application_approved', 'proof_pending', 'approved'].includes(submissionStatus)) return false
+  if (['application_approved', 'script_pending', 'script_approved', 'script_rejected', 'proof_pending', 'approved'].includes(submissionStatus)) return false
 
   if (task.max_participants && Number(task.current_participants || 0) >= Number(task.max_participants)) return false
 
@@ -124,11 +124,38 @@ const buildApplicationStatusNotification = ({ task, submission }) => {
   const status = normalizeSubmissionStatus(submission.status)
 
   if (status === 'application_approved') {
+    const isCampaign = task?.category === 'campanha'
     return baseNotification({
       id: `candidatura-aprovada-${submission.id}`,
       type: 'candidatura_aprovada',
       title: 'Inscrição aceita',
-      message: `Sua inscrição na tarefa "${task.title}" foi aceita!`,
+      message: isCampaign
+        ? `Sua inscrição na campanha "${task.title}" foi aceita! Envie seu roteiro.`
+        : `Sua inscrição na tarefa "${task.title}" foi aceita!`,
+      task,
+      createdDate: submission.validated_at || submission.updated_at || submission.created_at,
+      linkPath: '/MySubmissions',
+    })
+  }
+
+  if (status === 'script_approved') {
+    return baseNotification({
+      id: `roteiro-aprovado-${submission.id}`,
+      type: 'roteiro_aprovado',
+      title: 'Roteiro aprovado',
+      message: `Seu roteiro na campanha "${task.title}" foi aprovado! Envie sua prova.`,
+      task,
+      createdDate: submission.validated_at || submission.updated_at || submission.created_at,
+      linkPath: '/MySubmissions',
+    })
+  }
+
+  if (status === 'script_rejected') {
+    return baseNotification({
+      id: `roteiro-rejeitado-${submission.id}-${String(submission.updated_at || '').slice(0, 10)}`,
+      type: 'roteiro_rejeitado',
+      title: 'Roteiro rejeitado',
+      message: `Seu roteiro na campanha "${task.title}" foi rejeitado.`,
       task,
       createdDate: submission.validated_at || submission.updated_at || submission.created_at,
       linkPath: '/MySubmissions',
@@ -152,7 +179,10 @@ const buildApplicationStatusNotification = ({ task, submission }) => {
 
 const buildProofDeadlineNotification = ({ task, submission, now }) => {
   const submissionStatus = normalizeSubmissionStatus(submission?.status)
-  if (submissionStatus !== 'application_approved') return null
+  const eligibleStatuses = task?.category === 'campanha'
+    ? ['application_approved', 'script_approved', 'script_rejected']
+    : ['application_approved']
+  if (!eligibleStatuses.includes(submissionStatus)) return null
 
   const proofDeadline = resolveProofDeadline(task)
   if (!proofDeadline || now > proofDeadline) return null

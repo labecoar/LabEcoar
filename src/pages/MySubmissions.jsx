@@ -24,7 +24,6 @@ import {
   getDeadlineState,
   isPendingSubmission,
   isCompletedSubmission,
-  isRejectedSubmission,
   isExpiredSubmission,
   isSubmissionReopenedByDateChange,
 } from '@/lib/task-submission-display';
@@ -64,7 +63,7 @@ function StatusBadge({ submission, metricsSubmission }) {
 
 function resolveRejectionReason(submission, metricsSubmission) {
   const submissionStatus = normalizeSubmissionStatus(submission?.status);
-  if (['application_rejected', 'rejected'].includes(submissionStatus)) {
+  if (['application_rejected', 'rejected', 'script_rejected'].includes(submissionStatus)) {
     if (isSubmissionReopenedByDateChange(submission?.task, submission)) return null;
     const reason = String(submission?.rejection_reason || '').trim();
     if (reason) return reason;
@@ -235,8 +234,6 @@ export default function MySubmissions() {
       isPendingSubmission(submission, metricsSubmission)).length,
     completed: enrichedSubmissions.filter(({ submission, metricsSubmission }) =>
       isCompletedSubmission(submission, metricsSubmission)).length,
-    rejected: enrichedSubmissions.filter(({ submission, metricsSubmission }) =>
-      isRejectedSubmission(submission, metricsSubmission)).length,
     expired: enrichedSubmissions.filter(({ submission, metricsSubmission }) =>
       isExpiredSubmission(submission, metricsSubmission)).length,
     points: enrichedSubmissions
@@ -291,7 +288,7 @@ export default function MySubmissions() {
 
   const isTaskClaimed = (submission) => {
     const status = normalizeSubmissionStatus(submission?.status);
-    return ['application_pending', 'application_approved', 'proof_pending', 'pending'].includes(status);
+    return ['application_pending', 'application_approved', 'application_rejected', 'script_pending', 'script_approved', 'script_rejected', 'proof_pending', 'rejected', 'pending'].includes(status);
   };
 
   if (isLoading) {
@@ -343,12 +340,11 @@ export default function MySubmissions() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
           {[
             { label: 'Total', value: overview.total, color: C.cream },
             { label: 'Em andamento', value: overview.pending, color: C.orange },
             { label: 'Concluídas', value: overview.completed, color: C.lime },
-            { label: 'Rejeitadas', value: overview.rejected, color: '#f87171' },
             { label: 'Expiradas', value: overview.expired, color: isLight ? T.textMuted : `${C.cream}60` },
             { label: 'Pontos ganhos', value: overview.points, color: C.lime },
           ].map(({ label, value, color }) => (

@@ -58,7 +58,7 @@ export default function AdminApplications() {
     () => pendingSubmissions.filter((s) => {
       if (isSidequestSubmission(s)) return false
       const status = normalizeSubmissionStatus(s.status)
-      return ['application_approved', 'proof_pending', 'approved'].includes(status)
+      return ['application_approved', 'script_pending', 'script_approved', 'script_rejected', 'proof_pending', 'approved'].includes(status)
     }),
     [pendingSubmissions]
   );
@@ -104,7 +104,10 @@ export default function AdminApplications() {
 
       const proofDeadline = submission.task?.delivery_deadline ? new Date(submission.task.delivery_deadline) : null
       const proofDeadlineLabel = proofDeadline && !Number.isNaN(proofDeadline.getTime()) ? proofDeadline.toLocaleDateString('pt-BR') : null
-      notifySuccess(proofDeadlineLabel ? `Inscrição aprovada! O usuário já pode enviar a prova até ${proofDeadlineLabel}.` : 'Inscrição aprovada!');
+      const nextStepLabel = isCampaign ? 'enviar o roteiro' : 'enviar a prova'
+      notifySuccess(proofDeadlineLabel
+        ? `Inscrição aprovada! O usuário já pode ${nextStepLabel} até ${proofDeadlineLabel}.`
+        : 'Inscrição aprovada!');
     } catch (error) {
       notifyError('Erro ao aprovar inscrição.');
     }

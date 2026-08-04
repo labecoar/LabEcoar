@@ -1,7 +1,7 @@
 ﻿// @ts-nocheck
 import React, { useMemo, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCreateSubmission, useSubmitProof } from "@/hooks/useSubmissions";
+import { useCreateSubmission, useSubmitProof, useSubmitScript } from "@/hooks/useSubmissions";
 import { useMyMetricsSubmissions, useSubmitMetricsSubmission } from "@/hooks/useMetrics";
 import { usePaymentInfo } from "@/hooks/usePayments";
 import { useUploadFile } from "@/hooks/useStorage";
@@ -50,6 +50,9 @@ const STATUS_TEXT = {
   application_pending: 'Inscrição em análise',
   application_approved: 'Inscrição aprovada',
   application_rejected: 'Inscrição rejeitada',
+  script_pending: 'Roteiro em análise',
+  script_approved: 'Roteiro aprovado',
+  script_rejected: 'Roteiro rejeitado',
   proof_pending: 'Prova em análise',
   approved: 'Tarefa concluída',
   rejected: 'Prova rejeitada',
@@ -177,14 +180,19 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const [proofDescription, setProofDescription] = useState('');
   const [proofLink, setProofLink] = useState('');
   const [proofFiles, setProofFiles] = useState([]);
+  const [scriptDescription, setScriptDescription] = useState('');
+  const [scriptLink, setScriptLink] = useState('');
+  const [scriptFiles, setScriptFiles] = useState([]);
   const [metricsDescription, setMetricsDescription] = useState('');
   const [metricsLink, setMetricsLink] = useState('');
   const [metricsFiles, setMetricsFiles] = useState([]);
   const proofFileInputRef = useRef(null);
+  const scriptFileInputRef = useRef(null);
   const { user, profile } = useAuth();
   const { isLight, T } = useThemeMode();
   const createSubmission = useCreateSubmission();
   const submitProof = useSubmitProof();
+  const submitScript = useSubmitScript();
   const submitMetrics = useSubmitMetricsSubmission();
   const uploadFile = useUploadFile();
   const { data: paymentInfo } = usePaymentInfo(user?.id);
@@ -196,9 +204,20 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     e.target.value = '';
   };
 
+  const handleScriptFilesChange = (e) => {
+    const novos = Array.from(e.target.files || []);
+    setScriptFiles((prev) => [...prev, ...novos].slice(0, MAX_PROOF_FILES));
+    e.target.value = '';
+  };
+
   const removeProofFile = (index) => {
     setProofFiles((prev) => prev.filter((_, idx) => idx !== index));
     if (proofFileInputRef.current) proofFileInputRef.current.value = '';
+  };
+
+  const removeScriptFile = (index) => {
+    setScriptFiles((prev) => prev.filter((_, idx) => idx !== index));
+    if (scriptFileInputRef.current) scriptFileInputRef.current.value = '';
   };
 
   if (!task) return null;
@@ -251,12 +270,18 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const shouldShowSubmissionRejectionReason = Boolean(currentSubmission?.rejection_reason) && !isSubmissionReopenedByDateChange;
   const isScheduled = isTaskScheduled(task);
   const launchLabel = isScheduled ? formatLaunchDateTime(task.launch_at) : null;
+  const requiresScript = isCampaignTask;
   const canApply = (!currentSubmission || isSubmissionReopenedByDateChange) && !isTaskApproved && !isFull && meetsFollowersRequirement && !isScheduled;
-  const canSubmitProof = (
-    (submissionStatus === 'application_approved' || submissionStatus === 'rejected' || (isSidequestTask && submissionStatus === 'application_pending'))
-    && !isProofDeadlineExpired
-  );
-  const isWaiting = ['application_pending', 'proof_pending', 'pending'].includes(submissionStatus);
+  const canSubmitScript = requiresScript
+    && ['application_approved', 'script_rejected'].includes(submissionStatus)
+    && !isProofDeadlineExpired;
+  const canSubmitProof = requiresScript
+    ? ['script_approved', 'rejected'].includes(submissionStatus) && !isProofDeadlineExpired
+    : (
+      (submissionStatus === 'application_approved' || submissionStatus === 'rejected' || (isSidequestTask && submissionStatus === 'application_pending'))
+      && !isProofDeadlineExpired
+    );
+  const isWaiting = ['application_pending', 'script_pending', 'proof_pending', 'pending'].includes(submissionStatus);
   const isParticipateAction = (isSidequestTask || isCampaignTask) && canApply && !canSubmitProof && !isWaiting;
   const currentMetricsSubmission = useMemo(
     () => myMetricsSubmissions.find((item) => String(item.task_id) === String(task.id)) || null,
@@ -295,9 +320,17 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
   const hasPassedStep1 = (isSidequestTask
     ? Boolean(currentSubmission)
-    : ['application_approved', 'proof_pending', 'rejected', 'approved'].includes(submissionStatus)) && !canApply;
-  const isStep2Current = ['application_approved', 'rejected', 'proof_pending'].includes(submissionStatus)
-    || (isSidequestTask && submissionStatus === 'application_pending');
+    : (requiresScript
+      ? ['application_approved', 'script_pending', 'script_approved', 'script_rejected', 'proof_pending', 'rejected', 'approved'].includes(submissionStatus)
+      : ['application_approved', 'proof_pending', 'rejected', 'approved'].includes(submissionStatus))
+    ) && !canApply;
+  const isScriptStepCurrent = requiresScript && ['application_approved', 'script_rejected'].includes(submissionStatus);
+  const isScriptWaiting = requiresScript && submissionStatus === 'script_pending';
+  const isProofStepCurrent = requiresScript
+    ? ['script_approved', 'rejected'].includes(submissionStatus)
+    : ['application_approved', 'rejected', 'proof_pending'].includes(submissionStatus)
+      || (isSidequestTask && submissionStatus === 'application_pending');
+  const hasPassedProofStep = ['proof_pending', 'approved'].includes(submissionStatus);
   const hasPassedStep2 = submissionStatus === 'approved';
   const isMetricsCompleted = metricsStatus === 'approved';
   const isScheduledAction = isScheduled && !isTaskApproved && submissionStatus !== 'approved' && !hasPassedStep1;
@@ -343,10 +376,11 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const completedStepsCount = useMemo(() => {
     let completed = 0;
     if (hasPassedStep1) completed++;
-    if (hasPassedStep2) completed++;
+    if (requiresScript && ['script_pending', 'script_approved', 'proof_pending', 'rejected', 'approved'].includes(submissionStatus)) completed++;
+    if (['proof_pending', 'approved'].includes(submissionStatus)) completed++;
     if (isCampaignTask && isMetricsCompleted) completed++;
     return completed;
-  }, [hasPassedStep1, hasPassedStep2, isCampaignTask, isMetricsCompleted]);
+  }, [hasPassedStep1, requiresScript, submissionStatus, isCampaignTask, isMetricsCompleted]);
 
   const timelineSteps = useMemo(() => {
     const steps = [];
@@ -383,7 +417,16 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
       dateTimeLabel: proofDeadlineLabel,
     });
 
-    // Etapa 3 (Apenas para Campanhas)
+    if (isCampaignTask) {
+      steps.splice(1, 0, {
+        label: "Enviar roteiro",
+        description: "Envie seu roteiro em PDF, DOCX, Google Docs ou link.",
+        dateInfoPrefix: proofDeadlineLabel ? 'até ' : null,
+        dateTimeLabel: proofDeadlineLabel,
+      });
+    }
+
+    // Etapa de métricas (apenas campanhas)
     if (isCampaignTask) {
       steps.push({
         label: "Enviar métricas",
@@ -428,6 +471,57 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     } catch (error) {
       console.error('Erro ao candidatar-se:', error);
       notifyError(error?.message || 'Erro ao enviar candidatura.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSendScript = async (e) => {
+    e.preventDefault();
+    if (!canSubmitScript || !currentSubmission?.id) return;
+
+    const trimmedScriptLink = String(scriptLink || '').trim();
+
+    if (!trimmedScriptLink && scriptFiles.length === 0) {
+      notifyWarning('Envie pelo menos um roteiro: link e/ou arquivo.');
+      return;
+    }
+
+    try {
+      for (const f of scriptFiles) validateFileSize(f, 'Arquivo do roteiro');
+    } catch (error) {
+      notifyWarning(error.message);
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const uploadedUrls = [];
+      for (const f of scriptFiles) {
+        const result = await uploadFile.mutateAsync({ file: f, userId: user.id });
+        if (result?.url) uploadedUrls.push(result.url);
+      }
+
+      const finalScriptUrl = trimmedScriptLink || uploadedUrls[0] || null;
+      const extras = uploadedUrls.slice(trimmedScriptLink ? 0 : 1);
+      const finalDescription = extras.length > 0
+        ? `${scriptDescription || ''}\n\n${extras.map((u, i) => `Arquivo ${i + 1}: ${u}`).join('\n')}`.trim()
+        : scriptDescription;
+
+      await submitScript.mutateAsync({
+        submissionId: currentSubmission.id,
+        scriptData: {
+          script_description: finalDescription,
+          script_url: finalScriptUrl,
+        },
+      });
+
+      notifySuccess('Roteiro enviado com sucesso! Aguarde a aprovação do administrador. ✅');
+      onClose();
+    } catch (error) {
+      console.error('Erro ao enviar roteiro:', error);
+      notifyError(error?.message || 'Erro ao enviar roteiro.');
     } finally {
       setIsSubmitting(false);
     }
@@ -835,14 +929,20 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                           : isCampaignTask
                             ? (task.requires_application ? 'Candidatar-se para esta Vaga' : 'Participar desta Campanha')
                             : 'Candidatar-se para esta Vaga')
-                        : canSubmitProof
-                          ? isSidequestTask && submissionStatus === 'application_pending'
-                            ? 'Avançar para prova da Missão'
-                            : submissionStatus === 'rejected'
-                              ? 'Prova rejeitada - reenviar'
-                              : 'Inscrição aprovada - ir para prova'
-                          : isWaiting
-                            ? submissionStageLabel
+                        : canSubmitScript
+                          ? submissionStatus === 'script_rejected'
+                            ? 'Roteiro rejeitado - reenviar'
+                            : 'Inscrição aprovada - enviar roteiro'
+                          : canSubmitProof
+                            ? isSidequestTask && submissionStatus === 'application_pending'
+                              ? 'Avançar para prova da Missão'
+                              : submissionStatus === 'rejected'
+                                ? 'Prova rejeitada - reenviar'
+                                : requiresScript
+                                  ? 'Roteiro aprovado - enviar prova'
+                                  : 'Inscrição aprovada - ir para prova'
+                            : isWaiting
+                              ? submissionStageLabel
                             : isSubmissionExpiredByRule
                               ? 'Prazo expirado'
                               : isFull
@@ -861,8 +961,85 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
               )}
 
-              {/* Formulário Etapa 2 */}
-              {!hasPassedStep2 && isStep2Current && (
+              {/* Formulário Etapa 2 — Roteiro (campanha) */}
+              {requiresScript && !hasPassedProofStep && (isScriptStepCurrent || isScriptWaiting) && (
+                <div className="rounded-2xl p-5 flex flex-col gap-4" style={{ backgroundColor: surfaceBg, border: surfaceBorder }}>
+                  <form onSubmit={handleSendScript} className="flex flex-col gap-4">
+                    {submissionStatus !== 'script_pending' && (
+                      <>
+                      <div>
+                        <Label htmlFor="script-link" style={{ color: bodyMuted, fontSize: 12 }}>Link do roteiro</Label>
+                        <Input
+                          id="script-link"
+                          type="url"
+                          value={scriptLink}
+                          onChange={(e) => setScriptLink(e.target.value)}
+                          placeholder="Cole o link do Google Docs ou outro link do roteiro"
+                          className={`mt-1.5 h-[46px] ${inputCls}`}
+                        />
+                        <p style={{ fontSize: 11, color: faintColor, marginTop: 6, lineHeight: 1.45 }}>
+                          Se for um Google Docs, verifique se o link está público ou com acesso liberado para quem tem o link.
+                        </p>
+                      </div>
+                      <p style={{ fontSize: 12, color: bodyMuted, marginTop: 2 }}>E/ou anexe um arquivo do roteiro (PDF, DOCX, etc.):</p>
+                      <div>
+                        <div className="flex items-center justify-between gap-2">
+                          <Label htmlFor="script-file" style={{ color: bodyMuted, fontSize: 12 }}>Arquivo do roteiro</Label>
+                          <span style={{ fontSize: 11, color: faintColor }}>Até {MAX_PROOF_FILES} arquivos</span>
+                        </div>
+                        <input
+                          id="script-file"
+                          ref={scriptFileInputRef}
+                          type="file"
+                          multiple
+                          disabled={scriptFiles.length >= MAX_PROOF_FILES}
+                          onChange={handleScriptFilesChange}
+                          className={fileInputCls}
+                        />
+                        {scriptFiles.length > 0 && (
+                          <div className="flex flex-col gap-2 mt-2">
+                            {scriptFiles.map((file, i) => (
+                              <div
+                                key={`${file.name}-${file.size}-${file.lastModified}`}
+                                className="flex items-center justify-between px-3 py-2 rounded-xl"
+                                style={{ backgroundColor: 'rgba(var(--ink),0.04)', border: '1px solid rgba(var(--ink),0.08)' }}
+                              >
+                                <span style={{ fontSize: 12, color: bodyMuted }} className="truncate">{file.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeScriptFile(i)}
+                                  style={{ color: bulletColor, marginLeft: 8 }}
+                                  className="hover:opacity-100 opacity-60 shrink-0"
+                                  aria-label={`Remover ${file.name}`}
+                                >
+                                  <X size={13} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      </>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={submissionStatus === 'script_pending' || isSubmitting || uploadFile.isPending || submitScript.isPending}
+                      className={actionButtonClassName}
+                      style={actionButtonStyle}
+                    >
+                      <Upload className="w-4 h-4 mr-2 shrink-0" />
+                      {submissionStatus === 'script_pending'
+                        ? 'Seu roteiro foi enviado e está em análise pelo administrador.'
+                        : isSubmitting || uploadFile.isPending || submitScript.isPending
+                          ? 'Enviando roteiro...'
+                          : 'Enviar roteiro para validação'}
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* Formulário Etapa 3 — Prova */}
+              {!hasPassedStep2 && isProofStepCurrent && (
                 <div className="rounded-2xl p-5 flex flex-col gap-4" style={{ backgroundColor: surfaceBg, border: surfaceBorder }}>
                   <form onSubmit={handleSendProof} className="flex flex-col gap-4">
                     {submissionStatus !== 'proof_pending' && (
@@ -938,7 +1115,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                 </div>
               )}
 
-              {/* Formulário Etapa 3 */}
+              {/* Formulário Etapa 4 — Métricas */}
               {isCampaignTask && hasPassedStep2 && !isMetricsCompleted && (
                 <div className="rounded-2xl p-5 flex flex-col gap-4" style={{ backgroundColor: surfaceBg, border: surfaceBorder }}>
                   <form onSubmit={handleSendMetrics} className="flex flex-col gap-4">

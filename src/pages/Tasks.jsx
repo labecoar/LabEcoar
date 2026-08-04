@@ -162,7 +162,7 @@ export default function Tasks() {
   const shouldHideTaskFromAvailable = (task) => {
     const submission = getTaskSubmission(task.id);
     const submissionStatus = normalizeSubmissionStatus(submission?.status);
-    return ['application_pending', 'pending', 'application_approved', 'application_rejected', 'proof_pending', 'approved', 'rejected'].includes(submissionStatus);
+    return ['application_pending', 'pending', 'application_approved', 'application_rejected', 'script_pending', 'script_approved', 'script_rejected', 'proof_pending', 'approved', 'rejected'].includes(submissionStatus);
   };
 
   const shouldKeepCampaignVisibleForMetrics = (task) => {
@@ -228,7 +228,7 @@ export default function Tasks() {
     const submission = getTaskSubmission(taskId);
     const status = normalizeSubmissionStatus(submission?.status);
     if (!submission) return false;
-    return ['application_pending', 'application_approved', 'proof_pending', 'pending'].includes(status);
+    return ['application_pending', 'application_approved', 'script_pending', 'script_approved', 'script_rejected', 'proof_pending', 'pending'].includes(status);
   };
 
   const isTaskApproved = (taskId) => {
@@ -269,8 +269,13 @@ export default function Tasks() {
       task.category === 'sidequest_teste'
         ? buildStepWithDeadline("Participar desta Missão", task.posting_deadline)
         : buildStepWithDeadline("Candidatar-se", task.posting_deadline),
-      buildStepWithDeadline("Enviar conteúdo da tarefa", resolveProofDeadline(task)),
     ];
+
+    if (task.category === 'campanha') {
+      steps.push(buildStepWithDeadline("Enviar roteiro", resolveProofDeadline(task)));
+    }
+
+    steps.push(buildStepWithDeadline("Enviar conteúdo da tarefa", resolveProofDeadline(task)));
 
     if (task.category === 'campanha') {
       const submissionStatus = normalizeSubmissionStatus(submission?.status);
@@ -300,6 +305,10 @@ export default function Tasks() {
     let completed = 0;
 
     if (submission) completed++;
+
+    if (task.category === 'campanha') {
+      if (['script_pending', 'script_approved', 'proof_pending', 'approved'].includes(submissionStatus)) completed++;
+    }
 
     if (['proof_pending', 'approved'].includes(submissionStatus)) completed++;
     if (task.category === 'campanha' && metricsStatus === 'approved') completed++;
@@ -372,8 +381,14 @@ export default function Tasks() {
         return <span style={{ ...base, background: "rgba(var(--ink),0.07)", color: MUTED_COLOR }}>Expirada</span>;
       if (submissionStatus === 'proof_pending')
         return <span style={{ ...base, background: "rgba(68,102,255,0.12)", color: "#8899FF" }}><Clock size={11} /> Prova em Análise</span>;
+      if (submissionStatus === 'script_pending')
+        return <span style={{ ...base, background: "rgba(68,102,255,0.12)", color: "#8899FF" }}><Clock size={11} /> Roteiro em Análise</span>;
+      if (submissionStatus === 'script_approved')
+        return <span style={{ ...base, background: "rgba(170,102,255,0.12)", color: C.purple }}><Clock size={11} /> Aguardando Prova</span>;
+      if (submissionStatus === 'script_rejected')
+        return <span style={{ ...base, background: "rgba(255,34,85,0.12)", color: "#FF2255" }}>Roteiro rejeitado</span>;
       if (submissionStatus === 'application_approved')
-        return <span style={{ ...base, background: "rgba(170,102,255,0.12)", color: C.purple }}><Clock size={11} /> Aprovado p/ Fazer</span>;
+        return <span style={{ ...base, background: "rgba(170,102,255,0.12)", color: C.purple }}><Clock size={11} /> {isCampaignTask ? 'Aguardando Roteiro' : 'Aprovado p/ Fazer'}</span>;
       if (claimed)
         return (
           <span style={{ ...base, background: "rgba(255,136,51,0.12)", color: C.orange }}>

@@ -49,6 +49,20 @@ export function useCreateSubmission() {
 }
 
 /**
+ * Hook para envio de roteiro (campanha)
+ */
+export function useSubmitScript() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ submissionId, scriptData }) => submissionsService.submitScript(submissionId, scriptData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['submissions'] })
+    },
+  })
+}
+
+/**
  * Hook para envio de prova após aprovação da inscrição
  */
 export function useSubmitProof() {

@@ -47,6 +47,7 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
+import AdminScriptApproval from './pages/AdminScriptApproval';
 import AdminApplications from './pages/AdminApplications';
 import AdminApproval from './pages/AdminApproval';
 import AdminContentManagement from './pages/AdminContentManagement';
@@ -72,6 +73,7 @@ import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
+    "AdminScriptApproval": AdminScriptApproval,
     "AdminApplications": AdminApplications,
     "AdminApproval": AdminApproval,
     "AdminContentManagement": AdminContentManagement,

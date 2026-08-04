@@ -46,13 +46,17 @@ export const ACTIVE_USER_CATEGORIES = {
   sidequest_teste: 'Missão',
 };
 
-/** Status detalhados — etapas dentro de "Em andamento". Concluída/Rejeitada/Expirada ficam nas abas. */
+/** Status detalhados — etapas dentro de "Em andamento". Concluída/Expirada ficam nas abas. */
 export const USER_STATUS_FILTER_OPTIONS = [
   { value: 'all', label: 'Todas as etapas' },
   { value: 'inscricao_analise', label: 'Inscrição em análise' },
+  { value: 'roteiro_rejeitado', label: 'Roteiro rejeitado' },
+  { value: 'aguardando_roteiro', label: 'Aguardando roteiro' },
+  { value: 'roteiro_analise', label: 'Roteiro em análise' },
   { value: 'aguardando_prova', label: 'Aguardando prova' },
   { value: 'aprovado_fazer', label: 'Aprovado p/ fazer' },
   { value: 'prova_analise', label: 'Prova em análise' },
+  { value: 'rejeitada', label: 'Prova rejeitada' },
   { value: 'pendente_metricas', label: 'Pendente métricas' },
   { value: 'metricas_analise', label: 'Métricas em análise' },
   { value: 'reenviar_metricas', label: 'Reenviar métricas' },
@@ -61,7 +65,6 @@ export const USER_STATUS_FILTER_OPTIONS = [
 export const USER_BUCKET_FILTER_OPTIONS = [
   { value: 'andamento', label: 'Em andamento' },
   { value: 'concluidas', label: 'Concluídas' },
-  { value: 'rejeitadas', label: 'Rejeitadas' },
   { value: 'expiradas', label: 'Expiradas' },
   { value: 'todas', label: 'Todas' },
 ];
@@ -131,6 +134,9 @@ export const getDeadlineState = (expiresAtValue) => {
 export const getTaskSteps = (task, submission) => {
   const steps = [];
   steps.push({ label: 'Candidatar-se', date: task?.posting_deadline || null });
+  if (task?.category === 'campanha') {
+    steps.push({ label: 'Enviar roteiro', date: task?.posting_deadline || task?.expires_at || null });
+  }
   steps.push({ label: 'Enviar conteúdo da tarefa', date: task?.posting_deadline || task?.expires_at || null });
   if (task?.category === 'campanha') {
     const submissionStatus = normalizeSubmissionStatus(submission?.status);
@@ -149,6 +155,9 @@ export const getCompletedStepsCount = (task, submission, metricsSubmission) => {
   const metricsStatus = String(metricsSubmission?.status || '').trim().toLowerCase();
   let completed = 0;
   if (submission) completed++;
+  if (task?.category === 'campanha') {
+    if (['script_pending', 'script_approved', 'proof_pending', 'approved'].includes(submissionStatus)) completed++;
+  }
   if (['proof_pending', 'approved'].includes(submissionStatus)) completed++;
   if (task?.category === 'campanha' && metricsStatus === 'approved') completed++;
   return completed;
@@ -167,7 +176,7 @@ export const resolveNextDeadline = (task, submission, metricsSubmission) => {
     return toDateOrNull(metricsWindow?.end);
   }
 
-  if (['application_approved', 'application_pending', 'proof_pending', 'pending'].includes(submissionStatus)) {
+  if (['application_approved', 'application_pending', 'script_pending', 'script_approved', 'script_rejected', 'proof_pending', 'pending'].includes(submissionStatus)) {
     return resolveProofDeadline(task);
   }
 
@@ -219,7 +228,7 @@ export const isExpiredSubmission = (submission, metricsSubmission) => {
   const expiresAt = resolveProofDeadline(task);
   if (!expiresAt) return false;
 
-  const activeStatuses = ['application_pending', 'application_approved', 'proof_pending', 'pending', 'approved'];
+  const activeStatuses = ['application_pending', 'application_approved', 'script_pending', 'script_approved', 'script_rejected', 'proof_pending', 'pending', 'approved'];
   if (!activeStatuses.includes(status)) return false;
   if (status === 'approved' && taskCategory !== 'campanha') return false;
 
@@ -229,7 +238,7 @@ export const isExpiredSubmission = (submission, metricsSubmission) => {
 export const isPendingSubmission = (submission, metricsSubmission) => {
   if (isExpiredSubmission(submission, metricsSubmission)) return false;
   const status = normalizeSubmissionStatus(submission?.status);
-  return ['pending', 'application_pending', 'application_approved', 'proof_pending'].includes(status)
+  return ['pending', 'application_pending', 'application_approved', 'application_rejected', 'script_pending', 'script_approved', 'script_rejected', 'proof_pending', 'rejected'].includes(status)
     || isCampaignWithPendingMetrics(submission, metricsSubmission);
 };
 
@@ -244,7 +253,7 @@ export const isRejectedSubmission = (submission, metricsSubmission) => {
   if (isExpiredSubmission(submission, metricsSubmission)) return false;
   const status = normalizeSubmissionStatus(submission?.status);
   if (isSubmissionReopenedByDateChange(submission?.task, submission)) return false;
-  return ['application_rejected', 'rejected'].includes(status);
+  return ['application_rejected', 'rejected', 'script_rejected'].includes(status);
 };
 
 export const getUserSubmissionStatusDisplay = (submission, metricsSubmission) => {
@@ -278,7 +287,19 @@ export const getUserSubmissionStatusDisplay = (submission, metricsSubmission) =>
   if (submissionStatus === 'proof_pending') {
     return { key: 'prova_analise', label: 'Prova em análise', bg: `${C.purple}18`, color: C.purple, bucket: 'andamento' };
   }
+  if (submissionStatus === 'script_pending') {
+    return { key: 'roteiro_analise', label: 'Roteiro em análise', bg: `${C.blue}18`, color: C.blue, bucket: 'andamento' };
+  }
+  if (submissionStatus === 'script_approved') {
+    return { key: 'aguardando_prova', label: 'Aguardando prova', bg: `${C.cyan}18`, color: C.cyan, bucket: 'andamento' };
+  }
+  if (submissionStatus === 'script_rejected') {
+    return { key: 'roteiro_rejeitado', label: 'Roteiro rejeitado', bg: 'rgba(248,113,113,0.12)', color: '#f87171', bucket: 'andamento' };
+  }
   if (submissionStatus === 'application_approved') {
+    if (task?.category === 'campanha') {
+      return { key: 'aguardando_roteiro', label: 'Aguardando roteiro', bg: `${C.cyan}18`, color: C.cyan, bucket: 'andamento' };
+    }
     return { key: 'aprovado_fazer', label: 'Aprovado p/ fazer', bg: `${C.cyan}18`, color: C.cyan, bucket: 'andamento' };
   }
   if (['application_pending', 'pending'].includes(submissionStatus)) {
@@ -295,7 +316,7 @@ export const getUserSubmissionStatusDisplay = (submission, metricsSubmission) =>
     if (isSubmissionReopenedByDateChange(task, submission)) {
       return { key: 'aguardando_prova', label: 'Aguardando prova', bg: `${C.orange}18`, color: C.orange, bucket: 'andamento' };
     }
-    return { key: 'rejeitada', label: 'Rejeitada', bg: 'rgba(248,113,113,0.12)', color: '#f87171', bucket: 'rejeitadas' };
+    return { key: 'rejeitada', label: 'Rejeitada', bg: 'rgba(248,113,113,0.12)', color: '#f87171', bucket: 'andamento' };
   }
 
   return { key: 'em_andamento', label: 'Em andamento', bg: 'rgba(var(--ink),0.08)', color: `${C.cream}70`, bucket: 'andamento' };

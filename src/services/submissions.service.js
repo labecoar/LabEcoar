@@ -91,7 +91,8 @@ async function autoCancelApprovedSubmission(submission, reason) {
 }
 
 async function applySubmissionTaskRules(submission) {
-  if (submission?.status !== 'application_approved') return submission
+  const eligibleStatuses = ['application_approved', 'script_approved', 'script_rejected', 'rejected']
+  if (!eligibleStatuses.includes(submission?.status)) return submission
 
   const proofDeadline = resolveProofDeadline(submission.task)
   if (!proofDeadline) return submission
@@ -245,6 +246,9 @@ export const submissionsService = {
         'application_pending',
         'application_approved',
         'application_rejected',
+        'script_pending',
+        'script_approved',
+        'script_rejected',
         'proof_pending',
         'approved',
         'rejected',
@@ -353,6 +357,9 @@ export const submissionsService = {
           status: initialStatus,
           description: submissionData.description || null,
           proof_url: null,
+          script_url: null,
+          script_description: null,
+          script_submitted_at: null,
           points_awarded: 0,
           rejection_reason: null,
           validated_at: null,
@@ -479,7 +486,64 @@ export const submissionsService = {
   },
 
   /**
-   * Aprovar submissão (Admin)
+   * Enviar roteiro (campanha, após seleção)
+   */
+  async submitScript(submissionId, scriptData) {
+    const { data: currentSubmission, error: currentSubmissionError } = await supabase
+      .from('submissions')
+      .select(`
+        id,
+        status,
+        task_id
+      `)
+      .eq('id', submissionId)
+      .single()
+
+    if (currentSubmissionError) throw currentSubmissionError
+
+    const { data: taskData, error: taskError } = await supabase
+      .from('tasks')
+      .select('category, expires_at, posting_deadline, delivery_deadline')
+      .eq('id', currentSubmission.task_id)
+      .single()
+
+    if (taskError) throw taskError
+
+    if (String(taskData?.category || '') !== 'campanha') {
+      throw new Error('Envio de roteiro disponível apenas para campanhas.')
+    }
+
+    const canSubmitScript = ['application_approved', 'script_rejected'].includes(currentSubmission.status)
+    if (!canSubmitScript) {
+      throw new Error('Esta submissão não está apta para envio de roteiro no momento.')
+    }
+
+    const proofDeadline = resolveProofDeadline(taskData)
+    if (proofDeadline && new Date() > proofDeadline) {
+      throw new Error('Prazo expirou para esta campanha.')
+    }
+
+    const { data, error } = await supabase
+      .from('submissions')
+      .update({
+        status: 'script_pending',
+        script_url: scriptData.script_url || null,
+        script_description: scriptData.script_description || null,
+        script_submitted_at: new Date().toISOString(),
+        rejection_reason: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', submissionId)
+      .in('status', ['application_approved', 'script_rejected'])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  /**
+   * Enviar prova após aprovação da inscrição ou do roteiro
    */
   async submitProof(submissionId, proofData) {
     const { data: currentSubmission, error: currentSubmissionError } = await supabase
@@ -504,9 +568,12 @@ export const submissionsService = {
     if (taskError) throw taskError
 
     const isSidequestTest = String(taskData?.category || '') === 'sidequest_teste'
+    const isCampaign = String(taskData?.category || '') === 'campanha'
     const canSubmitProof = isSidequestTest
       ? ['application_pending', 'application_approved', 'rejected'].includes(currentSubmission.status)
-      : ['application_approved', 'rejected'].includes(currentSubmission.status)
+      : isCampaign
+        ? ['script_approved', 'rejected'].includes(currentSubmission.status)
+        : ['application_approved', 'rejected'].includes(currentSubmission.status)
 
     if (!canSubmitProof) {
       throw new Error('Esta submissão não está apta para envio de prova no momento.')
@@ -534,7 +601,9 @@ export const submissionsService = {
       .eq('id', submissionId)
       .in('status', isSidequestTest
         ? ['application_pending', 'application_approved', 'rejected']
-        : ['application_approved', 'rejected'])
+        : isCampaign
+          ? ['script_approved', 'rejected']
+          : ['application_approved', 'rejected'])
       .select()
       .single()
 
@@ -602,6 +671,29 @@ export const submissionsService = {
       return data
     }
 
+    if (currentSubmission.status === 'script_pending') {
+      const { data, error } = await supabase
+        .from('submissions')
+        .update({
+          status: 'script_approved',
+          validated_at: new Date().toISOString(),
+          rejection_reason: null,
+        })
+        .eq('id', submissionId)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      await registerApprovalHistoryEntry({
+        submission: currentSubmission,
+        task: taskData,
+        action: 'script_approved',
+      })
+
+      return data
+    }
+
     if (currentSubmission.status === 'proof_pending') {
       const { data, error } = await supabase
         .from('submissions')
@@ -643,7 +735,9 @@ export const submissionsService = {
 
     const nextStatus = currentSubmission.status === 'proof_pending'
       ? 'rejected'
-      : 'application_rejected'
+      : currentSubmission.status === 'script_pending'
+        ? 'script_rejected'
+        : 'application_rejected'
 
     const { data, error } = await supabase
       .from('submissions')
