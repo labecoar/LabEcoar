@@ -1,21 +1,24 @@
 ﻿// @ts-nocheck
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
 import { useAdminTasks } from '@/hooks/useTasks'
 import { usePendingSubmissions } from '@/hooks/useSubmissions'
+import { useOrganizations } from '@/hooks/useOrganizations'
 import { adminUsersService } from '@/services/admin-users.service'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Activity, Shield, Search, Target, Users, ClipboardList,
   ChevronLeft, ChevronRight, Download, ArrowUpDown, Eye,
-  CheckCircle, Clock, XCircle, TrendingUp, UserRound,
+  CheckCircle, Clock, XCircle, TrendingUp, UserRound, Building2,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { C, heading, body, getModalBackground } from '@/lib/theme'
 import { PageHeader, PageHeaderLabel } from "@/components/layout/PageShell";
 import { usePageTheme, AdminAccessDenied, AdminEmptyState, AdminTabButton } from '@/components/admin/AdminPageHelpers';
+import { TaskDescriptionContent } from '@/components/tasks/TaskDescriptionContent';
 
 const PAGE_SIZE = 10
 
@@ -118,6 +121,43 @@ function StatusBadge({ status }) {
   )
 }
 
+function RejectionReasonTrigger({ status, reason }) {
+  const { isLight, textColor, borderColor } = usePageTheme()
+  const trimmed = String(reason || '').trim()
+  if (!isRejectedStatus(status) || !trimmed) return null
+
+  const surfaceBg = getModalBackground(isLight)
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0 transition-all hover:brightness-110"
+          style={{ border: `1px solid ${borderColor}`, backgroundColor: 'transparent', color: '#f87171' }}
+          title="Ver motivo da rejeição"
+        >
+          <Eye size={12} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        side="left"
+        className="w-80 border-0 bg-transparent p-0 shadow-xl"
+      >
+        <div className="rounded-xl p-4" style={{ backgroundColor: surfaceBg, border: `1px solid ${borderColor}` }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: '#f87171', letterSpacing: '0.05em', marginBottom: 8 }}>
+            MOTIVO DA REJEIÇÃO
+          </p>
+          <p className="whitespace-pre-wrap" style={{ fontSize: 13, color: textColor, lineHeight: 1.5 }}>
+            {trimmed}
+          </p>
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
 function Pagination({ page, totalPages, onPageChange }) {
   const { mutedColor, textColor, borderColor } = usePageTheme()
   if (totalPages <= 1) return null
@@ -184,23 +224,37 @@ export default function AdminMonitoring() {
   const [userSearch, setUserSearch] = useState('')
   const [taskCategoryFilter, setTaskCategoryFilter] = useState('all')
   const [taskStatusFilter, setTaskStatusFilter] = useState('all')
+  const [orgSearch, setOrgSearch] = useState('')
   const [userStatusFilter, setUserStatusFilter] = useState('all')
   const [userRoleFilter, setUserRoleFilter] = useState('all')
   const [taskPage, setTaskPage] = useState(1)
   const [userPage, setUserPage] = useState(1)
+  const [orgPage, setOrgPage] = useState(1)
   const [taskSort, setTaskSort] = useState({ field: 'created_at', dir: 'desc' })
   const [userSort, setUserSort] = useState({ field: 'submissions', dir: 'desc' })
+  const [orgSort, setOrgSort] = useState({ field: 'tasks', dir: 'desc' })
   const [selectedTask, setSelectedTask] = useState(null)
   const [selectedUser, setSelectedUser] = useState(null)
+  const [selectedOrg, setSelectedOrg] = useState(null)
+  const [participantSearch, setParticipantSearch] = useState('')
+  const [participantStatusFilter, setParticipantStatusFilter] = useState('all')
+  const [orgTaskSearch, setOrgTaskSearch] = useState('')
+  const [orgTaskCategoryFilter, setOrgTaskCategoryFilter] = useState('all')
+  const [orgTaskStatusFilter, setOrgTaskStatusFilter] = useState('all')
+  const [participantPage, setParticipantPage] = useState(1)
+  const [orgTaskPage, setOrgTaskPage] = useState(1)
+  const [userSubmissionPage, setUserSubmissionPage] = useState(1)
+  const [returnToOrg, setReturnToOrg] = useState(null)
 
   const { data: tasks = [], isLoading: tasksLoading } = useAdminTasks()
   const { data: submissions = [], isLoading: submissionsLoading } = usePendingSubmissions()
+  const { data: organizations = [], isLoading: orgsLoading } = useOrganizations()
   const { data: users = [], isLoading: usersLoading } = useQuery({
     queryKey: ['admin-users'],
     queryFn: () => adminUsersService.listUsers(),
   })
 
-  const isLoading = tasksLoading || submissionsLoading || usersLoading
+  const isLoading = tasksLoading || submissionsLoading || usersLoading || orgsLoading
 
   const submissionsByTask = useMemo(() => {
     const map = new Map()
@@ -274,6 +328,14 @@ export default function AdminMonitoring() {
     setUserPage(1)
   }
 
+  const handleOrgSort = (field) => {
+    setOrgSort((prev) => ({
+      field,
+      dir: prev.field === field && prev.dir === 'desc' ? 'asc' : 'desc',
+    }))
+    setOrgPage(1)
+  }
+
   const enrichedTasks = useMemo(() => {
     return tasks.map((task) => {
       const taskSubs = submissionsByTask.get(task.id) || []
@@ -294,7 +356,7 @@ export default function AdminMonitoring() {
       if (taskCategoryFilter !== 'all' && task.category !== taskCategoryFilter) return false
       if (taskStatusFilter !== 'all' && task.status !== taskStatusFilter) return false
       if (!term) return true
-      const haystack = [task.title, task.description, CATEGORY_LABELS[task.category]].filter(Boolean).join(' ').toLowerCase()
+      const haystack = [task.title, task.description, task.organization?.name, CATEGORY_LABELS[task.category]].filter(Boolean).join(' ').toLowerCase()
       return haystack.includes(term)
     })
 
@@ -316,6 +378,72 @@ export default function AdminMonitoring() {
 
     return result
   }, [enrichedTasks, taskSearch, taskCategoryFilter, taskStatusFilter, taskSort])
+
+  const enrichedOrgs = useMemo(() => {
+    const tasksByOrgId = new Map()
+    const unassignedTasks = []
+
+    for (const task of enrichedTasks) {
+      if (task.organization_id) {
+        if (!tasksByOrgId.has(task.organization_id)) tasksByOrgId.set(task.organization_id, [])
+        tasksByOrgId.get(task.organization_id).push(task)
+      } else {
+        unassignedTasks.push(task)
+      }
+    }
+
+    const rows = organizations.map((org) => {
+      const orgTasks = tasksByOrgId.get(org.id) || []
+      return {
+        ...org,
+        taskCount: orgTasks.length,
+        activeTaskCount: orgTasks.filter((t) => t.status === 'active').length,
+        submissionCount: orgTasks.reduce((sum, t) => sum + t.submissionCount, 0),
+        completedCount: orgTasks.reduce((sum, t) => sum + t.completedCount, 0),
+        tasks: orgTasks.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+      }
+    })
+
+    if (unassignedTasks.length > 0) {
+      rows.push({
+        id: '__none__',
+        name: 'Sem cliente',
+        taskCount: unassignedTasks.length,
+        activeTaskCount: unassignedTasks.filter((t) => t.status === 'active').length,
+        submissionCount: unassignedTasks.reduce((sum, t) => sum + t.submissionCount, 0),
+        completedCount: unassignedTasks.reduce((sum, t) => sum + t.completedCount, 0),
+        tasks: unassignedTasks.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+      })
+    }
+
+    return rows
+  }, [organizations, enrichedTasks])
+
+  const filteredOrgs = useMemo(() => {
+    const term = orgSearch.trim().toLowerCase()
+    let result = enrichedOrgs.filter((org) => {
+      if (!term) return true
+      return String(org.name || '').toLowerCase().includes(term)
+    })
+
+    const dir = orgSort.dir === 'asc' ? 1 : -1
+    result = [...result].sort((a, b) => {
+      switch (orgSort.field) {
+        case 'name':
+          return dir * String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR')
+        case 'tasks':
+          return dir * (a.taskCount - b.taskCount)
+        case 'submissions':
+          return dir * (a.submissionCount - b.submissionCount)
+        case 'completed':
+          return dir * (a.completedCount - b.completedCount)
+        default:
+          return dir * (a.taskCount - b.taskCount)
+      }
+    })
+
+    return result
+  }, [enrichedOrgs, orgSearch, orgSort])
 
   const enrichedUsers = useMemo(() => {
     return users.map((user) => {
@@ -364,8 +492,10 @@ export default function AdminMonitoring() {
 
   const taskTotalPages = Math.max(1, Math.ceil(filteredTasks.length / PAGE_SIZE))
   const userTotalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE))
+  const orgTotalPages = Math.max(1, Math.ceil(filteredOrgs.length / PAGE_SIZE))
   const paginatedTasks = filteredTasks.slice((taskPage - 1) * PAGE_SIZE, taskPage * PAGE_SIZE)
   const paginatedUsers = filteredUsers.slice((userPage - 1) * PAGE_SIZE, userPage * PAGE_SIZE)
+  const paginatedOrgs = filteredOrgs.slice((orgPage - 1) * PAGE_SIZE, orgPage * PAGE_SIZE)
 
   const selectedTaskParticipants = useMemo(() => {
     if (!selectedTask) return []
@@ -374,11 +504,82 @@ export default function AdminMonitoring() {
     )
   }, [selectedTask, submissionsByTask])
 
+  useEffect(() => {
+    setParticipantSearch('')
+    setParticipantStatusFilter('all')
+    setParticipantPage(1)
+  }, [selectedTask?.id])
+
+  const filteredTaskParticipants = useMemo(() => {
+    const query = participantSearch.trim().toLowerCase()
+
+    return selectedTaskParticipants.filter((sub) => {
+      const normalizedStatus = normalizeSubmissionStatus(sub.status)
+      if (participantStatusFilter !== 'all' && normalizedStatus !== participantStatusFilter) return false
+      if (!query) return true
+
+      const haystack = [
+        sub.profile?.display_name,
+        sub.profile?.full_name,
+        sub.profile?.email,
+        sub.profile?.instagram_handle,
+        sub.rejection_reason,
+        SUBMISSION_STATUS_LABELS[normalizedStatus],
+      ].filter(Boolean).join(' ').toLowerCase()
+
+      return haystack.includes(query)
+    })
+  }, [selectedTaskParticipants, participantSearch, participantStatusFilter])
+
+  useEffect(() => {
+    setOrgTaskSearch('')
+    setOrgTaskCategoryFilter('all')
+    setOrgTaskStatusFilter('all')
+    setOrgTaskPage(1)
+  }, [selectedOrg?.id])
+
+  useEffect(() => {
+    setUserSubmissionPage(1)
+  }, [selectedUser?.id])
+
+  const filteredOrgTasks = useMemo(() => {
+    if (!selectedOrg) return []
+    const term = orgTaskSearch.trim().toLowerCase()
+
+    return selectedOrg.tasks.filter((task) => {
+      if (orgTaskCategoryFilter !== 'all' && task.category !== orgTaskCategoryFilter) return false
+      if (orgTaskStatusFilter !== 'all' && task.status !== orgTaskStatusFilter) return false
+      if (!term) return true
+      const haystack = [task.title, CATEGORY_LABELS[task.category], TASK_STATUS_LABELS[task.status]].filter(Boolean).join(' ').toLowerCase()
+      return haystack.includes(term)
+    })
+  }, [selectedOrg, orgTaskSearch, orgTaskCategoryFilter, orgTaskStatusFilter])
+
+  const participantTotalPages = Math.max(1, Math.ceil(filteredTaskParticipants.length / PAGE_SIZE))
+  const paginatedTaskParticipants = filteredTaskParticipants.slice(
+    (participantPage - 1) * PAGE_SIZE,
+    participantPage * PAGE_SIZE
+  )
+
+  const orgTaskTotalPages = Math.max(1, Math.ceil(filteredOrgTasks.length / PAGE_SIZE))
+  const paginatedOrgTasks = filteredOrgTasks.slice(
+    (orgTaskPage - 1) * PAGE_SIZE,
+    orgTaskPage * PAGE_SIZE
+  )
+
+  const userSubmissions = selectedUser?.submissions || []
+  const userSubmissionTotalPages = Math.max(1, Math.ceil(userSubmissions.length / PAGE_SIZE))
+  const paginatedUserSubmissions = userSubmissions.slice(
+    (userSubmissionPage - 1) * PAGE_SIZE,
+    userSubmissionPage * PAGE_SIZE
+  )
+
   const handleExportTasks = () => {
     exportCsv(
-      ['Título', 'Categoria', 'Status', 'Participantes', 'Inscrições', 'Concluídas', 'Pendentes', 'Criada em'],
+      ['Título', 'Cliente', 'Categoria', 'Status', 'Participantes', 'Inscrições', 'Concluídas', 'Pendentes', 'Criada em'],
       filteredTasks.map((task) => [
         task.title,
+        task.organization?.name || '—',
         CATEGORY_LABELS[task.category] || task.category,
         TASK_STATUS_LABELS[task.status] || task.status,
         task.current_participants ?? 0,
@@ -409,6 +610,20 @@ export default function AdminMonitoring() {
     )
   }
 
+  const handleExportOrgs = () => {
+    exportCsv(
+      ['Cliente', 'Tarefas', 'Tarefas ativas', 'Inscrições', 'Concluídas'],
+      filteredOrgs.map((org) => [
+        org.name,
+        org.taskCount,
+        org.activeTaskCount,
+        org.submissionCount,
+        org.completedCount,
+      ]),
+      `monitoramento-clientes-${format(new Date(), 'yyyy-MM-dd')}.csv`
+    )
+  }
+
   if (profile?.role !== 'admin') {
     return (
       <AdminAccessDenied
@@ -421,6 +636,7 @@ export default function AdminMonitoring() {
   const tabs = [
     { id: 'tasks', label: 'Por Tarefas', icon: Target },
     { id: 'users', label: 'Por Usuários', icon: Users },
+    { id: 'orgs', label: 'Por Org', icon: Building2 },
   ]
 
   return (
@@ -598,6 +814,7 @@ export default function AdminMonitoring() {
                         <th className="text-left px-5 py-3">
                           <SortButton label="TAREFA" field="title" sortField={taskSort.field} sortDir={taskSort.dir} onSort={handleTaskSort} />
                         </th>
+                        <th className="text-left px-5 py-3" style={{ fontSize: 10, fontWeight: 700, color: faintColor, letterSpacing: '0.08em' }}>CLIENTE</th>
                         <th className="text-left px-5 py-3">
                           <SortButton label="CATEGORIA" field="category" sortField={taskSort.field} sortDir={taskSort.dir} onSort={handleTaskSort} />
                         </th>
@@ -625,6 +842,9 @@ export default function AdminMonitoring() {
                             <p style={{ fontWeight: 600, color: textColor, fontSize: 13 }} className="max-w-[240px] truncate">{task.title}</p>
                             <p style={{ fontSize: 11, color: faintColor }}>{formatShortDate(task.created_at)}</p>
                           </td>
+                          <td className="px-5 py-3" style={{ fontSize: 13, color: task.organization?.name ? textColor : faintColor, fontWeight: task.organization?.name ? 600 : 400 }}>
+                            {task.organization?.name || '—'}
+                          </td>
                           <td className="px-5 py-3">
                             <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: `${C.lime}12`, color: isLight ? C.darkGreen : C.lime }}>
                               {CATEGORY_LABELS[task.category] || task.category}
@@ -647,7 +867,10 @@ export default function AdminMonitoring() {
                           <td className="px-5 py-3">
                             <button
                               type="button"
-                              onClick={() => setSelectedTask(task)}
+                              onClick={() => {
+                                setReturnToOrg(null)
+                                setSelectedTask(task)
+                              }}
                               className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110"
                               style={{ border: `1px solid ${isLight ? T.border : 'rgba(var(--ink),0.12)'}`, backgroundColor: 'transparent', color: isLight ? T.textSub : `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
                             >
@@ -799,16 +1022,141 @@ export default function AdminMonitoring() {
             )}
           </div>
         )}
+
+        {/* Tab: Por Org */}
+        {activeTab === 'orgs' && (
+          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: isLight ? C.card : 'rgba(var(--ink),0.02)', border: `1px solid ${borderColor}` }}>
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 px-6 py-4"
+              style={{ borderBottom: `1px solid ${borderColor}` }}>
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: C.cyan }} />
+                <span style={{ ...heading, fontSize: 15, fontWeight: 700, color: textColor }}>Organizações</span>
+                <span style={{ fontSize: 12, color: faintColor }}>{filteredOrgs.length} exibida(s)</span>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                <div className="relative flex-1 sm:min-w-[200px]">
+                  <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: faintColor }} />
+                  <input
+                    className={`${aInputCls} ${isLight ? 'placeholder:text-[#8A8A88]' : ''}`}
+                    style={{ ...inputStyle, paddingLeft: 34 }}
+                    value={orgSearch}
+                    onChange={(e) => { setOrgSearch(e.target.value); setOrgPage(1) }}
+                    placeholder="Buscar cliente..."
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleExportOrgs}
+                  className="h-10 px-4 rounded-xl flex items-center gap-2 transition-all hover:brightness-110 shrink-0"
+                  style={{ border: `1px solid ${isLight ? T.border : 'rgba(var(--ink),0.12)'}`, color: isLight ? T.textSub : `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
+                >
+                  <Download size={13} /> Exportar
+                </button>
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="py-16 text-center" style={{ color: mutedColor }}>Carregando dados...</div>
+            ) : paginatedOrgs.length === 0 ? (
+              <AdminEmptyState icon={Building2} title="Nenhuma organização encontrada." />
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr style={{ borderBottom: `1px solid ${isLight ? T.borderMid : 'rgba(var(--ink),0.06)'}` }}>
+                        <th className="text-left px-5 py-3">
+                          <SortButton label="CLIENTE" field="name" sortField={orgSort.field} sortDir={orgSort.dir} onSort={handleOrgSort} />
+                        </th>
+                        <th className="text-left px-5 py-3">
+                          <SortButton label="TAREFAS" field="tasks" sortField={orgSort.field} sortDir={orgSort.dir} onSort={handleOrgSort} />
+                        </th>
+                        <th className="text-left px-5 py-3" style={{ fontSize: 10, fontWeight: 700, color: faintColor, letterSpacing: '0.08em' }}>ATIVAS</th>
+                        <th className="text-left px-5 py-3">
+                          <SortButton label="INSCRIÇÕES" field="submissions" sortField={orgSort.field} sortDir={orgSort.dir} onSort={handleOrgSort} />
+                        </th>
+                        <th className="text-left px-5 py-3">
+                          <SortButton label="CONCLUÍDAS" field="completed" sortField={orgSort.field} sortDir={orgSort.dir} onSort={handleOrgSort} />
+                        </th>
+                        <th className="text-left px-5 py-3" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedOrgs.map((org, i) => (
+                        <tr
+                          key={org.id}
+                          style={{
+                            backgroundColor: i % 2 === 0 ? 'transparent' : (isLight ? T.itemBg : 'rgba(var(--ink),0.015)'),
+                            borderBottom: `1px solid ${isLight ? T.borderMid : 'rgba(var(--ink),0.04)'}`,
+                          }}
+                        >
+                          <td className="px-5 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                                style={{ backgroundColor: `${C.cyan}18`, color: C.cyan }}>
+                                <Building2 size={14} />
+                              </div>
+                              <p style={{ fontWeight: 600, color: textColor, fontSize: 13 }}>{org.name}</p>
+                            </div>
+                          </td>
+                          <td className="px-5 py-3" style={{ ...heading, fontWeight: 800, color: C.orange, fontSize: 14 }}>{org.taskCount}</td>
+                          <td className="px-5 py-3" style={{ color: subColor, fontSize: 13 }}>{org.activeTaskCount}</td>
+                          <td className="px-5 py-3" style={{ ...heading, fontWeight: 800, color: C.orange, fontSize: 14 }}>{org.submissionCount}</td>
+                          <td className="px-5 py-3" style={{ ...heading, fontWeight: 800, color: isLight ? C.darkGreen : C.lime, fontSize: 14 }}>{org.completedCount}</td>
+                          <td className="px-5 py-3">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedOrg(org)}
+                              className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110"
+                              style={{ border: `1px solid ${isLight ? T.border : 'rgba(var(--ink),0.12)'}`, backgroundColor: 'transparent', color: isLight ? T.textSub : `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
+                            >
+                              <Eye size={12} /> Detalhes
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <Pagination page={orgPage} totalPages={orgTotalPages} onPageChange={setOrgPage} />
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Modal: Detalhes da Tarefa */}
-      <Dialog open={Boolean(selectedTask)} onOpenChange={(open) => !open && setSelectedTask(null)}>
+      <Dialog
+        open={Boolean(selectedTask)}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (returnToOrg) setSelectedOrg(returnToOrg)
+            setSelectedTask(null)
+            setReturnToOrg(null)
+          }
+        }}
+      >
         <DialogContent aria-describedby={undefined} className="sm:max-w-3xl p-0 border-0 bg-transparent overflow-hidden shadow-none max-h-[90vh]">
           <DialogTitle className="sr-only">Detalhes da Tarefa</DialogTitle>
           {selectedTask && (
             <div className="w-full rounded-2xl overflow-hidden flex flex-col max-h-[90vh]" style={{ backgroundColor: modalBg, border: `1px solid ${isLight ? T.border : 'rgba(var(--ink),0.1)'}` }}>
               <div className="flex items-center gap-3 px-6 py-4 shrink-0" style={{ borderBottom: `1px solid ${borderColor}` }}>
-                <Target size={15} style={{ color: C.lime }} />
+                {returnToOrg && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedOrg(returnToOrg)
+                      setSelectedTask(null)
+                      setReturnToOrg(null)
+                    }}
+                    className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 transition-all hover:brightness-110"
+                    style={{ border: `1px solid ${borderColor}`, backgroundColor: 'transparent', color: mutedColor }}
+                    title="Voltar"
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                )}
+                <Target size={15} style={{ color: C.lime }} className="shrink-0" />
                 <div className="min-w-0">
                   <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: textColor }} className="block truncate">{selectedTask.title}</span>
                   <span style={{ fontSize: 12, color: mutedColor }}>{CATEGORY_LABELS[selectedTask.category] || selectedTask.category}</span>
@@ -818,41 +1166,94 @@ export default function AdminMonitoring() {
               <div className="p-6 overflow-y-auto flex-1 space-y-6">
                 {/* Info da tarefa */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {[
-                    { label: 'Status', value: TASK_STATUS_LABELS[selectedTask.status] || selectedTask.status },
-                    { label: 'Pontos', value: selectedTask.points ?? '—' },
-                    { label: 'Vagas', value: `${selectedTask.current_participants ?? 0}${selectedTask.max_participants != null ? ` / ${selectedTask.max_participants}` : ''}` },
-                    { label: 'Valor', value: selectedTask.offered_value != null ? `R$ ${Number(selectedTask.offered_value).toFixed(2)}` : '—' },
-                    { label: 'Criada em', value: formatShortDate(selectedTask.created_at) },
-                    { label: 'Expira em', value: formatShortDate(selectedTask.expires_at) },
-                    { label: 'Prazo prova', value: formatShortDate(selectedTask.delivery_deadline || selectedTask.posting_deadline) },
-                    { label: 'Inscrições', value: selectedTaskParticipants.length },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="p-3 rounded-xl" style={{ backgroundColor: surfaceBgAlt, border: `1px solid ${cardBorder}` }}>
-                      <div style={{ fontSize: 10, color: faintColor, marginBottom: 4, fontWeight: 700, letterSpacing: '0.05em' }}>{label.toUpperCase()}</div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: textColor }}>{value}</div>
-                    </div>
-                  ))}
+                  {(() => {
+                    const isMission = selectedTask.category === 'sidequest_teste'
+                    const isCampaign = selectedTask.category === 'campanha'
+                    const hasVacancyLimit = selectedTask.max_participants != null
+                    const vagasField = {
+                      label: 'Vagas',
+                      value: `${selectedTask.current_participants ?? 0}${selectedTask.max_participants != null ? ` / ${selectedTask.max_participants}` : ''}`,
+                    }
+
+                    const taskInfoFields = [
+                      { label: 'Status', value: TASK_STATUS_LABELS[selectedTask.status] || selectedTask.status },
+                      { label: 'Cliente', value: selectedTask.organization?.name || '—' },
+                      ...(isCampaign ? [] : [{ label: 'Pontos', value: selectedTask.points ?? '—' }]),
+                      ...(!isMission || hasVacancyLimit ? [vagasField] : []),
+                      ...(isMission ? [] : [
+                        {
+                          label: 'Valor',
+                          value: selectedTask.offered_value != null ? `R$ ${Number(selectedTask.offered_value).toFixed(2)}` : '—',
+                        },
+                      ]),
+                      { label: 'Criada em', value: formatShortDate(selectedTask.created_at) },
+                      ...(isMission ? [] : [
+                        { label: 'Expira em', value: formatShortDate(selectedTask.expires_at) },
+                        { label: 'Prazo prova', value: formatShortDate(selectedTask.delivery_deadline || selectedTask.posting_deadline) },
+                      ]),
+                      { label: 'Inscrições', value: selectedTaskParticipants.length },
+                    ]
+
+                    return taskInfoFields.map(({ label, value }) => (
+                      <div key={label} className="p-3 rounded-xl" style={{ backgroundColor: surfaceBgAlt, border: `1px solid ${cardBorder}` }}>
+                        <div style={{ fontSize: 10, color: faintColor, marginBottom: 4, fontWeight: 700, letterSpacing: '0.05em' }}>{label.toUpperCase()}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: textColor }}>{value}</div>
+                      </div>
+                    ))
+                  })()}
                 </div>
 
                 {selectedTask.description && (
                   <div>
                     <p style={{ fontSize: 11, fontWeight: 700, color: mutedColor, marginBottom: 8, letterSpacing: '0.05em' }}>DESCRIÇÃO</p>
-                    <p style={{ fontSize: 13, color: isLight ? T.textSub : `${C.cream}80`, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{selectedTask.description}</p>
+                    <TaskDescriptionContent description={selectedTask.description} />
                   </div>
                 )}
 
                 {/* Inscritos */}
                 <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <ClipboardList size={14} style={{ color: C.lime }} />
-                    <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: textColor }}>
-                      Inscritos ({selectedTaskParticipants.length})
-                    </span>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-2">
+                      <ClipboardList size={14} style={{ color: C.lime }} />
+                      <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: textColor }}>
+                        Inscritos ({filteredTaskParticipants.length}
+                        {filteredTaskParticipants.length !== selectedTaskParticipants.length
+                          ? ` de ${selectedTaskParticipants.length}`
+                          : ''})
+                      </span>
+                    </div>
+
+                    {selectedTaskParticipants.length > 0 && (
+                      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <div className="relative flex-1 sm:min-w-[200px]">
+                          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: faintColor }} />
+                          <input
+                            className={`${aInputCls} ${isLight ? 'placeholder:text-[#8A8A88]' : ''}`}
+                            style={{ ...inputStyle, paddingLeft: 34, paddingTop: 8, paddingBottom: 8, fontSize: 13 }}
+                            value={participantSearch}
+                            onChange={(e) => { setParticipantSearch(e.target.value); setParticipantPage(1) }}
+                            placeholder="Buscar inscrito..."
+                          />
+                        </div>
+                        <select
+                          className={aInputCls}
+                          style={{ ...selectStyle, minWidth: 160, paddingTop: 8, paddingBottom: 8, fontSize: 13 }}
+                          value={participantStatusFilter}
+                          onChange={(e) => { setParticipantStatusFilter(e.target.value); setParticipantPage(1) }}
+                        >
+                          <option value="all" style={optionStyle}>Todos status</option>
+                          {Object.entries(SUBMISSION_STATUS_LABELS).map(([value, label]) => (
+                            <option key={value} value={value} style={optionStyle}>{label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
 
                   {selectedTaskParticipants.length === 0 ? (
                     <p style={{ fontSize: 13, color: faintColor }}>Nenhum usuário inscrito nesta tarefa.</p>
+                  ) : filteredTaskParticipants.length === 0 ? (
+                    <p style={{ fontSize: 13, color: faintColor }}>Nenhum inscrito corresponde aos filtros.</p>
                   ) : (
                     <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${borderColor}` }}>
                       <table className="min-w-full text-sm">
@@ -864,7 +1265,7 @@ export default function AdminMonitoring() {
                           </tr>
                         </thead>
                         <tbody>
-                          {selectedTaskParticipants.map((sub, i) => (
+                          {paginatedTaskParticipants.map((sub, i) => (
                             <tr key={sub.id} style={{ borderBottom: `1px solid ${isLight ? T.borderMid : 'rgba(var(--ink),0.04)'}`, backgroundColor: i % 2 === 0 ? 'transparent' : (isLight ? T.itemBg : 'rgba(var(--ink),0.015)') }}>
                               <td className="px-4 py-2.5">
                                 <p style={{ fontSize: 13, fontWeight: 600, color: textColor }}>
@@ -878,12 +1279,18 @@ export default function AdminMonitoring() {
                               <td className="px-4 py-2.5" style={{ fontSize: 12, color: subColor }}>
                                 {sub.profile?.followers_count ?? '—'}
                               </td>
-                              <td className="px-4 py-2.5"><StatusBadge status={sub.status} /></td>
+                              <td className="px-4 py-2.5">
+                                <div className="flex items-center gap-1.5">
+                                  <StatusBadge status={sub.status} />
+                                  <RejectionReasonTrigger status={sub.status} reason={sub.rejection_reason} />
+                                </div>
+                              </td>
                               <td className="px-4 py-2.5" style={{ fontSize: 11, color: faintColor }}>{formatDate(sub.created_at)}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
+                      <Pagination page={participantPage} totalPages={participantTotalPages} onPageChange={setParticipantPage} />
                     </div>
                   )}
                 </div>
@@ -961,13 +1368,13 @@ export default function AdminMonitoring() {
                       <table className="min-w-full text-sm">
                         <thead>
                           <tr style={{ backgroundColor: surfaceBgAlt, borderBottom: `1px solid ${isLight ? T.borderMid : 'rgba(var(--ink),0.06)'}` }}>
-                            {['Tarefa', 'Categoria', 'Status', 'Pontos', 'Inscrição', 'Atualização'].map((h) => (
+                            {['Tarefa', 'Categoria', 'Status', 'Pontos', 'Inscrição'].map((h) => (
                               <th key={h} className="text-left px-4 py-2.5" style={{ fontSize: 10, fontWeight: 700, color: faintColor, letterSpacing: '0.06em' }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
-                          {selectedUser.submissions.map((sub, i) => (
+                          {paginatedUserSubmissions.map((sub, i) => (
                             <tr key={sub.id} style={{ borderBottom: `1px solid ${isLight ? T.borderMid : 'rgba(var(--ink),0.04)'}`, backgroundColor: i % 2 === 0 ? 'transparent' : (isLight ? T.itemBg : 'rgba(var(--ink),0.015)') }}>
                               <td className="px-4 py-2.5">
                                 <p style={{ fontSize: 13, fontWeight: 600, color: textColor }} className="max-w-[180px] truncate">
@@ -979,18 +1386,164 @@ export default function AdminMonitoring() {
                                   {CATEGORY_LABELS[sub.task?.category] || sub.task?.category || '—'}
                                 </span>
                               </td>
-                              <td className="px-4 py-2.5"><StatusBadge status={sub.status} /></td>
+                              <td className="px-4 py-2.5">
+                                <div className="flex items-center gap-1.5">
+                                  <StatusBadge status={sub.status} />
+                                  <RejectionReasonTrigger status={sub.status} reason={sub.rejection_reason} />
+                                </div>
+                              </td>
                               <td className="px-4 py-2.5" style={{ fontSize: 12, color: subColor }}>
                                 {sub.task?.category === 'campanha'
                                   ? '—'
                                   : (sub.points_awarded > 0 ? sub.points_awarded : (sub.task?.points ?? '—'))}
                               </td>
                               <td className="px-4 py-2.5" style={{ fontSize: 11, color: faintColor }}>{formatDate(sub.created_at)}</td>
-                              <td className="px-4 py-2.5" style={{ fontSize: 11, color: faintColor }}>{formatDate(sub.validated_at || sub.updated_at)}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
+                      <Pagination page={userSubmissionPage} totalPages={userSubmissionTotalPages} onPageChange={setUserSubmissionPage} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Detalhes da Organização */}
+      <Dialog open={Boolean(selectedOrg)} onOpenChange={(open) => !open && setSelectedOrg(null)}>
+        <DialogContent aria-describedby={undefined} className="sm:max-w-3xl p-0 border-0 bg-transparent overflow-hidden shadow-none max-h-[90vh]">
+          <DialogTitle className="sr-only">Detalhes da Organização</DialogTitle>
+          {selectedOrg && (
+            <div className="w-full rounded-2xl overflow-hidden flex flex-col max-h-[90vh]" style={{ backgroundColor: modalBg, border: `1px solid ${isLight ? T.border : 'rgba(var(--ink),0.1)'}` }}>
+              <div className="flex items-center gap-3 px-6 py-4 shrink-0" style={{ borderBottom: `1px solid ${borderColor}` }}>
+                <Building2 size={15} style={{ color: C.cyan }} />
+                <div className="min-w-0">
+                  <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: textColor }} className="block truncate">{selectedOrg.name}</span>
+                  <span style={{ fontSize: 12, color: mutedColor }}>{selectedOrg.taskCount} tarefa(s) vinculada(s)</span>
+                </div>
+              </div>
+
+              <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { label: 'Tarefas', value: selectedOrg.taskCount, icon: Target, color: C.orange },
+                    { label: 'Ativas', value: selectedOrg.activeTaskCount, icon: TrendingUp, color: C.cyan },
+                    { label: 'Inscrições', value: selectedOrg.submissionCount, icon: ClipboardList, color: C.orange },
+                    { label: 'Concluídas', value: selectedOrg.completedCount, icon: CheckCircle, color: isLight ? C.darkGreen : C.lime },
+                  ].map(({ label, value, icon: Icon, color }) => (
+                    <div key={label} className="p-3 rounded-xl" style={{ backgroundColor: surfaceBgAlt, border: `1px solid ${cardBorder}` }}>
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Icon size={12} style={{ color }} />
+                        <span style={{ fontSize: 10, color: faintColor, fontWeight: 700, letterSpacing: '0.05em' }}>{label.toUpperCase()}</span>
+                      </div>
+                      <div style={{ ...heading, fontSize: 24, fontWeight: 900, color, lineHeight: 1 }}>{value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-2">
+                      <Target size={14} style={{ color: C.lime }} />
+                      <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: textColor }}>
+                        Campanhas / Tarefas ({filteredOrgTasks.length}
+                        {filteredOrgTasks.length !== selectedOrg.tasks.length
+                          ? ` de ${selectedOrg.tasks.length}`
+                          : ''})
+                      </span>
+                    </div>
+
+                    {selectedOrg.tasks.length > 0 && (
+                      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <div className="relative flex-1 sm:min-w-[200px]">
+                          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: faintColor }} />
+                          <input
+                            className={`${aInputCls} ${isLight ? 'placeholder:text-[#8A8A88]' : ''}`}
+                            style={{ ...inputStyle, paddingLeft: 34, paddingTop: 8, paddingBottom: 8, fontSize: 13 }}
+                            value={orgTaskSearch}
+                            onChange={(e) => { setOrgTaskSearch(e.target.value); setOrgTaskPage(1) }}
+                            placeholder="Buscar tarefa..."
+                          />
+                        </div>
+                        <select
+                          className={aInputCls}
+                          style={{ ...selectStyle, minWidth: 140, paddingTop: 8, paddingBottom: 8, fontSize: 13 }}
+                          value={orgTaskCategoryFilter}
+                          onChange={(e) => { setOrgTaskCategoryFilter(e.target.value); setOrgTaskPage(1) }}
+                        >
+                          <option value="all" style={optionStyle}>Todas categorias</option>
+                          {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
+                            <option key={value} value={value} style={optionStyle}>{label}</option>
+                          ))}
+                        </select>
+                        <select
+                          className={aInputCls}
+                          style={{ ...selectStyle, minWidth: 120, paddingTop: 8, paddingBottom: 8, fontSize: 13 }}
+                          value={orgTaskStatusFilter}
+                          onChange={(e) => { setOrgTaskStatusFilter(e.target.value); setOrgTaskPage(1) }}
+                        >
+                          <option value="all" style={optionStyle}>Todos status</option>
+                          {Object.entries(TASK_STATUS_LABELS).map(([value, label]) => (
+                            <option key={value} value={value} style={optionStyle}>{label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  {selectedOrg.tasks.length === 0 ? (
+                    <p style={{ fontSize: 13, color: faintColor }}>Nenhuma tarefa vinculada a este cliente.</p>
+                  ) : filteredOrgTasks.length === 0 ? (
+                    <p style={{ fontSize: 13, color: faintColor }}>Nenhuma tarefa corresponde aos filtros.</p>
+                  ) : (
+                    <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${borderColor}` }}>
+                      <table className="min-w-full text-sm">
+                        <thead>
+                          <tr style={{ backgroundColor: surfaceBgAlt, borderBottom: `1px solid ${isLight ? T.borderMid : 'rgba(var(--ink),0.06)'}` }}>
+                            {['Tarefa', 'Categoria', 'Status', 'Inscrições', 'Concluídas', ''].map((h) => (
+                              <th key={h || 'actions'} className="text-left px-4 py-2.5" style={{ fontSize: 10, fontWeight: 700, color: faintColor, letterSpacing: '0.06em' }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paginatedOrgTasks.map((task, i) => (
+                            <tr key={task.id} style={{ borderBottom: `1px solid ${isLight ? T.borderMid : 'rgba(var(--ink),0.04)'}`, backgroundColor: i % 2 === 0 ? 'transparent' : (isLight ? T.itemBg : 'rgba(var(--ink),0.015)') }}>
+                              <td className="px-4 py-2.5">
+                                <p style={{ fontSize: 13, fontWeight: 600, color: textColor }} className="max-w-[220px] truncate">{task.title}</p>
+                                <p style={{ fontSize: 11, color: faintColor }}>{formatShortDate(task.created_at)}</p>
+                              </td>
+                              <td className="px-4 py-2.5">
+                                <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: `${C.lime}12`, color: isLight ? C.darkGreen : C.lime }}>
+                                  {CATEGORY_LABELS[task.category] || task.category}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2.5" style={{ fontSize: 12, color: subColor }}>
+                                {TASK_STATUS_LABELS[task.status] || task.status}
+                              </td>
+                              <td className="px-4 py-2.5" style={{ ...heading, fontWeight: 800, color: C.orange, fontSize: 13 }}>{task.submissionCount}</td>
+                              <td className="px-4 py-2.5" style={{ ...heading, fontWeight: 800, color: isLight ? C.darkGreen : C.lime, fontSize: 13 }}>{task.completedCount}</td>
+                              <td className="px-4 py-2.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setReturnToOrg(selectedOrg)
+                                    setSelectedOrg(null)
+                                    setSelectedTask(task)
+                                  }}
+                                  className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110"
+                                  style={{ border: `1px solid ${isLight ? T.border : 'rgba(var(--ink),0.12)'}`, backgroundColor: 'transparent', color: isLight ? T.textSub : `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
+                                >
+                                  <Eye size={12} /> Ver
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <Pagination page={orgTaskPage} totalPages={orgTaskTotalPages} onPageChange={setOrgTaskPage} />
                     </div>
                   )}
                 </div>

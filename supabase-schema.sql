@@ -207,6 +207,32 @@ ALTER TABLE tasks ADD COLUMN IF NOT EXISTS campaign_type TEXT DEFAULT 'comum';
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS requires_application BOOLEAN DEFAULT false;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS profile_requirements TEXT;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS target_audience TEXT;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS organization_id UUID;
+
+-- ===================================
+-- TABELA: organizations
+-- Clientes / ORGs vinculados a campanhas
+-- ===================================
+CREATE TABLE IF NOT EXISTS organizations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT organizations_name_unique UNIQUE (name)
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'tasks_organization_id_fkey'
+  ) THEN
+    ALTER TABLE tasks
+      ADD CONSTRAINT tasks_organization_id_fkey
+      FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_tasks_organization_id ON tasks(organization_id);
 
 -- Atualizar constraint de categoria para suportar sidequest_teste em bases existentes
 ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_category_check;
@@ -245,6 +271,20 @@ ALTER TABLE submissions
   CHECK (status IN ('application_pending', 'application_approved', 'application_rejected', 'proof_pending', 'approved', 'rejected', 'pending'));
 
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS proof_submitted_at TIMESTAMPTZ;
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS organization_id UUID;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'submissions_organization_id_fkey'
+  ) THEN
+    ALTER TABLE submissions
+      ADD CONSTRAINT submissions_organization_id_fkey
+      FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_submissions_organization_id ON submissions(organization_id);
 
 -- Índice para evitar duplicidade de workflow por usuário/tarefa
 CREATE UNIQUE INDEX IF NOT EXISTS idx_submissions_user_task_unique
@@ -608,6 +648,7 @@ ON CONFLICT (id) DO NOTHING;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_scores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE metrics_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE forum_topics ENABLE ROW LEVEL SECURITY;
@@ -725,6 +766,34 @@ CREATE POLICY "Admins can update tasks"
 DROP POLICY IF EXISTS "Admins can delete tasks" ON tasks;
 CREATE POLICY "Admins can delete tasks"
   ON tasks FOR DELETE
+  USING (public.is_admin(auth.uid()));
+
+-- ===================================
+-- POLICIES: organizations
+-- ===================================
+
+DROP POLICY IF EXISTS "Authenticated can view organizations" ON organizations;
+CREATE POLICY "Authenticated can view organizations"
+  ON organizations FOR SELECT
+  TO authenticated
+  USING (true);
+
+DROP POLICY IF EXISTS "Admins can insert organizations" ON organizations;
+CREATE POLICY "Admins can insert organizations"
+  ON organizations FOR INSERT
+  TO authenticated
+  WITH CHECK (public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admins can update organizations" ON organizations;
+CREATE POLICY "Admins can update organizations"
+  ON organizations FOR UPDATE
+  TO authenticated
+  USING (public.is_admin(auth.uid()));
+
+DROP POLICY IF EXISTS "Admins can delete organizations" ON organizations;
+CREATE POLICY "Admins can delete organizations"
+  ON organizations FOR DELETE
+  TO authenticated
   USING (public.is_admin(auth.uid()));
 
 -- ===================================

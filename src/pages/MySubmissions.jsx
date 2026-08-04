@@ -26,8 +26,10 @@ import {
   isCompletedSubmission,
   isRejectedSubmission,
   isExpiredSubmission,
+  isSubmissionReopenedByDateChange,
 } from '@/lib/task-submission-display';
-import { C, heading, body } from '@/lib/theme';
+import { C, heading, body, getModalBackground } from '@/lib/theme';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { getCategoryStyle } from '@/pages/Tasks';
 import { PageHeader, PageHeaderLabel, PointsBadge } from "@/components/layout/PageShell";
@@ -57,6 +59,55 @@ function StatusBadge({ submission, metricsSubmission }) {
     <span className="px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap" style={{ backgroundColor: bg, color }}>
       {label}
     </span>
+  );
+}
+
+function resolveRejectionReason(submission, metricsSubmission) {
+  const submissionStatus = normalizeSubmissionStatus(submission?.status);
+  if (['application_rejected', 'rejected'].includes(submissionStatus)) {
+    if (isSubmissionReopenedByDateChange(submission?.task, submission)) return null;
+    const reason = String(submission?.rejection_reason || '').trim();
+    if (reason) return reason;
+  }
+  if (String(metricsSubmission?.status || '').trim().toLowerCase() === 'rejected') {
+    const reason = String(metricsSubmission?.rejection_reason || '').trim();
+    if (reason) return reason;
+  }
+  return null;
+}
+
+function RejectionReasonTrigger({ reason }) {
+  const { isLight, T } = useThemeMode();
+  const trimmed = String(reason || '').trim();
+  if (!trimmed) return null;
+
+  const borderColor = isLight ? T.border : 'rgba(var(--ink),0.12)';
+  const textColor = isLight ? T.text : C.cream;
+  const surfaceBg = getModalBackground(isLight);
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0 transition-all hover:brightness-110"
+          style={{ border: `1px solid ${borderColor}`, backgroundColor: 'transparent', color: '#f87171' }}
+          title="Ver motivo da rejeição"
+        >
+          <Eye size={12} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" side="left" className="w-80 border-0 bg-transparent p-0 shadow-xl">
+        <div className="rounded-xl p-4" style={{ backgroundColor: surfaceBg, border: `1px solid ${borderColor}` }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: '#f87171', letterSpacing: '0.05em', marginBottom: 8 }}>
+            MOTIVO DA REJEIÇÃO
+          </p>
+          <p className="whitespace-pre-wrap" style={{ fontSize: 13, color: textColor, lineHeight: 1.5 }}>
+            {trimmed}
+          </p>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -456,7 +507,10 @@ export default function MySubmissions() {
                           })()}
                         </td>
                         <td className="px-5 py-3">
-                          <StatusBadge submission={row.submission} metricsSubmission={row.metricsSubmission} />
+                          <div className="flex items-center gap-1.5">
+                            <StatusBadge submission={row.submission} metricsSubmission={row.metricsSubmission} />
+                            <RejectionReasonTrigger reason={resolveRejectionReason(row.submission, row.metricsSubmission)} />
+                          </div>
                         </td>
                         <td className="px-5 py-3">
                           <p style={{ fontSize: 13, color: row.deadlineState.isCritical ? '#f87171' : row.deadlineState.isWarning ? C.orange : (isLight ? T.textSub : `${C.cream}70`) }}>

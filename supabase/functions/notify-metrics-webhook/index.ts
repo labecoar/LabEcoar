@@ -85,7 +85,15 @@ serve(async (req) => {
 
     const { data: task, error: taskError } = await adminClient
       .from('tasks')
-      .select('id, category, content_formats')
+      .select(`
+        id,
+        category,
+        content_formats,
+        organization_id,
+        organization:organizations (
+          name
+        )
+      `)
       .eq('id', metricsSubmission.task_id)
       .maybeSingle()
 
@@ -119,6 +127,7 @@ serve(async (req) => {
       tipo_envio: tipoEnvio,
       link_postagem: tipoEnvio === 'postagem' ? (proofSubmission?.proof_url || null) : null,
       arquivos_metrica: arquivosMetrica,
+      org: task.organization?.name || null,
     }
 
     const n8nResponse = await fetch(N8N_WEBHOOK_URL, {

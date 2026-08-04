@@ -224,7 +224,12 @@ export const submissionsService = {
           expires_at,
           posting_deadline,
           delivery_deadline,
-          requires_application
+          requires_application,
+          organization_id,
+          organization:organizations (
+            id,
+            name
+          )
         ),
         profile:profiles (
           id,
@@ -278,7 +283,7 @@ export const submissionsService = {
   async createSubmission(submissionData) {
     const { data: taskRequirementRows, error: taskRequirementError } = await supabase
       .from('tasks')
-      .select('id, min_followers, launch_at, category')
+      .select('id, min_followers, launch_at, category, organization_id')
       .eq('id', submissionData.task_id)
       .limit(1)
 
@@ -292,6 +297,7 @@ export const submissionsService = {
 
     const isSidequest = taskDataForRequirement.category === 'sidequest_teste'
     const initialStatus = isSidequest ? 'application_approved' : 'application_pending'
+    const organizationId = taskDataForRequirement.organization_id || null
 
     const launchAt = taskDataForRequirement.launch_at ? new Date(taskDataForRequirement.launch_at) : null
     if (launchAt && !Number.isNaN(launchAt.getTime()) && launchAt.getTime() > Date.now()) {
@@ -350,6 +356,7 @@ export const submissionsService = {
           points_awarded: 0,
           rejection_reason: null,
           validated_at: null,
+          organization_id: organizationId,
           updated_at: nowIso,
         })
         .eq('id', latestSubmission.id)
@@ -382,6 +389,7 @@ export const submissionsService = {
             points_awarded: 0,
             rejection_reason: null,
             validated_at: null,
+            organization_id: organizationId,
             updated_at: nowIso,
           },
         ], { onConflict: 'user_id,task_id' })
@@ -411,7 +419,8 @@ export const submissionsService = {
       .from('submissions')
       .insert([{
         ...submissionData,
-        status: initialStatus
+        status: initialStatus,
+        organization_id: organizationId,
       }])
       .select()
 
@@ -431,6 +440,7 @@ export const submissionsService = {
             points_awarded: 0,
             rejection_reason: null,
             validated_at: null,
+            organization_id: organizationId,
             updated_at: nowIso,
           })
           .eq('user_id', submissionData.user_id)

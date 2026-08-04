@@ -48,6 +48,7 @@ import {
   AdminStatCard,
   AdminTabButton,
 } from '@/components/admin/AdminPageHelpers';
+import OrganizationPicker from '@/components/admin/OrganizationPicker';
 import {
   formatDateTimeLocalValue as formatLaunchDateTimeLocalValue,
   formatLaunchDateTime,
@@ -100,6 +101,8 @@ const initialFormData = {
   target_audience: '',
   schedule_launch: false,
   launch_at: '',
+  relate_organization: true,
+  organization_id: '',
 }
 
 const initialForumForm = {
@@ -368,6 +371,8 @@ export default function AdminContentManagement() {
       target_audience: task.target_audience || '',
       schedule_launch: Boolean(task.launch_at),
       launch_at: formatLaunchDateTimeLocalValue(task.launch_at),
+      relate_organization: task.category === 'campanha' ? true : Boolean(task.organization_id),
+      organization_id: task.organization_id || '',
     })
   }
 
@@ -485,6 +490,16 @@ export default function AdminContentManagement() {
       return
     }
 
+    if (isCampaign && !formData.organization_id) {
+      setError('Selecione a organização (cliente) da campanha.')
+      return
+    }
+
+    if (!isCampaign && formData.relate_organization && !formData.organization_id) {
+      setError('Selecione uma organização ou desmarque a opção de relacionar.')
+      return
+    }
+
     const launchAtIso = formData.schedule_launch && formData.launch_at
       ? new Date(formData.launch_at).toISOString()
       : null
@@ -519,6 +534,9 @@ export default function AdminContentManagement() {
         target_audience: formData.target_audience || null,
         expires_at: isCampaign ? finalDeadline : nonCampaignFinalDeadline,
         launch_at: launchAtIso,
+        organization_id: isCampaign
+          ? (formData.organization_id || null)
+          : (formData.relate_organization ? (formData.organization_id || null) : null),
       }
 
       if (editingTask && launchAtIso && new Date(launchAtIso).getTime() > Date.now()) {
@@ -691,6 +709,19 @@ export default function AdminContentManagement() {
               <div className="p-6">
                 <form onSubmit={handleSubmit} className="flex flex-col gap-5">
 
+                  <OrganizationPicker
+                    value={formData.organization_id}
+                    onChange={(organizationId) => setFormData((prev) => ({ ...prev, organization_id: organizationId }))}
+                    required={isCampaign}
+                    optionalToggle={!isCampaign}
+                    enabled={isCampaign ? true : formData.relate_organization}
+                    onEnabledChange={(checked) => setFormData((prev) => ({
+                      ...prev,
+                      relate_organization: checked,
+                      organization_id: checked ? prev.organization_id : '',
+                    }))}
+                  />
+
                   {/* Título + Categoria */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -713,6 +744,8 @@ export default function AdminContentManagement() {
                           ...prev,
                           category: e.target.value,
                           without_deadline: e.target.value === 'campanha' ? false : prev.without_deadline,
+                          relate_organization: e.target.value === 'campanha' ? true : prev.relate_organization,
+                          organization_id: e.target.value === 'campanha' ? prev.organization_id : prev.organization_id,
                         }))}
                       >
                         {CATEGORY_OPTIONS.map((option) => (

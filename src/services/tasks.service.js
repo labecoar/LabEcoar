@@ -105,7 +105,13 @@ export const tasksService = {
   async getAllTasks() {
     const { data, error } = await supabase
       .from('tasks')
-      .select('*')
+      .select(`
+        *,
+        organization:organizations (
+          id,
+          name
+        )
+      `)
       .order('created_at', { ascending: false })
 
     if (error) throw error
