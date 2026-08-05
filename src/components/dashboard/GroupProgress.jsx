@@ -2,7 +2,7 @@
 import React from "react";
 import { Music2, Mic, Users, PartyPopper } from "lucide-react";
 import { useGroupProgress } from "@/hooks/useScores";
-import { GROUP_TARGET_FACTOR, MAX_JOURNEY_POINTS } from "@/services/scores.service";
+import { GROUP_TARGET_FACTOR } from "@/services/scores.service";
 import { C, heading, body } from "@/lib/theme";
 import { useThemeMode } from "@/contexts/ThemeContext";
 

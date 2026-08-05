@@ -14,14 +14,11 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar, Clock, Users, Star, CircleDollarSign, UserRoundCheck, Send, Upload, BarChart3, CheckCircle2, X, User, Building2 } from "lucide-react";
+import { Calendar, Clock, Star, CircleDollarSign, Send, Upload, CheckCircle2, X, User, Building2 } from "lucide-react";
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
-import { C, heading, body, getModalBackground } from '@/lib/theme';
+import { C, heading, getModalBackground } from '@/lib/theme';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { getCategoryStyle } from "@/pages/Tasks";
 import { formatLaunchDateTime, isTaskScheduled } from '@/lib/task-scheduling';
@@ -35,6 +32,10 @@ import {
 } from '@/lib/campaign-deadlines';
 import { TaskDescriptionContent } from '@/components/tasks/TaskDescriptionContent';
 import { isRichTextDescription, getDescriptionPlainText } from '@/lib/task-description-format';
+import {
+  isSubmissionReopenedByDateChange as isSubmissionReopenedByDateChangeFromRules,
+  shouldShowExpiredStatus,
+} from '@/lib/task-submission-display';
 
 const CATEGORY_NAMES = {
   campanha: "Campanha",
@@ -105,6 +106,7 @@ const isAutoExpiredSubmissionRejection = (submission) => {
 
   return reason.includes('prazo de envio da prova expirou')
     || reason.includes('prazo de envio do roteiro expirou')
+    || reason.includes('prazo da campanha expirou aguardando aprovação do roteiro')
     || reason.includes('vaga cancelada por inatividade')
     || reason.includes('primeira tentativa de envio da prova');
 };
@@ -229,8 +231,6 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     if (scriptFileInputRef.current) scriptFileInputRef.current.value = '';
   };
 
-  if (!task) return null;
-
   const labelColor = isLight ? T.textMuted : `${C.cream}45`;
   const subColor = isLight ? T.textSub : `${C.cream}60`;
   const bodyMuted = isLight ? T.textSub : `${C.cream}70`;
@@ -246,7 +246,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
   const isCampaignTask = task?.category === 'campanha';
   const isSidequestTask = task?.category === 'sidequest_teste';
-  const { color: categoryAccent, bg: categoryAccentBg } = getCategoryStyle(task.category);
+  const { color: categoryAccent, bg: categoryAccentBg } = getCategoryStyle(task?.category);
   const accent = isLight && isCampaignTask ? C.blue : categoryAccent;
   const accentBg = isLight && isCampaignTask ? C.blue_back : categoryAccentBg;
   const accentText = accent === C.lime
@@ -256,8 +256,8 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
       : C.cream;
   const actionButtonClassName = "w-full flex justify-center items-center min-h-[48px] px-4 py-3 rounded-xl text-center transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100";
   const actionButtonStyle = { backgroundColor: accent, color: accentText, ...heading, fontSize: 14, fontWeight: 700 };
-  const displayCategory = CATEGORY_NAMES[task.category] || task.category;
-  const displayProofType = useMemo(() => getProofTypeLabel(task), [task]);
+  const displayCategory = CATEGORY_NAMES[task?.category] || task?.category || '';
+  const displayProofType = useMemo(() => (task ? getProofTypeLabel(task) : ''), [task]);
   const offeredValue = Number(task.offered_value || task.points || 0);
   const userFollowers = Number(profile?.followers_count || 0);
   const minFollowersRequired = Number(task?.min_followers || 0);
@@ -282,8 +282,9 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const isProofDeadlineExpired = isContentDeadlineExpired;
   const hasProofDeadline = hasContentDeadline;
   const proofDeadline = contentDeadline;
-  const isSubmissionExpiredByRule = isAutoExpiredSubmissionRejection(currentSubmission) && isProofDeadlineExpired;
-  const isSubmissionReopenedByDateChange = isAutoExpiredSubmissionRejection(currentSubmission) && !isProofDeadlineExpired;
+  const isSubmissionExpiredByRule = isAutoExpiredSubmissionRejection(currentSubmission)
+    && shouldShowExpiredStatus(task, currentSubmission);
+  const isSubmissionReopenedByDateChange = isSubmissionReopenedByDateChangeFromRules(task, currentSubmission);
   const shouldShowSubmissionRejectionReason = Boolean(currentSubmission?.rejection_reason) && !isSubmissionReopenedByDateChange;
   const isScheduled = isTaskScheduled(task);
   const launchLabel = isScheduled ? formatLaunchDateTime(task.launch_at) : null;
@@ -306,8 +307,10 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const isWaiting = ['application_pending', 'script_pending', 'proof_pending', 'pending'].includes(submissionStatus);
   const isParticipateAction = (isSidequestTask || isCampaignTask) && canApply && !canSubmitProof && !isWaiting;
   const currentMetricsSubmission = useMemo(
-    () => myMetricsSubmissions.find((item) => String(item.task_id) === String(task.id)) || null,
-    [myMetricsSubmissions, task.id]
+    () => (task
+      ? myMetricsSubmissions.find((item) => String(item.task_id) === String(task.id)) || null
+      : null),
+    [myMetricsSubmissions, task]
   );
   const metricsStatus = currentMetricsSubmission?.status;
   const now = new Date();
@@ -665,6 +668,8 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
       setIsSubmitting(false);
     }
   };
+
+  if (!task) return null;
 
   return (
     <Dialog open={!!task} onOpenChange={onClose}>

@@ -4,8 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePendingSubmissions, useApproveSubmission, useRejectSubmission, useApprovalHistory } from "@/hooks/useSubmissions";
 import { useAddPoints } from "@/hooks/useScores";
 import {
-  CheckCircle, XCircle, ExternalLink, FileText,
-  Clock, User, Calendar, Star, Shield, CircleDollarSign
+  CheckCircle, XCircle, ExternalLink,
+  Clock, Calendar, Star, Shield, CircleDollarSign
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";

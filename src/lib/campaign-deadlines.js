@@ -92,7 +92,11 @@ export const resolvePhaseDeadline = (task, submissionStatus) => {
     return resolveScriptDeadline(task) || resolveContentDeadline(task)
   }
 
-  if (['script_pending', 'script_approved', 'proof_pending', 'rejected'].includes(status)) {
+  if (status === 'script_pending') {
+    return resolveContentDeadline(task)
+  }
+
+  if (['script_approved', 'proof_pending', 'rejected'].includes(status)) {
     return resolveContentDeadline(task)
   }
 

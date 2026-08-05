@@ -11,7 +11,11 @@ const toDateOrNull = (value) => {
 
 const resolveTaskProofDeadline = (taskLike) => resolveContentDeadline(taskLike)
 
-const AUTO_EXPIRE_REJECTION_REASON = 'Prazo de envio da prova expirou. Vaga cancelada e devolvida ao pool.'
+const AUTO_EXPIRE_REJECTION_REASONS = [
+  'Prazo de envio da prova expirou. Vaga cancelada e devolvida ao pool.',
+  'Prazo de envio do roteiro expirou. Vaga cancelada e devolvida ao pool.',
+  'Prazo da campanha expirou aguardando aprovação do roteiro. Vaga cancelada e devolvida ao pool.',
+]
 
 async function reopenAutoExpiredSubmissionsIfDeadlineExtended(previousTask, updatedTask) {
   const previousDeadline = resolveTaskProofDeadline(previousTask)
@@ -25,7 +29,7 @@ async function reopenAutoExpiredSubmissionsIfDeadlineExtended(previousTask, upda
     .select('id')
     .eq('task_id', updatedTask.id)
     .in('status', ['application_rejected', 'rejected'])
-    .eq('rejection_reason', AUTO_EXPIRE_REJECTION_REASON)
+    .in('rejection_reason', AUTO_EXPIRE_REJECTION_REASONS)
 
   if (rejectedError) throw rejectedError
 

@@ -6,7 +6,7 @@ import { useForumUnread } from "@/hooks/useForumUnread";
 import { useUserScore } from "@/hooks/useScores";
 import { forumService } from "@/services/forum.service";
 import {
-  ArrowLeft, Heart, MessageSquare, Eye, Send, Star, MessageCircle, Pin
+  ArrowLeft, Heart, MessageSquare, Eye, Send, MessageCircle, Pin
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";

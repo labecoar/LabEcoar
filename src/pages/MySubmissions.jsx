@@ -7,7 +7,7 @@ import { useMyMetricsSubmissions } from '@/hooks/useMetrics';
 import { useUserScore } from '@/hooks/useScores';
 import {
   Activity, Search, Target, ChevronLeft, ChevronRight,
-  ArrowUpDown, Eye, XCircle, Star, Plus,
+  ArrowUpDown, Eye, XCircle, Plus,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';

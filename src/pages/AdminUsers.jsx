@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
 import { adminUsersService } from '@/services/admin-users.service'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import { Shield, Users, Search, Pencil, Power, PowerOff, Trash2, Save, UserRound, ChevronDown } from 'lucide-react'
+import { Shield, Users, Search, Pencil, Power, PowerOff, Trash2, Save, UserRound } from 'lucide-react'
 import { notifyError, notifySuccess } from '@/lib/toast'
 import { C, heading, body, getModalBackground } from '@/lib/theme'
 import { PageHeader, PageHeaderLabel } from "@/components/layout/PageShell";

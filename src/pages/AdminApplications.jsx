@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePendingSubmissions, useApproveSubmission, useRejectSubmission, useResetSubmissionReview } from "@/hooks/useSubmissions";
 import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Clock, CheckCircle, XCircle, User, Calendar, Users, Star, Eye, RotateCcw, CircleDollarSign } from "lucide-react";
+import { CheckCircle, XCircle, User, Calendar, Users, Star, Eye, RotateCcw, CircleDollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";

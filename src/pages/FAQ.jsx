@@ -13,7 +13,7 @@ import {
 } from "@/lib/faq-utils";
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
-import { HelpCircle, Search, Star, ChevronDown, Mail, Pencil, Save, X, Plus, Trash2, GripVertical } from "lucide-react";
+import { HelpCircle, Search, ChevronDown, Mail, Pencil, Save, X, Plus, Trash2, GripVertical } from "lucide-react";
 import { C, heading, body } from "@/lib/theme";
 import { PageHeader, PageHeaderLabel, PointsBadge } from "@/components/layout/PageShell";
 import { FAQ_SECTIONS } from "@/data/faq-content";

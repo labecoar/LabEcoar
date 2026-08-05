@@ -5,23 +5,20 @@ import { useTasks } from "@/hooks/useTasks";
 import { useMySubmissions } from "@/hooks/useSubmissions";
 import { useMyMetricsSubmissions } from "@/hooks/useMetrics";
 import { useUserScore } from "@/hooks/useScores";
-import { Badge } from "@/components/ui/badge";
 import {
   Target, Users, Calendar, Clock, CheckCircle2,
-  Star, CircleDollarSign, Megaphone, Zap, BookOpen, Share2,
-  Sparkles, SlidersHorizontal, Building2,
+  Star, CircleDollarSign, Megaphone, Zap, BookOpen, Share2, SlidersHorizontal, Building2,
 } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import TaskDetailsModal from "../components/tasks/TaskDetailsModal";
 import { getProofMetricsWindowFromSubmission, getMetricsResubmissionDeadline, METRICS_WAIT_AFTER_PROOF_DAYS } from '@/lib/metrics-window';
-import { C, heading, body, colorWithAlpha } from '@/lib/theme';
+import { C, heading, colorWithAlpha } from '@/lib/theme';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { formatLaunchDateTime, isTaskScheduled } from '@/lib/task-scheduling';
 import {
   resolveApplicationDeadline,
   resolveScriptDeadline,
   resolveContentDeadline,
+  resolvePhaseDeadline,
 } from '@/lib/campaign-deadlines';
 import { stripFormattingForPreview } from '@/lib/task-description-format';
 import { PageShell, PageHeader, PageHeaderLabel, PageContent, PageTitle } from "@/components/layout/PageShell";
@@ -113,6 +110,7 @@ const isAutoExpiredSubmissionRejection = (submission) => {
   if (!reason) return false;
   return reason.includes('prazo de envio da prova expirou')
     || reason.includes('prazo de envio do roteiro expirou')
+    || reason.includes('prazo da campanha expirou aguardando aprovação do roteiro')
     || reason.includes('vaga cancelada por inatividade')
     || reason.includes('primeira tentativa de envio da prova');
 };
@@ -205,7 +203,8 @@ export default function Tasks() {
     if (HIDDEN_CATEGORIES.includes(task.category)) return false;
     if (task.category === 'sidequest_teste' && isSidequestCompletedThisMonth(task.id)) return true;
     if (shouldHideTaskFromAvailable(task)) return false;
-    if (task.expires_at && new Date(task.expires_at) < new Date() && !shouldKeepCampaignVisibleForMetrics(task)) return false;
+    const contentDeadline = resolveContentDeadline(task);
+    if (contentDeadline && contentDeadline.getTime() < Date.now() && !shouldKeepCampaignVisibleForMetrics(task)) return false;
     if (task.min_followers) {
       const userFollowers = profile?.followers_count || 0;
       if (userFollowers < task.min_followers) return false;
@@ -240,16 +239,16 @@ export default function Tasks() {
 
   const shouldShowExpiredStatus = (task, submission) => {
     if (!isAutoExpiredSubmissionRejection(submission)) return false;
-    const proofDeadline = resolveProofDeadline(task);
-    if (!proofDeadline) return false;
-    return Date.now() > proofDeadline.getTime();
+    const phaseDeadline = resolvePhaseDeadline(task, normalizeSubmissionStatus(submission?.status));
+    if (!phaseDeadline) return false;
+    return Date.now() > phaseDeadline.getTime();
   };
 
   const isSubmissionReopenedByDateChange = (task, submission) => {
     if (!isAutoExpiredSubmissionRejection(submission)) return false;
-    const proofDeadline = resolveProofDeadline(task);
-    if (!proofDeadline) return false;
-    return Date.now() <= proofDeadline.getTime();
+    const phaseDeadline = resolvePhaseDeadline(task, normalizeSubmissionStatus(submission?.status));
+    if (!phaseDeadline) return false;
+    return Date.now() <= phaseDeadline.getTime();
   };
 
   const buildStepWithDeadline = (label, dateVal) => {

@@ -6,7 +6,6 @@ import { useClaimReward, useMyRewardClaims, useRewards } from "@/hooks/useReward
 import { useCepLookup } from "@/hooks/useCepLookup";
 import {
   Gift,
-  Star,
   ShoppingCart,
   Apple,
   GraduationCap,
@@ -14,11 +13,9 @@ import {
   Heart,
   Smartphone,
   Package,
-  MapPin,
   Loader2,
   Lock,
   Award,
-  XCircle,
 } from "lucide-react";
 import {
   Dialog,

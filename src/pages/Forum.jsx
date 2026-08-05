@@ -5,7 +5,7 @@ import { useCreateForumTopic, useForumTopicStats, useForumTopics, FORUM_PAGE_SIZ
 import { useForumUnread } from "@/hooks/useForumUnread";
 import { useUserScore } from "@/hooks/useScores";
 import {
-  MessageSquare, Plus, Eye, Pin, MessageCircle, XCircle, Send, Star, CheckCheck
+  MessageSquare, Plus, Eye, Pin, MessageCircle, XCircle, Send, CheckCheck
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";

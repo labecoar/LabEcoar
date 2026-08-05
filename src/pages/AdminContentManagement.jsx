@@ -3,21 +3,9 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCreateForumTopic, useDeleteForumTopic, useForumTopics, useUpdateForumTopic } from '@/hooks/useForum'
 import { useAdminTasks, useCreateTask, useDeactivateTask, useDeleteTask, useReactivateTask, useUpdateTask } from '@/hooks/useTasks'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+
+
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import {
-  PlusCircle,
   Target,
   Calendar,
   Users,
@@ -26,7 +14,6 @@ import {
   Megaphone,
   BookOpen,
   Share2,
-  FolderClosed,
   Clock3,
   Pencil,
   Trash2,
@@ -35,7 +22,6 @@ import {
   MessageSquare,
   Archive,
   LayoutGrid,
-  Bell,
   Plus,
 } from 'lucide-react'
 import { notifyError, notifySuccess, notifyWarning } from '@/lib/toast'
@@ -280,12 +266,6 @@ export default function AdminContentManagement() {
   )
 
   const campaignCount = useMemo(() => activeTasks.filter((task) => task.category === 'campanha').length, [activeTasks])
-
-  if (profile?.role !== 'admin') {
-    return (
-      <AdminAccessDenied message="Você não tem permissão para acessar esta página." />
-    )
-  }
 
   const toggleContentFormat = (format) => {
     setFormData((prev) => {
@@ -657,6 +637,12 @@ export default function AdminContentManagement() {
     { key: 'completed', label: `Concluídas (${completedTasks.length})` },
     { key: 'forum', label: `Fórum (${forumTopics.length})` },
   ]
+
+  if (profile?.role !== 'admin') {
+    return (
+      <AdminAccessDenied message="Você não tem permissão para acessar esta página." />
+    )
+  }
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: C.black, ...body }}>

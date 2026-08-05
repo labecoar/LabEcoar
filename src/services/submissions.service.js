@@ -53,7 +53,8 @@ async function decrementTaskParticipants(taskId) {
   if (updateTaskError) throw updateTaskError
 }
 
-async function autoCancelApprovedSubmission(submission, reason) {
+async function autoExpireSubmission(submission, reason, fromStatuses) {
+  const allowedStatuses = Array.isArray(fromStatuses) ? fromStatuses : [fromStatuses]
   const nowIso = new Date().toISOString()
   const { data, error } = await supabase
     .from('submissions')
@@ -64,12 +65,11 @@ async function autoCancelApprovedSubmission(submission, reason) {
       updated_at: nowIso,
     })
     .eq('id', submission.id)
-    .eq('status', 'application_approved')
+    .in('status', allowedStatuses)
     .select('*')
     .single()
 
   if (error) {
-    // Quando outra ação alterou o status em paralelo, mantém o registro atual.
     if (String(error.code || '') === 'PGRST116') return submission
     throw error
   }
@@ -81,8 +81,18 @@ async function autoCancelApprovedSubmission(submission, reason) {
   }
 }
 
+async function autoCancelApprovedSubmission(submission, reason) {
+  return autoExpireSubmission(submission, reason, ['application_approved'])
+}
+
 async function applySubmissionTaskRules(submission) {
-  const eligibleStatuses = ['application_approved', 'script_approved', 'script_rejected', 'rejected']
+  const eligibleStatuses = [
+    'application_approved',
+    'script_pending',
+    'script_approved',
+    'script_rejected',
+    'rejected',
+  ]
   if (!eligibleStatuses.includes(submission?.status)) return submission
 
   const task = submission.task
@@ -90,17 +100,33 @@ async function applySubmissionTaskRules(submission) {
   const isCampaign = String(task?.category || '') === 'campanha'
 
   if (isCampaign) {
+    const scriptDeadline = resolveScriptDeadline(task)
+    const contentDeadline = resolveContentDeadline(task)
+
     if (submission.status === 'application_approved') {
-      const scriptDeadline = resolveScriptDeadline(task)
       if (scriptDeadline && now > scriptDeadline) {
-        return autoCancelApprovedSubmission(submission, SCRIPT_EXPIRE_REJECTION_REASON)
+        return autoExpireSubmission(submission, SCRIPT_EXPIRE_REJECTION_REASON, ['application_approved'])
       }
       return submission
     }
 
-    const contentDeadline = resolveContentDeadline(task)
+    if (submission.status === 'script_pending') {
+      if (contentDeadline && now > contentDeadline) {
+        return autoExpireSubmission(
+          submission,
+          'Prazo da campanha expirou aguardando aprovação do roteiro. Vaga cancelada e devolvida ao pool.',
+          ['script_pending']
+        )
+      }
+      return submission
+    }
+
     if (contentDeadline && now > contentDeadline) {
-      return autoCancelApprovedSubmission(submission, PROOF_EXPIRE_REJECTION_REASON)
+      return autoExpireSubmission(
+        submission,
+        PROOF_EXPIRE_REJECTION_REASON,
+        ['script_approved', 'script_rejected', 'rejected']
+      )
     }
 
     return submission
@@ -110,7 +136,7 @@ async function applySubmissionTaskRules(submission) {
   if (!proofDeadline) return submission
 
   if (now > proofDeadline) {
-    return autoCancelApprovedSubmission(submission, PROOF_EXPIRE_REJECTION_REASON)
+    return autoExpireSubmission(submission, PROOF_EXPIRE_REJECTION_REASON, ['application_approved'])
   }
 
   return submission
@@ -209,7 +235,7 @@ export const submissionsService = {
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    return data || []
+    return applyRulesToSubmissions(data || [])
   },
 
   /**

@@ -7,6 +7,7 @@ import {
   resolveScriptDeadline,
   resolveContentDeadline,
   resolvePhaseDeadline,
+  isContentSubmissionOpen,
 } from '@/lib/campaign-deadlines'
 
 export const PROOF_APPROACHING_DAYS = 3
@@ -130,6 +131,18 @@ const buildApplicationStatusNotification = ({ task, submission }) => {
   }
 
   if (status === 'script_approved') {
+    if (isCampaign && !isContentSubmissionOpen(task)) {
+      return baseNotification({
+        id: `roteiro-aprovado-${submission.id}`,
+        type: 'roteiro_aprovado',
+        title: 'Roteiro aprovado',
+        message: `Seu roteiro na campanha "${task.title}" foi aprovado! O envio de conteúdo abre na segunda metade do cronograma.`,
+        task,
+        createdDate: submission.validated_at || submission.updated_at || submission.created_at,
+        linkPath: '/MySubmissions',
+      })
+    }
+
     return baseNotification({
       id: `roteiro-aprovado-${submission.id}`,
       type: 'roteiro_aprovado',
@@ -180,6 +193,10 @@ const buildProofDeadlineNotification = ({ task, submission, now }) => {
 
   const isScriptPhase = task?.category === 'campanha'
     && ['application_approved', 'script_rejected'].includes(submissionStatus)
+
+  if (!isScriptPhase && task?.category === 'campanha' && !isContentSubmissionOpen(task, now)) {
+    return null
+  }
 
   const dayLabel = buildApproachingDayLabel(proofDeadline, now, PROOF_APPROACHING_DAYS)
   if (!dayLabel) return null

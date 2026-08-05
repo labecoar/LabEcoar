@@ -106,6 +106,7 @@ export const isAutoExpiredSubmissionRejection = (submission) => {
   if (!reason) return false;
   return reason.includes('prazo de envio da prova expirou')
     || reason.includes('prazo de envio do roteiro expirou')
+    || reason.includes('prazo da campanha expirou aguardando aprovação do roteiro')
     || reason.includes('vaga cancelada por inatividade')
     || reason.includes('primeira tentativa de envio da prova');
 };
@@ -192,16 +193,16 @@ export const resolveNextDeadline = (task, submission, metricsSubmission) => {
 
 export const isSubmissionReopenedByDateChange = (task, submission) => {
   if (!isAutoExpiredSubmissionRejection(submission)) return false;
-  const proofDeadline = resolveProofDeadline(task);
-  if (!proofDeadline) return false;
-  return Date.now() <= proofDeadline.getTime();
+  const phaseDeadline = resolvePhaseDeadline(task, normalizeSubmissionStatus(submission?.status));
+  if (!phaseDeadline) return false;
+  return Date.now() <= phaseDeadline.getTime();
 };
 
 export const shouldShowExpiredStatus = (task, submission) => {
   if (!isAutoExpiredSubmissionRejection(submission)) return false;
-  const proofDeadline = resolveProofDeadline(task);
-  if (!proofDeadline) return false;
-  return Date.now() > proofDeadline.getTime();
+  const phaseDeadline = resolvePhaseDeadline(task, normalizeSubmissionStatus(submission?.status));
+  if (!phaseDeadline) return false;
+  return Date.now() > phaseDeadline.getTime();
 };
 
 export const isCampaignWithPendingMetrics = (submission, metricsSubmission) => {
@@ -240,6 +241,10 @@ export const isExpiredSubmission = (submission, metricsSubmission) => {
       if (scriptDeadline && isPastDeadline(scriptDeadline)) return true;
     }
     if (['script_approved', 'proof_pending', 'rejected'].includes(submissionStatus)) {
+      const contentDeadline = resolveContentDeadline(task);
+      if (contentDeadline && isPastDeadline(contentDeadline)) return true;
+    }
+    if (submissionStatus === 'script_pending') {
       const contentDeadline = resolveContentDeadline(task);
       if (contentDeadline && isPastDeadline(contentDeadline)) return true;
     }
