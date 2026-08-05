@@ -8,6 +8,7 @@ import { useThemeMode } from "@/contexts/ThemeContext";
 import { useUserScore, useGroupProgress } from "@/hooks/useScores";
 import logoCuica from "@/assets/images/cuica_lab.png";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import PlatformReportDialog from "@/components/feedback/PlatformReportDialog";
 import ThemeToggle from "@/components/ThemeToggle";
 import { C, heading, body } from '@/lib/theme'
 import { useQuery } from "@tanstack/react-query";
@@ -562,6 +563,8 @@ export default function Layout({ children, currentPageName }) {
             {children}
           </div>
         </main>
+
+        <PlatformReportDialog currentPageName={currentPageName} />
       </div>
     </SidebarProvider>
   );

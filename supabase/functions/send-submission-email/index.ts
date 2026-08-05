@@ -10,22 +10,8 @@ const EMAIL_TEMPLATES = {
   application_approved: {
     subject: '✅ Candidatura aprovada!',
     title: 'Candidatura aprovada!',
-    message: (name, taskTitle, isCampaign) =>
-      isCampaign
-        ? `Olá, ${name}! Sua candidatura para a campanha <strong>"${taskTitle}"</strong> foi aprovada. Acesse a plataforma para enviar seu roteiro.`
-        : `Olá, ${name}! Sua candidatura para a tarefa <strong>"${taskTitle}"</strong> foi aprovada. Acesse a plataforma para enviar sua prova.`,
-  },
-  script_approved: {
-    subject: '✅ Roteiro aprovado!',
-    title: 'Roteiro aprovado!',
     message: (name, taskTitle) =>
-      `Olá, ${name}! Seu roteiro para a campanha <strong>"${taskTitle}"</strong> foi aprovado. Acesse a plataforma para enviar sua prova.`,
-  },
-  script_rejected: {
-    subject: 'Atualização sobre seu roteiro',
-    title: 'Roteiro não aprovado',
-    message: (name, taskTitle) =>
-      `Olá, ${name}! Seu roteiro para a campanha <strong>"${taskTitle}"</strong> não foi aprovado. Acesse a plataforma para ver o feedback e reenviar.`,
+      `Olá, ${name}! Sua candidatura para a tarefa <strong>"${taskTitle}"</strong> foi aprovada. Acesse a plataforma para enviar sua prova.`,
   },
   application_rejected: {
     subject: 'Atualização sobre sua candidatura',
@@ -75,7 +61,7 @@ serve(async (req) => {
     if (!profile?.email) return new Response('no profile', { status: 200 })
 
     const taskRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/tasks?id=eq.${record.task_id}&select=title,category`,
+      `${SUPABASE_URL}/rest/v1/tasks?id=eq.${record.task_id}&select=title`,
       {
         headers: {
           apikey: SUPABASE_SERVICE_ROLE_KEY,
@@ -85,15 +71,12 @@ serve(async (req) => {
     )
     const [task] = await taskRes.json()
     const taskTitle = task?.title || 'tarefa'
-    const isCampaign = task?.category === 'campanha'
 
     const name = profile.display_name || profile.full_name || 'usuário'
     const points = record.points_awarded || 0
     const messageHtml = record.status === 'approved'
       ? template.message(name, taskTitle, points)
-      : record.status === 'application_approved'
-        ? template.message(name, taskTitle, isCampaign)
-        : template.message(name, taskTitle)
+      : template.message(name, taskTitle)
 
     const html = `
 <!DOCTYPE html>
