@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { scoresService, getCurrentQuarterKey } from '@/services/scores.service'
+import { scoresService } from '@/services/scores.service'
 
 export const rewardsService = {
   async getActiveRewards() {
@@ -79,43 +79,51 @@ export const rewardsService = {
       throw new Error('Usuário não autenticado.')
     }
 
-    const [reward, currentQuarterScore] = await Promise.all([
+    const [rewardResult, cumulativeScore] = await Promise.all([
       supabase
         .from('rewards')
-        .select('id, points_required, is_active, title')
+        .select('id, points_required, is_active, title, quantity_available, quantity_claimed')
         .eq('id', rewardId)
         .maybeSingle(),
-      scoresService.getUserScore(userId, getCurrentQuarterKey()),
+      scoresService.getUserScore(userId),
     ])
 
-    if (reward.error) throw reward.error
-    if (!reward.data || !reward.data.is_active) {
+    if (rewardResult.error) throw rewardResult.error
+    const reward = rewardResult.data
+    if (!reward || !reward.is_active) {
       throw new Error('Recompensa não encontrada ou inativa.')
     }
 
-    const availablePoints = Number(currentQuarterScore?.total_points || 0)
-    const requiredPoints = Number(reward.data.points_required || 0)
-
-    if (availablePoints < requiredPoints) {
-      throw new Error(`Pontos insuficientes no trimestre atual para este resgate. Você tem ${availablePoints} pontos e precisa de ${requiredPoints}.`)
+    if (
+      reward.quantity_available != null
+      && Number(reward.quantity_claimed || 0) >= Number(reward.quantity_available || 0)
+    ) {
+      throw new Error('Recompensa esgotada.')
     }
 
-    // Obter dados do usuário
+    const requiredPoints = Number(reward.points_required || 0)
+    const availablePoints = Number(cumulativeScore?.total_points || 0)
+
+    if (availablePoints < requiredPoints) {
+      throw new Error(
+        `Pontos insuficientes para este resgate. Você tem ${availablePoints} pontos e precisa de ${requiredPoints}.`,
+      )
+    }
+
     const { data: userData } = await supabase
       .from('profiles')
-      .select('email, full_name')
+      .select('email, full_name, display_name')
       .eq('id', userId)
       .maybeSingle()
 
-    // Criar registro de reward_claim diretamente
     const { data: claimData, error: claimError } = await supabase
       .from('reward_claims')
       .insert({
         reward_id: rewardId,
         user_id: userId,
-        reward_title: reward.data.title,
+        reward_title: reward.title,
         user_email: userData?.email || '',
-        user_name: userData?.full_name || '',
+        user_name: userData?.display_name || userData?.full_name || '',
         points_spent: requiredPoints,
         status: 'pendente',
         claimed_at: new Date().toISOString(),
@@ -134,20 +142,33 @@ export const rewardsService = {
       throw claimError
     }
 
-    // Decrementar pontos do usuário
     const newTotalPoints = availablePoints - requiredPoints
 
-    const { data: updateData, error: updateError } = await supabase
+    const { error: updateError } = await supabase
       .from('user_scores')
-      .update({ total_points: newTotalPoints })
+      .update({ total_points: newTotalPoints, updated_at: new Date().toISOString() })
       .eq('user_id', userId)
-      .select('*')
-      .single()
 
     if (updateError) {
-      // Deletar o claim que foi criado
       await supabase.from('reward_claims').delete().eq('id', claimData.id)
       throw updateError
+    }
+
+    const { error: stockError } = await supabase
+      .from('rewards')
+      .update({
+        quantity_claimed: Number(reward.quantity_claimed || 0) + 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', rewardId)
+
+    if (stockError) {
+      await supabase.from('reward_claims').delete().eq('id', claimData.id)
+      await supabase
+        .from('user_scores')
+        .update({ total_points: availablePoints, updated_at: new Date().toISOString() })
+        .eq('user_id', userId)
+      throw stockError
     }
 
     return claimData.id

@@ -19,12 +19,20 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar, Clock, Users, Star, CircleDollarSign, UserRoundCheck, Send, Upload, BarChart3, CheckCircle2, X, User } from "lucide-react";
+import { Calendar, Clock, Users, Star, CircleDollarSign, UserRoundCheck, Send, Upload, BarChart3, CheckCircle2, X, User, Building2 } from "lucide-react";
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
 import { C, heading, body, getModalBackground } from '@/lib/theme';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { getCategoryStyle } from "@/pages/Tasks";
 import { formatLaunchDateTime, isTaskScheduled } from '@/lib/task-scheduling';
+import {
+  resolveApplicationDeadline,
+  resolveScriptDeadline,
+  resolveContentDeadline,
+  isApplicationOpen,
+  isScriptSubmissionOpen,
+  isContentSubmissionOpen,
+} from '@/lib/campaign-deadlines';
 import { TaskDescriptionContent } from '@/components/tasks/TaskDescriptionContent';
 import { isRichTextDescription, getDescriptionPlainText } from '@/lib/task-description-format';
 
@@ -96,6 +104,7 @@ const isAutoExpiredSubmissionRejection = (submission) => {
   if (!reason) return false;
 
   return reason.includes('prazo de envio da prova expirou')
+    || reason.includes('prazo de envio do roteiro expirou')
     || reason.includes('vaga cancelada por inatividade')
     || reason.includes('primeira tentativa de envio da prova');
 };
@@ -230,6 +239,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const dimColor = isLight ? T.textFaint : `${C.cream}35`;
   const strongMuted = isLight ? T.textSub : `${C.cream}80`;
   const bulletColor = isLight ? T.textFaint : `${C.cream}25`;
+  const deadlineColor = C.red_muted;
   const surfaceBg = isLight ? T.surface : SURFACE_BG;
   const surfaceBorder = isLight ? `1px solid ${T.border}` : SURFACE_BORDER;
   const modalBg = getModalBackground(isLight);
@@ -237,8 +247,8 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const isCampaignTask = task?.category === 'campanha';
   const isSidequestTask = task?.category === 'sidequest_teste';
   const { color: categoryAccent, bg: categoryAccentBg } = getCategoryStyle(task.category);
-  const accent = isLight && categoryAccent === C.lime ? C.blue : categoryAccent;
-  const accentBg = isLight && categoryAccent === C.lime ? C.blue_back : categoryAccentBg;
+  const accent = isLight && isCampaignTask ? C.blue : categoryAccent;
+  const accentBg = isLight && isCampaignTask ? C.blue_back : categoryAccentBg;
   const accentText = accent === C.lime
     ? C.onAccent
     : accent === C.blue
@@ -258,29 +268,41 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     ? new Date(currentSubmission.proof_submitted_at)
     : null;
   const hasValidSubmittedAt = submittedAt && !Number.isNaN(submittedAt.getTime());
-  const proofDeadline = task?.category === 'campanha'
-    ? (task?.posting_deadline ? new Date(task.posting_deadline) : null)
+  const contentDeadline = isCampaignTask
+    ? resolveContentDeadline(task)
     : (task?.expires_at ? new Date(task.expires_at)
       : task?.delivery_deadline ? new Date(task.delivery_deadline)
         : task?.posting_deadline ? new Date(task.posting_deadline) : null);
-  const hasProofDeadline = proofDeadline && !Number.isNaN(proofDeadline.getTime());
-  const isProofDeadlineExpired = hasProofDeadline ? new Date() > proofDeadline : false;
+  const scriptDeadline = isCampaignTask ? resolveScriptDeadline(task) : null;
+  const applicationDeadline = isCampaignTask ? resolveApplicationDeadline(task) : null;
+  const hasContentDeadline = contentDeadline && !Number.isNaN(contentDeadline.getTime());
+  const isContentDeadlineExpired = hasContentDeadline ? new Date() > contentDeadline : false;
+  const isScriptDeadlineExpired = scriptDeadline ? new Date() > scriptDeadline : false;
+  const isApplicationDeadlineExpired = applicationDeadline ? new Date() > applicationDeadline : false;
+  const isProofDeadlineExpired = isContentDeadlineExpired;
+  const hasProofDeadline = hasContentDeadline;
+  const proofDeadline = contentDeadline;
   const isSubmissionExpiredByRule = isAutoExpiredSubmissionRejection(currentSubmission) && isProofDeadlineExpired;
   const isSubmissionReopenedByDateChange = isAutoExpiredSubmissionRejection(currentSubmission) && !isProofDeadlineExpired;
   const shouldShowSubmissionRejectionReason = Boolean(currentSubmission?.rejection_reason) && !isSubmissionReopenedByDateChange;
   const isScheduled = isTaskScheduled(task);
   const launchLabel = isScheduled ? formatLaunchDateTime(task.launch_at) : null;
   const requiresScript = isCampaignTask;
-  const canApply = (!currentSubmission || isSubmissionReopenedByDateChange) && !isTaskApproved && !isFull && meetsFollowersRequirement && !isScheduled;
+  const canApply = (!currentSubmission || isSubmissionReopenedByDateChange) && !isTaskApproved && !isFull && meetsFollowersRequirement && !isScheduled
+    && (isCampaignTask ? isApplicationOpen(task) : !isContentDeadlineExpired);
   const canSubmitScript = requiresScript
     && ['application_approved', 'script_rejected'].includes(submissionStatus)
-    && !isProofDeadlineExpired;
+    && isScriptSubmissionOpen(task);
   const canSubmitProof = requiresScript
-    ? ['script_approved', 'rejected'].includes(submissionStatus) && !isProofDeadlineExpired
+    ? ['script_approved', 'rejected'].includes(submissionStatus) && isContentSubmissionOpen(task)
     : (
       (submissionStatus === 'application_approved' || submissionStatus === 'rejected' || (isSidequestTask && submissionStatus === 'application_pending'))
-      && !isProofDeadlineExpired
+      && !isContentDeadlineExpired
     );
+  const isWaitingForContentPhase = requiresScript
+    && submissionStatus === 'script_approved'
+    && scriptDeadline
+    && new Date() < scriptDeadline;
   const isWaiting = ['application_pending', 'script_pending', 'proof_pending', 'pending'].includes(submissionStatus);
   const isParticipateAction = (isSidequestTask || isCampaignTask) && canApply && !canSubmitProof && !isWaiting;
   const currentMetricsSubmission = useMemo(
@@ -384,9 +406,12 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
   const timelineSteps = useMemo(() => {
     const steps = [];
-    const postingDeadlineLabel = formatLaunchDateTime(task.posting_deadline);
-    const proofDeadlineLabel = hasProofDeadline
-      ? formatLaunchDateTime(proofDeadline)
+    const applicationDeadlineLabel = isCampaignTask
+      ? formatLaunchDateTime(applicationDeadline)
+      : formatLaunchDateTime(task.posting_deadline);
+    const scriptDeadlineLabel = formatLaunchDateTime(scriptDeadline);
+    const contentDeadlineLabel = hasContentDeadline
+      ? formatLaunchDateTime(contentDeadline)
       : null;
     const metricsStartLabel = formatLaunchDateTime(metricsWindowStart);
 
@@ -394,17 +419,26 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
       steps.push({
         label: "Participar desta Missão",
         description: "Clique no botão abaixo para participar desta missão e liberar o envio do seu conteúdo.",
-        dateInfoPrefix: postingDeadlineLabel ? 'até ' : null,
-        dateTimeLabel: postingDeadlineLabel,
+        dateInfoPrefix: applicationDeadlineLabel ? 'até ' : null,
+        dateTimeLabel: applicationDeadlineLabel,
       });
     } else {
       steps.push({
         label: "Candidatar-se",
         description: isCampaignTask
-          ? "Clique no botão abaixo para se candidatar a esta campanha. Após a aprovação, você poderá enviar seu conteúdo."
+          ? "Clique no botão abaixo para se candidatar a esta campanha. Após a aprovação, você poderá enviar seu roteiro."
           : "Clique no botão abaixo para se candidatar a esta tarefa. Após a aprovação, você poderá enviar seu conteúdo.",
-        dateInfoPrefix: postingDeadlineLabel ? 'até ' : null,
-        dateTimeLabel: postingDeadlineLabel,
+        dateInfoPrefix: applicationDeadlineLabel ? 'até ' : null,
+        dateTimeLabel: applicationDeadlineLabel,
+      });
+    }
+
+    if (isCampaignTask) {
+      steps.push({
+        label: "Enviar roteiro",
+        description: "Envie seu roteiro em PDF, DOCX, Google Docs ou link.",
+        dateInfoPrefix: scriptDeadlineLabel ? 'até ' : null,
+        dateTimeLabel: scriptDeadlineLabel,
       });
     }
 
@@ -412,19 +446,12 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
       label: "Enviar conteúdo da tarefa",
       description: isSidequestTask
         ? "Envie o link e/ou o arquivo do seu conteúdo"
-        : "Envie o link e/ou o arquivo do seu conteúdo para validação.",
-      dateInfoPrefix: proofDeadlineLabel ? 'até ' : null,
-      dateTimeLabel: proofDeadlineLabel,
+        : isCampaignTask
+          ? "Disponível na segunda metade do cronograma, após aprovação do roteiro."
+          : "Envie o link e/ou o arquivo do seu conteúdo para validação.",
+      dateInfoPrefix: contentDeadlineLabel ? 'até ' : null,
+      dateTimeLabel: contentDeadlineLabel,
     });
-
-    if (isCampaignTask) {
-      steps.splice(1, 0, {
-        label: "Enviar roteiro",
-        description: "Envie seu roteiro em PDF, DOCX, Google Docs ou link.",
-        dateInfoPrefix: proofDeadlineLabel ? 'até ' : null,
-        dateTimeLabel: proofDeadlineLabel,
-      });
-    }
 
     // Etapa de métricas (apenas campanhas)
     if (isCampaignTask) {
@@ -439,7 +466,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     }
 
     return steps;
-  }, [task, isSidequestTask, hasProofDeadline, proofDeadline, isCampaignTask, metricsWindowStart, metricsWindowEnd]);
+  }, [task, isSidequestTask, hasContentDeadline, contentDeadline, scriptDeadline, applicationDeadline, isCampaignTask, metricsWindowStart, metricsWindowEnd]);
 
 
   const handleApply = async (e) => {
@@ -664,6 +691,12 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                     Requer Inscrição e Seleção
                   </span>
                 )}
+                {task.category === 'campanha' && task.organization?.name && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold" style={{ backgroundColor: isLight ? 'rgba(var(--ink),0.05)' : 'rgba(var(--ink),0.08)', border: `1px solid rgba(var(--ink),0.1)`, color: strongMuted, ...heading }}>
+                    <Building2 size={11} />
+                    Cliente: {task.organization.name}
+                  </span>
+                )}
               </div>
             </DialogDescription>
           </div>
@@ -866,7 +899,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                           <div className="w-[2px] h-full my-1 rounded-full" style={{ backgroundColor: isCompleted ? accentBg : surfaceBg }}></div>
                         )}
                       </div>
-                      <div className={`pb-6 ${!isActive ? 'opacity-50' : ''}`}>
+                      <div className={`pb-6 ${!isActive ? 'opacity-50' : ''}`} style={{ textDecoration: isCompleted ? 'line-through' : 'none' }}>
                         <p style={{ ...heading, fontSize: 15, fontWeight: 700, color: C.cream }}>{step.label}</p>
                         {step.description && (
                           <p style={{ fontSize: 13, color: bodyMuted, marginTop: 2 }}>{step.description}</p>
@@ -875,7 +908,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                           <p className="flex items-center gap-1.5 mt-2" style={{ fontSize: 12, color: faintColor }}>
                             <Clock size={12} />
                             {step.dateInfoPrefix && <span>{step.dateInfoPrefix}</span>}
-                            <span style={{ color: C.red }}>{step.dateTimeLabel}</span>
+                            <span style={{ color: deadlineColor }}>{step.dateTimeLabel}</span>
                             {step.dateInfoSuffix && <span>{step.dateInfoSuffix}</span>}
                           </p>
                         )}
@@ -941,6 +974,8 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                                 : requiresScript
                                   ? 'Roteiro aprovado - enviar prova'
                                   : 'Inscrição aprovada - ir para prova'
+                            : isWaitingForContentPhase
+                              ? `Conteúdo libera em ${formatLaunchDateTime(scriptDeadline)}`
                             : isWaiting
                               ? submissionStageLabel
                             : isSubmissionExpiredByRule
@@ -1039,7 +1074,15 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
               )}
 
               {/* Formulário Etapa 3 — Prova */}
-              {!hasPassedStep2 && isProofStepCurrent && (
+              {!hasPassedStep2 && isProofStepCurrent && isWaitingForContentPhase && (
+                <div className="rounded-2xl p-5 text-sm" style={{ backgroundColor: surfaceBg, border: surfaceBorder, color: strongMuted }}>
+                  Roteiro aprovado. O envio de conteúdo abre em{' '}
+                  <strong style={{ color: C.cream }}>{formatLaunchDateTime(scriptDeadline)}</strong>
+                  {' '}(segunda metade do cronograma).
+                </div>
+              )}
+
+              {!hasPassedStep2 && isProofStepCurrent && canSubmitProof && (
                 <div className="rounded-2xl p-5 flex flex-col gap-4" style={{ backgroundColor: surfaceBg, border: surfaceBorder }}>
                   <form onSubmit={handleSendProof} className="flex flex-col gap-4">
                     {submissionStatus !== 'proof_pending' && (

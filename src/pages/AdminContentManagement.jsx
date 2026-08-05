@@ -54,6 +54,7 @@ import {
   formatLaunchDateTime,
   isTaskScheduled,
 } from '@/lib/task-scheduling'
+import { getCampaignDeadlines } from '@/lib/campaign-deadlines'
 import { stripFormattingForPreview, getDescriptionPlainText } from '@/lib/task-description-format'
 import { TaskDescriptionEditor } from '@/components/tasks/TaskDescriptionEditor'
 
@@ -340,6 +341,25 @@ export default function AdminContentManagement() {
         : { ...prev, campaign_type: nextCampaignType }
     ))
   }, [isCampaign, formData.posting_deadline])
+
+  const campaignDeadlinePreview = useMemo(() => {
+    if (!isCampaign || !formData.posting_deadline) return null
+
+    const finalDate = new Date(formData.posting_deadline)
+    if (Number.isNaN(finalDate.getTime())) return null
+
+    const launchAtIso = formData.schedule_launch && formData.launch_at
+      ? new Date(formData.launch_at).toISOString()
+      : null
+
+    return getCampaignDeadlines({
+      category: 'campanha',
+      launch_at: launchAtIso,
+      created_at: editingTask?.created_at || new Date().toISOString(),
+      posting_deadline: finalDate.toISOString(),
+      expires_at: finalDate.toISOString(),
+    })
+  }, [isCampaign, formData.posting_deadline, formData.schedule_launch, formData.launch_at, editingTask?.created_at])
 
   const resetForm = () => {
     setFormData(initialFormData)
@@ -875,6 +895,16 @@ export default function AdminContentManagement() {
                         value={formData.posting_deadline}
                         onChange={(e) => setFormData((prev) => ({ ...prev, posting_deadline: e.target.value }))}
                       />
+                      {campaignDeadlinePreview && (
+                        <div style={{ marginTop: 10, fontSize: 11, color: faintColor, lineHeight: 1.65 }}>
+                          <p style={{ fontWeight: 600, color: isLight ? T.textSub : `${C.cream}90`, marginBottom: 4 }}>
+                            Cronograma derivado (50% roteiro / 50% conteúdo)
+                          </p>
+                          <p>Candidatura até: {formatLaunchDateTime(campaignDeadlinePreview.applicationDeadline) || '—'}</p>
+                          <p>Roteiro até: {formatLaunchDateTime(campaignDeadlinePreview.scriptDeadline) || '—'}</p>
+                          <p>Conteúdo até: {formatLaunchDateTime(campaignDeadlinePreview.contentDeadline) || '—'}</p>
+                        </div>
+                      )}
                     </div>
                   )}
 

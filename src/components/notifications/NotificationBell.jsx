@@ -5,10 +5,13 @@ import { createPortal } from 'react-dom'
 import { Bell, CheckCheck, X } from 'lucide-react';
 import NotificationItem from '@/components/notifications/NotificationItem';
 import { useTaskNotifications } from '@/hooks/useTaskNotifications';
-import { C } from '@/lib/theme';
+import { C, getModalBackground } from '@/lib/theme';
+import { useThemeMode } from '@/contexts/ThemeContext';
 
 export default function NotificationBell() {
+  const { isLight, T } = useThemeMode()
   const navigate = useNavigate()
+  const panelBg = getModalBackground(isLight)
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef(null)
   const { notifications, unreadCount, markAsRead, markAllAsRead, loading } = useTaskNotifications()
@@ -67,8 +70,9 @@ export default function NotificationBell() {
       <div
         className="fixed mt-2 w-[22rem] max-w-[90vw] rounded-2xl shadow-2xl z-50 overflow-hidden"
         style={{
-          backgroundColor: C.card,
-          border: `1px solid rgba(var(--ink),0.1)`,
+          backgroundColor: panelBg,
+          border: `1px solid ${isLight ? T.border : 'rgba(var(--ink),0.1)'}`,
+          boxShadow: isLight ? '0 8px 32px rgba(29,29,27,0.12)' : undefined,
           ...(() => {
             if (!popoverPos) return { right: 8, top: 0 }
             const s = { top: popoverPos.top + 'px' }
@@ -80,10 +84,10 @@ export default function NotificationBell() {
         }}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between gap-3 px-4 py-3" style={{ borderBottom: `1px solid rgba(var(--ink),0.1)` }}>
+        <div className="flex items-center justify-between gap-3 px-4 py-3" style={{ borderBottom: `1px solid ${isLight ? T.border : 'rgba(var(--ink),0.1)'}` }}>
           <div>
-            <p className="text-sm font-extrabold font-size-16" style={{ color: C.cream }}>Notificações</p>
-            <p className="text-xs" style={{ color: `${C.cream}99` }}>
+            <p className="text-sm font-extrabold font-size-16" style={{ color: T.text }}>Notificações</p>
+            <p className="text-xs" style={{ color: T.textMuted }}>
               {unreadCount > 0 ? `${unreadCount} não lidas` : 'Tudo em dia por aqui'}
             </p>
           </div>
@@ -102,7 +106,7 @@ export default function NotificationBell() {
               type="button"
               onClick={() => setIsOpen(false)}
               className="p-1.5 rounded-full hover:opacity-70"
-              style={{ color: `${C.cream}99` }}
+              style={{ color: T.textMuted }}
               aria-label="Fechar notificações"
             >
               <X className="w-4 h-4" />
@@ -110,11 +114,11 @@ export default function NotificationBell() {
           </div>
         </div>
 
-        <div className="max-h-[70vh] overflow-y-auto" style={{ backgroundColor: C.card }}>
+        <div className="max-h-[70vh] overflow-y-auto" style={{ backgroundColor: panelBg }}>
           {loading ? (
-            <div className="p-4 text-sm" style={{ color: `${C.cream}80` }}>Carregando notificações...</div>
+            <div className="p-4 text-sm" style={{ color: T.textMuted }}>Carregando notificações...</div>
           ) : notifications.length === 0 ? (
-            <div className="p-6 text-center text-sm" style={{ color: `${C.cream}80` }}>
+            <div className="p-6 text-center text-sm" style={{ color: T.textMuted }}>
               Nenhuma notificação no momento.
             </div>
           ) : (

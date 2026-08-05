@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMySubmissions } from "@/hooks/useSubmissions";
 import { useMyMetricsSubmissions } from "@/hooks/useMetrics";
 import { useUserScore, useGroupProgress } from "@/hooks/useScores";
-import { Star, ChevronRight, Zap, FileCheck, CalendarDays } from "lucide-react";
+import { ChevronRight, Zap, FileCheck, LayoutDashboard } from "lucide-react";
 import GroupProgress, { getGroupCategory } from "@/components/dashboard/GroupProgress";
 import RecentSubmissionsPanel from "@/components/dashboard/RecentSubmissionsPanel";
 import { useNavigate } from "react-router-dom";
@@ -12,7 +12,7 @@ import { createPageUrl } from "@/utils";
 import { getCurrentQuarterKey } from "@/services/scores.service";
 import { C, heading } from '@/lib/theme';
 import { useThemeMode } from '@/contexts/ThemeContext';
-import { PageShell, PageHeader, PageHeaderLabel, PageContent } from "@/components/layout/PageShell";
+import { PageShell, PageHeader, PageHeaderLabel, PageContent, PointsBadge } from "@/components/layout/PageShell";
 
 const CATEGORY_VALUES = {
   voz_e_violao: 1000,
@@ -54,11 +54,8 @@ export default function Dashboard() {
   return (
     <PageShell>
       <PageHeader>
-        <PageHeaderLabel icon={CalendarDays} iconSize={14}>{selectedQuarter}</PageHeaderLabel>
-        <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full shrink-0" style={{ backgroundColor: C.lime, color: C.onAccent }}>
-          <Star size={11} fill={C.onAccent} />
-          <span style={{ ...heading, fontSize: 12, fontWeight: 800 }}>{currentPoints} pts</span>
-        </div>
+        <PageHeaderLabel icon={LayoutDashboard}>Dashboard</PageHeaderLabel>
+        <PointsBadge points={currentPoints} />
       </PageHeader>
 
       <PageContent maxWidth="max-w-7xl" className="space-y-5 md:space-y-6">
@@ -81,12 +78,9 @@ export default function Dashboard() {
               </span>
             </div>
             <div className="flex items-center gap-2 mt-4 flex-wrap">
-              {[
-                `${approvedSubmissions.length} tarefas concluídas`,
-                selectedQuarter
-              ].map((tag) => (
-                <span key={tag} className="px-3 py-1 rounded-full text-xs" style={{ border: `1px solid ${isLight ? T.border : "rgba(var(--ink),0.14)"}`, color: isLight ? T.textSub : `${C.cream}65` }}>{tag}</span>
-              ))}
+              <span className="px-3 py-1 rounded-full text-xs" style={{ border: `1px solid ${isLight ? T.border : "rgba(var(--ink),0.14)"}`, color: isLight ? T.textSub : `${C.cream}65` }}>
+                {approvedSubmissions.length} tarefas concluídas
+              </span>
             </div>
           </div>
           <div className="sm:text-right shrink-0">

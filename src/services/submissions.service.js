@@ -1,5 +1,12 @@
 import { supabase } from '@/lib/supabase'
 import { storageService } from '@/services/storage.service'
+import {
+  resolveContentDeadline,
+  resolveScriptDeadline,
+  isApplicationOpen,
+  isScriptSubmissionOpen,
+  isContentSubmissionOpen,
+} from '@/lib/campaign-deadlines'
 
 const APPROVAL_HISTORY_TABLE = 'submission_approval_history'
 
@@ -18,26 +25,10 @@ const toDateOrNull = (value) => {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
-const resolveProofDeadline = (task) => {
-  if (task?.category === 'campanha') {
-    const campaignPostingDeadline = toDateOrNull(task?.posting_deadline)
-    if (campaignPostingDeadline) return campaignPostingDeadline
-  }
+const resolveProofDeadline = (task) => resolveContentDeadline(task)
 
-  const expiresAt = toDateOrNull(task?.expires_at)
-  if (expiresAt) return expiresAt
-
-  const postingDeadline = toDateOrNull(task?.posting_deadline)
-  if (postingDeadline) return postingDeadline
-
-  const deliveryDate = toDateOrNull(task?.delivery_deadline)
-  if (!deliveryDate) return null
-
-  // Fallback para bases antigas: deadline ao fim do dia informado.
-  const endOfDay = new Date(deliveryDate)
-  endOfDay.setHours(23, 59, 59, 999)
-  return endOfDay
-}
+const SCRIPT_EXPIRE_REJECTION_REASON = 'Prazo de envio do roteiro expirou. Vaga cancelada e devolvida ao pool.'
+const PROOF_EXPIRE_REJECTION_REASON = 'Prazo de envio da prova expirou. Vaga cancelada e devolvida ao pool.'
 
 async function decrementTaskParticipants(taskId) {
   if (!taskId) return
@@ -94,23 +85,32 @@ async function applySubmissionTaskRules(submission) {
   const eligibleStatuses = ['application_approved', 'script_approved', 'script_rejected', 'rejected']
   if (!eligibleStatuses.includes(submission?.status)) return submission
 
-  const proofDeadline = resolveProofDeadline(submission.task)
+  const task = submission.task
+  const now = new Date()
+  const isCampaign = String(task?.category || '') === 'campanha'
+
+  if (isCampaign) {
+    if (submission.status === 'application_approved') {
+      const scriptDeadline = resolveScriptDeadline(task)
+      if (scriptDeadline && now > scriptDeadline) {
+        return autoCancelApprovedSubmission(submission, SCRIPT_EXPIRE_REJECTION_REASON)
+      }
+      return submission
+    }
+
+    const contentDeadline = resolveContentDeadline(task)
+    if (contentDeadline && now > contentDeadline) {
+      return autoCancelApprovedSubmission(submission, PROOF_EXPIRE_REJECTION_REASON)
+    }
+
+    return submission
+  }
+
+  const proofDeadline = resolveProofDeadline(task)
   if (!proofDeadline) return submission
 
-  const referenceStart =
-    toDateOrNull(submission.validated_at)
-    || toDateOrNull(submission.updated_at)
-    || toDateOrNull(submission.created_at)
-
-  if (!referenceStart) return submission
-
-  const now = new Date()
-
   if (now > proofDeadline) {
-    return autoCancelApprovedSubmission(
-      submission,
-      'Prazo de envio da prova expirou. Vaga cancelada e devolvida ao pool.'
-    )
+    return autoCancelApprovedSubmission(submission, PROOF_EXPIRE_REJECTION_REASON)
   }
 
   return submission
@@ -192,7 +192,13 @@ export const submissionsService = {
         offered_value,
         expires_at,
         posting_deadline,
-        delivery_deadline
+        delivery_deadline,
+        launch_at,
+        created_at,
+        organization:organizations (
+          id,
+          name
+        )
       )
     `
 
@@ -225,6 +231,8 @@ export const submissionsService = {
           expires_at,
           posting_deadline,
           delivery_deadline,
+          launch_at,
+          created_at,
           requires_application,
           organization_id,
           organization:organizations (
@@ -287,7 +295,7 @@ export const submissionsService = {
   async createSubmission(submissionData) {
     const { data: taskRequirementRows, error: taskRequirementError } = await supabase
       .from('tasks')
-      .select('id, min_followers, launch_at, category, organization_id')
+      .select('id, min_followers, launch_at, created_at, category, organization_id, posting_deadline, expires_at')
       .eq('id', submissionData.task_id)
       .limit(1)
 
@@ -306,6 +314,10 @@ export const submissionsService = {
     const launchAt = taskDataForRequirement.launch_at ? new Date(taskDataForRequirement.launch_at) : null
     if (launchAt && !Number.isNaN(launchAt.getTime()) && launchAt.getTime() > Date.now()) {
       throw new Error('Esta tarefa ainda nao foi liberada. Aguarde o horario de lancamento.')
+    }
+
+    if (taskDataForRequirement.category === 'campanha' && !isApplicationOpen(taskDataForRequirement)) {
+      throw new Error('O prazo para candidatura nesta campanha expirou.')
     }
 
     const minFollowersRequired = Number(taskDataForRequirement?.min_followers || 0)
@@ -503,7 +515,7 @@ export const submissionsService = {
 
     const { data: taskData, error: taskError } = await supabase
       .from('tasks')
-      .select('category, expires_at, posting_deadline, delivery_deadline')
+      .select('category, expires_at, posting_deadline, delivery_deadline, launch_at, created_at')
       .eq('id', currentSubmission.task_id)
       .single()
 
@@ -518,9 +530,8 @@ export const submissionsService = {
       throw new Error('Esta submissão não está apta para envio de roteiro no momento.')
     }
 
-    const proofDeadline = resolveProofDeadline(taskData)
-    if (proofDeadline && new Date() > proofDeadline) {
-      throw new Error('Prazo expirou para esta campanha.')
+    if (!isScriptSubmissionOpen(taskData)) {
+      throw new Error('Prazo de envio do roteiro expirou para esta campanha.')
     }
 
     const { data, error } = await supabase
@@ -561,7 +572,7 @@ export const submissionsService = {
 
     const { data: taskData, error: taskError } = await supabase
       .from('tasks')
-      .select('category, points, expires_at, posting_deadline, delivery_deadline')
+      .select('category, points, expires_at, posting_deadline, delivery_deadline, launch_at, created_at')
       .eq('id', currentSubmission.task_id)
       .single()
 
@@ -579,8 +590,16 @@ export const submissionsService = {
       throw new Error('Esta submissão não está apta para envio de prova no momento.')
     }
 
+    if (isCampaign && !isContentSubmissionOpen(taskData)) {
+      const scriptDeadline = resolveScriptDeadline(taskData)
+      if (scriptDeadline && new Date() < scriptDeadline) {
+        throw new Error('O envio de conteúdo libera na segunda metade do cronograma da campanha.')
+      }
+      throw new Error('Prazo de envio da prova expirou para esta tarefa.')
+    }
+
     const proofDeadline = resolveProofDeadline(taskData)
-    if (proofDeadline && new Date() > proofDeadline) {
+    if (!isCampaign && proofDeadline && new Date() > proofDeadline) {
       throw new Error('Prazo de envio da prova expirou para esta tarefa.')
     }
 

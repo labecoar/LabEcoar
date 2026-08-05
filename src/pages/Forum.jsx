@@ -5,7 +5,7 @@ import { useCreateForumTopic, useForumTopicStats, useForumTopics, FORUM_PAGE_SIZ
 import { useForumUnread } from "@/hooks/useForumUnread";
 import { useUserScore } from "@/hooks/useScores";
 import {
-  MessageSquare, Plus, Eye, Pin, MessageCircle, XCircle, Send, Star
+  MessageSquare, Plus, Eye, Pin, MessageCircle, XCircle, Send, Star, CheckCheck
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -60,7 +60,7 @@ export default function Forum() {
   const hasMoreTopics = topicsData?.hasMore ?? false;
   const { data: userScore } = useUserScore(user?.id);
   const createTopicMutation = useCreateForumTopic();
-  const { isTopicUnread, hasUnread, unreadTopicIds, markTopicSeen } = useForumUnread();
+  const { isTopicUnread, hasUnread, unreadTopicIds, markTopicSeen, markForumSeen } = useForumUnread();
   const categoryInfo = getCategoryInfo();
 
   const totalTopics = topicStats?.totalTopics ?? 0;
@@ -158,13 +158,24 @@ export default function Forum() {
 
         {hasUnread && (
           <div
-            className="mb-4 px-4 py-3 rounded-xl flex items-center gap-2.5"
+            className="mb-4 px-4 py-3 rounded-xl flex flex-wrap items-center justify-between gap-3"
             style={{ backgroundColor: "rgba(206,22,28,0.1)", border: "1px solid rgba(206,22,28,0.22)" }}
           >
-            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: "#ce161c" }} />
-            <p style={{ fontSize: 13, color: "#ff6b6b", lineHeight: 1.4 }}>
-              {unreadTopicIds.size} {unreadTopicIds.size === 1 ? "sala com mensagem nova" : "salas com mensagens novas"}.
-            </p>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: "#ce161c" }} />
+              <p style={{ fontSize: 13, color: "#ff6b6b", lineHeight: 1.4 }}>
+                {unreadTopicIds.size} {unreadTopicIds.size === 1 ? "sala com mensagem nova" : "salas com mensagens novas"}.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={markForumSeen}
+              className="inline-flex items-center gap-1.5 shrink-0 text-xs font-semibold hover:opacity-80 transition-opacity"
+              style={{ color: C.red, ...heading }}
+            >
+              <CheckCheck size={14} />
+              Marcar tudo como lido
+            </button>
           </div>
         )}
 

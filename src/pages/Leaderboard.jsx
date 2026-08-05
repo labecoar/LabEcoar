@@ -37,8 +37,10 @@ const RankIcon = ({ rank, size = 20 }) => {
 export default function Leaderboard() {
   const { user } = useAuth();
   const quarterOptions = React.useMemo(() => getLeaderboardQuarterKeys(), []);
+  const [viewMode, setViewMode] = React.useState('geral');
   const [selectedQuarter, setSelectedQuarter] = React.useState(quarterOptions[0] || getCurrentQuarterKey());
-  const { data: leaderboard = [], isLoading } = useLeaderboard(100, selectedQuarter);
+  const leaderboardKey = viewMode === 'geral' ? 'geral' : selectedQuarter;
+  const { data: leaderboard = [], isLoading } = useLeaderboard(100, leaderboardKey);
 
   const topThree = leaderboard.slice(0, 3);
   const rest = leaderboard.slice(3, 20);
@@ -71,31 +73,64 @@ export default function Leaderboard() {
               Ranking de Ecoantes
             </h1>
             <p style={{ fontSize: 14, color: `${C.cream}50`, marginTop: 6 }}>
-              Veja quem está liderando o movimento climático.
+              {viewMode === 'geral'
+                ? 'Ranking geral com pontuação acumulada de todos os tempos.'
+                : `Pontuação do trimestre ${selectedQuarter}.`}
             </p>
           </div>
 
-          <select
-            value={selectedQuarter}
-            onChange={(e) => setSelectedQuarter(e.target.value)}
-            style={{
-              backgroundColor: 'rgba(var(--ink),0.04)',
-              border: `1px solid rgba(var(--ink),0.12)`,
-              color: C.cream,
-              fontSize: 13,
-              borderRadius: 12,
-              padding: '8px 16px',
-              outline: 'none',
-              ...body,
-              flexShrink: 0,
-            }}
-          >
-            {quarterOptions.map((quarterKey) => (
-              <option key={quarterKey} value={quarterKey} style={{ backgroundColor: C.card }}>
-                {quarterKey}
-              </option>
-            ))}
-          </select>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
+            <div
+              className="inline-flex rounded-xl p-1"
+              style={{ backgroundColor: 'rgba(var(--ink),0.06)', border: `1px solid rgba(var(--ink),0.1)` }}
+            >
+              {[
+                { key: 'geral', label: 'Geral' },
+                { key: 'trimestre', label: 'Por trimestre' },
+              ].map(({ key, label }) => {
+                const active = viewMode === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setViewMode(key)}
+                    className="px-3 py-2 rounded-lg text-xs font-semibold transition-all"
+                    style={{
+                      backgroundColor: active ? C.lime : 'transparent',
+                      color: active ? C.onAccent : `${C.cream}70`,
+                      ...heading,
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {viewMode === 'trimestre' && (
+              <select
+                value={selectedQuarter}
+                onChange={(e) => setSelectedQuarter(e.target.value)}
+                style={{
+                  backgroundColor: 'rgba(var(--ink),0.04)',
+                  border: `1px solid rgba(var(--ink),0.12)`,
+                  color: C.cream,
+                  fontSize: 13,
+                  borderRadius: 12,
+                  padding: '8px 16px',
+                  outline: 'none',
+                  ...body,
+                  flexShrink: 0,
+                }}
+              >
+                {quarterOptions.map((quarterKey) => (
+                  <option key={quarterKey} value={quarterKey} style={{ backgroundColor: C.card }}>
+                    {quarterKey}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
         </div>
 
         {/* Empty state */}

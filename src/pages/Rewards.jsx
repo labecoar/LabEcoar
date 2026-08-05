@@ -308,7 +308,7 @@ export default function Rewards() {
                       disabled={!canClaim}
                       onClick={(e) => { e.stopPropagation(); if (canClaim) handleClaim(reward); }}
                     >
-                      {canClaim ? "Resgatar" : `Faltam ${reward.points_required - currentPoints}`}
+                      {canClaim ? "Resgatar" : `Faltam ${Math.max(0, reward.points_required - currentPoints)}`}
                     </button>
                   </div>
                 </div>

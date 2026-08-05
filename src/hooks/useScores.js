@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { scoresService } from '@/services/scores.service'
+import { scoresService, getCurrentQuarterKey } from '@/services/scores.service'
 
 /**
  * Hook para buscar pontuação do usuário
@@ -19,6 +19,15 @@ export function useUserScoreHistory(userId, limit = 8) {
   return useQuery({
     queryKey: ['scores-history', userId, limit],
     queryFn: () => scoresService.getUserScoreHistory(userId, limit),
+    enabled: !!userId,
+  })
+}
+
+export function useQuarterRedeemablePoints(userId, quarterKey) {
+  const resolvedQuarter = quarterKey ?? getCurrentQuarterKey()
+  return useQuery({
+    queryKey: ['quarter-redeemable-points', userId, resolvedQuarter],
+    queryFn: () => scoresService.getQuarterRedeemablePoints(userId, resolvedQuarter),
     enabled: !!userId,
   })
 }
@@ -54,6 +63,7 @@ export function useAddPoints() {
     mutationFn: ({ userId, points }) => scoresService.addPoints(userId, points),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scores'] })
+      queryClient.invalidateQueries({ queryKey: ['quarter-redeemable-points'] })
       queryClient.invalidateQueries({ queryKey: ['leaderboard'] })
       queryClient.invalidateQueries({ queryKey: ['group-progress'] })
     },

@@ -1,5 +1,15 @@
 import { getProofMetricsWindowFromSubmission, getMetricsResubmissionDeadline } from '@/lib/metrics-window';
 import { C } from '@/lib/theme';
+import {
+  resolveApplicationDeadline,
+  resolveContentDeadline,
+  resolveProofDeadline,
+  resolveScriptDeadline,
+  resolvePhaseDeadline,
+  isPastDeadline,
+} from '@/lib/campaign-deadlines';
+
+export { resolveProofDeadline };
 
 export const CATEGORY_ACCENT = {
   campanha: C.lime,
@@ -88,17 +98,6 @@ export const toDateOrNull = (value) => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
-export const resolveProofDeadline = (task) => {
-  if (task?.category === 'campanha') {
-    const postingDeadline = toDateOrNull(task?.posting_deadline);
-    if (postingDeadline) return postingDeadline;
-  }
-  return toDateOrNull(task?.expires_at)
-    || toDateOrNull(task?.posting_deadline)
-    || toDateOrNull(task?.delivery_deadline)
-    || null;
-};
-
 export const isAutoExpiredSubmissionRejection = (submission) => {
   if (!submission) return false;
   const status = normalizeSubmissionStatus(submission.status);
@@ -106,6 +105,7 @@ export const isAutoExpiredSubmissionRejection = (submission) => {
   const reason = String(submission.rejection_reason || '').trim().toLowerCase();
   if (!reason) return false;
   return reason.includes('prazo de envio da prova expirou')
+    || reason.includes('prazo de envio do roteiro expirou')
     || reason.includes('vaga cancelada por inatividade')
     || reason.includes('primeira tentativa de envio da prova');
 };
@@ -133,11 +133,18 @@ export const getDeadlineState = (expiresAtValue) => {
 
 export const getTaskSteps = (task, submission) => {
   const steps = [];
-  steps.push({ label: 'Candidatar-se', date: task?.posting_deadline || null });
-  if (task?.category === 'campanha') {
-    steps.push({ label: 'Enviar roteiro', date: task?.posting_deadline || task?.expires_at || null });
+  const isCampaign = task?.category === 'campanha';
+  steps.push({
+    label: 'Candidatar-se',
+    date: isCampaign ? resolveApplicationDeadline(task) : (task?.posting_deadline || null),
+  });
+  if (isCampaign) {
+    steps.push({ label: 'Enviar roteiro', date: resolveScriptDeadline(task) || task?.expires_at || null });
   }
-  steps.push({ label: 'Enviar conteúdo da tarefa', date: task?.posting_deadline || task?.expires_at || null });
+  steps.push({
+    label: 'Enviar conteúdo da tarefa',
+    date: resolveContentDeadline(task) || task?.expires_at || null,
+  });
   if (task?.category === 'campanha') {
     const submissionStatus = normalizeSubmissionStatus(submission?.status);
     let metricsDate = null;
@@ -177,10 +184,10 @@ export const resolveNextDeadline = (task, submission, metricsSubmission) => {
   }
 
   if (['application_approved', 'application_pending', 'script_pending', 'script_approved', 'script_rejected', 'proof_pending', 'pending'].includes(submissionStatus)) {
-    return resolveProofDeadline(task);
+    return resolvePhaseDeadline(task, submissionStatus);
   }
 
-  return resolveProofDeadline(task);
+  return resolveContentDeadline(task);
 };
 
 export const isSubmissionReopenedByDateChange = (task, submission) => {
@@ -224,6 +231,24 @@ export const isExpiredSubmission = (submission, metricsSubmission) => {
   }
 
   if (shouldShowExpiredStatus(task, submission)) return true;
+
+  const submissionStatus = normalizeSubmissionStatus(submission?.status);
+
+  if (taskCategory === 'campanha') {
+    if (['application_approved', 'script_rejected'].includes(submissionStatus)) {
+      const scriptDeadline = resolveScriptDeadline(task);
+      if (scriptDeadline && isPastDeadline(scriptDeadline)) return true;
+    }
+    if (['script_approved', 'proof_pending', 'rejected'].includes(submissionStatus)) {
+      const contentDeadline = resolveContentDeadline(task);
+      if (contentDeadline && isPastDeadline(contentDeadline)) return true;
+    }
+    if (submissionStatus === 'application_pending') {
+      const applicationDeadline = resolveApplicationDeadline(task);
+      if (applicationDeadline && isPastDeadline(applicationDeadline)) return true;
+    }
+    return false;
+  }
 
   const expiresAt = resolveProofDeadline(task);
   if (!expiresAt) return false;

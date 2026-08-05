@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Target, Users, Calendar, Clock, CheckCircle2,
   Star, CircleDollarSign, Megaphone, Zap, BookOpen, Share2,
-  Sparkles, SlidersHorizontal,
+  Sparkles, SlidersHorizontal, Building2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -18,6 +18,11 @@ import { getProofMetricsWindowFromSubmission, getMetricsResubmissionDeadline, ME
 import { C, heading, body, colorWithAlpha } from '@/lib/theme';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { formatLaunchDateTime, isTaskScheduled } from '@/lib/task-scheduling';
+import {
+  resolveApplicationDeadline,
+  resolveScriptDeadline,
+  resolveContentDeadline,
+} from '@/lib/campaign-deadlines';
 import { stripFormattingForPreview } from '@/lib/task-description-format';
 import { PageShell, PageHeader, PageHeaderLabel, PageContent, PageTitle } from "@/components/layout/PageShell";
 
@@ -98,16 +103,7 @@ const firstBusinessDayOnOrAfter = (baseDate) => {
   return result;
 };
 
-const resolveProofDeadline = (task) => {
-  if (task?.category === 'campanha') {
-    const postingDeadline = toDateOrNull(task?.posting_deadline);
-    if (postingDeadline) return postingDeadline;
-  }
-  return toDateOrNull(task?.expires_at)
-    || toDateOrNull(task?.posting_deadline)
-    || toDateOrNull(task?.delivery_deadline)
-    || null;
-};
+const resolveProofDeadline = (task) => resolveContentDeadline(task);
 
 const isAutoExpiredSubmissionRejection = (submission) => {
   if (!submission) return false;
@@ -116,6 +112,7 @@ const isAutoExpiredSubmissionRejection = (submission) => {
   const reason = String(submission.rejection_reason || '').trim().toLowerCase();
   if (!reason) return false;
   return reason.includes('prazo de envio da prova expirou')
+    || reason.includes('prazo de envio do roteiro expirou')
     || reason.includes('vaga cancelada por inatividade')
     || reason.includes('primeira tentativa de envio da prova');
 };
@@ -265,17 +262,21 @@ export default function Tasks() {
   };
 
   const getTaskSteps = (task, submission) => {
+    const isCampaign = task.category === 'campanha';
     const steps = [
       task.category === 'sidequest_teste'
         ? buildStepWithDeadline("Participar desta Missão", task.posting_deadline)
-        : buildStepWithDeadline("Candidatar-se", task.posting_deadline),
+        : buildStepWithDeadline(
+          "Candidatar-se",
+          isCampaign ? resolveApplicationDeadline(task) : task.posting_deadline
+        ),
     ];
 
-    if (task.category === 'campanha') {
-      steps.push(buildStepWithDeadline("Enviar roteiro", resolveProofDeadline(task)));
+    if (isCampaign) {
+      steps.push(buildStepWithDeadline("Enviar roteiro", resolveScriptDeadline(task)));
     }
 
-    steps.push(buildStepWithDeadline("Enviar conteúdo da tarefa", resolveProofDeadline(task)));
+    steps.push(buildStepWithDeadline("Enviar conteúdo da tarefa", resolveContentDeadline(task)));
 
     if (task.category === 'campanha') {
       const submissionStatus = normalizeSubmissionStatus(submission?.status);
@@ -326,21 +327,22 @@ export default function Tasks() {
   // ─── TaskCard ──────────────────────────────────────────────────────────────
   const TaskCard = ({ task }) => {
     const isSidequestBlockedThisMonth = task.category === 'sidequest_teste' && isSidequestCompletedThisMonth(task.id);
+    const isCampaignTask = task.category === 'campanha';
+    const isMissionTask = task.category === 'sidequest_teste';
     const { color: categoryAccent, bg: categoryAccentBg } = getCategoryStyle(task.category);
-    const accent = isLight && categoryAccent === C.lime ? C.blue : categoryAccent;
-    const accentBg = isLight && categoryAccent === C.lime ? C.blue_back : categoryAccentBg;
+    const accent = isLight && isCampaignTask ? C.blue : categoryAccent;
+    const accentBg = isLight && isCampaignTask ? C.blue_back : categoryAccentBg;
     const accentText = accent === C.lime
       ? C.onAccent
       : accent === C.blue
         ? C.onSurface
         : C.cream;
+    const deadlineColor = C.red_muted;
     const submission = getTaskSubmission(task.id);
     const metricsSubmission = getTaskMetricsSubmission(task.id);
     const steps = getTaskSteps(task, submission);
     const completedSteps = getCompletedStepsCount(task, submission, metricsSubmission);
     const Icon = CATEGORY_ICONS[task.category] || Target;
-    const isCampaignTask = task.category === 'campanha';
-    const isMissionTask = task.category === 'sidequest_teste';
     const isPaidTask = task.category === 'campanha' || Number(task.offered_value || 0) > 0;
     const missionPointsBg = isMissionTask ? accentBg : C.lime_back;
     const missionPointsColor = isMissionTask ? accent : C.lime;
@@ -509,6 +511,12 @@ export default function Tasks() {
 
           {/* Título + descrição */}
           <div style={{ flex: 1 }}>
+            {isCampaignTask && task.organization?.name && (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginBottom: 8, padding: "3px 9px", borderRadius: 999, background: "rgba(var(--ink),0.06)", color: MUTED_COLOR, fontSize: 11, fontWeight: 600 }}>
+                <Building2 size={11} />
+                Cliente: <span style={{ color: C.cream }}>{task.organization.name}</span>
+              </div>
+            )}
             <div style={{ fontSize: 15, fontWeight: 500, color: C.cream, letterSpacing: "-0.01em", lineHeight: 1.3, marginBottom: 6 }}>
               {task.title}
             </div>
@@ -527,7 +535,7 @@ export default function Tasks() {
               return (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: MUTED_COLOR }}>
                   <Clock size={10} />
-                  <span style={{ color: C.red }}>{dateTimeLabel}</span>
+                  <span style={{ color: deadlineColor }}>{dateTimeLabel}</span>
                 </span>
               );
             })()}
@@ -549,30 +557,42 @@ export default function Tasks() {
                 <div style={{ height: "100%", borderRadius: 999, width: `${(completedSteps / steps.length) * 100}%`, background: accent, transition: "width 0.3s" }} />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {steps.map((step, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{
-                      width: 16, height: 16, borderRadius: "50%", flexShrink: 0,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      background: i < completedSteps ? accent : "rgba(var(--ink),0.07)",
-                      border: i === completedSteps ? `1px solid ${accent}` : "none",
-                    }}>
-                      {i < completedSteps
-                        ? <CheckCircle2 size={9} color={accentText} />
-                        : <span style={{ fontSize: 8, fontWeight: 800, color: i === completedSteps ? accent : MUTED_COLOR }}>{i + 1}</span>
-                      }
+                {steps.map((step, i) => {
+                  const isCompleted = i < completedSteps;
+                  const isCurrent = i === completedSteps;
+                  const isActive = isCompleted || isCurrent;
+
+                  return (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{
+                        width: 16, height: 16, borderRadius: "50%", flexShrink: 0,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: isCompleted ? accent : isCurrent ? accentBg : "rgba(var(--ink),0.07)",
+                        border: isCurrent ? `1px solid ${accent}` : isLight ? `1px solid ${T.borderMid}` : "1px solid rgba(var(--ink),0.08)",
+                        opacity: isActive ? 1 : 0.85,
+                      }}>
+                        {isCompleted
+                          ? <CheckCircle2 size={9} color={accentText} />
+                          : <span style={{ fontSize: 8, fontWeight: 800, color: isCurrent ? accent : MUTED_COLOR }}>{i + 1}</span>
+                        }
+                      </div>
+                      <span style={{
+                        fontSize: 11,
+                        color: isCompleted ? `${C.cream}90` : isCurrent ? C.cream : MUTED_COLOR,
+                        opacity: isActive ? 1 : 0.5,
+                        textDecoration: isCompleted ? 'line-through' : 'none',
+                      }}>
+                        {step.label}
+                        {step.dateTimeLabel && (
+                          <>
+                            {step.dateInfoPrefix}
+                            <span style={{ color: isActive ? deadlineColor : MUTED_COLOR }}>{step.dateTimeLabel}</span>
+                          </>
+                        )}
+                      </span>
                     </div>
-                    <span style={{ fontSize: 11, color: i < completedSteps ? `${C.cream}90` : MUTED_COLOR }}>
-                      {step.label}
-                      {step.dateTimeLabel && (
-                        <>
-                          {step.dateInfoPrefix}
-                          <span style={{ color: C.red }}>{step.dateTimeLabel}</span>
-                        </>
-                      )}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

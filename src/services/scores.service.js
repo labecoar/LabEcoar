@@ -58,7 +58,7 @@ export const scoresService = {
       return toScoreModel(null, quarterKey, 0, 0)
     }
 
-    // Buscar diretamente de user_scores em vez de calcular
+    // Saldo acumulado em user_scores (não reseta por trimestre)
     const { data, error } = await supabase
       .from('user_scores')
       .select('total_points, tasks_completed')
@@ -71,8 +71,49 @@ export const scoresService = {
       return toScoreModel(userId, quarterKey, data.total_points || 0, data.tasks_completed || 0)
     }
 
-    // Se não existir registro, retornar 0
     return toScoreModel(userId, quarterKey, 0, 0)
+  },
+
+  /**
+   * Pontos disponíveis para resgate no trimestre: ganhos aprovados − resgates do período.
+   * Espelha a validação da RPC claim_reward no banco.
+   */
+  async getQuarterRedeemablePoints(userId, quarterKey = getCurrentQuarterKey()) {
+    if (!userId) return 0
+
+    const range = getQuarterRange(quarterKey)
+
+    const [earnedResult, spentResult] = await Promise.all([
+      supabase
+        .from('submissions')
+        .select('points_awarded')
+        .eq('user_id', userId)
+        .eq('status', 'approved')
+        .not('validated_at', 'is', null)
+        .gte('validated_at', range.start.toISOString())
+        .lt('validated_at', range.end.toISOString()),
+      supabase
+        .from('reward_claims')
+        .select('points_spent')
+        .eq('user_id', userId)
+        .not('claimed_at', 'is', null)
+        .gte('claimed_at', range.start.toISOString())
+        .lt('claimed_at', range.end.toISOString()),
+    ])
+
+    if (earnedResult.error) throw earnedResult.error
+    if (spentResult.error) throw spentResult.error
+
+    const earned = (earnedResult.data || []).reduce(
+      (sum, row) => sum + Number(row.points_awarded || 0),
+      0,
+    )
+    const spent = (spentResult.data || []).reduce(
+      (sum, row) => sum + Number(row.points_spent || 0),
+      0,
+    )
+
+    return Math.max(0, earned - spent)
   },
 
   /**
@@ -146,9 +187,49 @@ export const scoresService = {
   },
 
   /**
-   * Obter ranking geral
+   * Obter ranking — `quarterKey === 'geral'` usa pontuação acumulada (user_scores);
+   * caso contrário, agrega submissões aprovadas do trimestre.
    */
   async getLeaderboard(limit = 100, quarterKey = getCurrentQuarterKey()) {
+    if (quarterKey === 'geral') {
+      const { data, error } = await supabase
+        .from('user_scores')
+        .select('user_id, total_points, tasks_completed')
+        .order('total_points', { ascending: false })
+        .limit(limit)
+
+      if (error) throw error
+
+      const rows = data || []
+      if (!rows.length) return []
+
+      const userIds = rows.map((row) => row.user_id).filter(Boolean)
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          full_name,
+          email,
+          avatar_url
+        `)
+        .in('id', userIds)
+
+      if (profilesError) throw profilesError
+
+      const profileMap = new Map((profiles || []).map((profile) => [profile.id, profile]))
+
+      return rows
+        .map((entry) => ({
+          user_id: entry.user_id,
+          quarter_key: 'geral',
+          total_points: Number(entry.total_points || 0),
+          tasks_completed: Number(entry.tasks_completed || 0),
+          profile: profileMap.get(entry.user_id) || null,
+        }))
+        .sort((a, b) => Number(b.total_points || 0) - Number(a.total_points || 0))
+        .slice(0, limit)
+    }
+
     const range = getQuarterRange(quarterKey)
     const { data, error } = await supabase
       .from('submissions')

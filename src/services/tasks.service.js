@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { shouldSendCampaignEmailOnCreate } from '@/lib/task-scheduling'
+import { resolveContentDeadline } from '@/lib/campaign-deadlines'
 import { isDevCampaignEmailDisabled } from '@/lib/dev-safety'
 
 const toDateOrNull = (value) => {
@@ -8,19 +9,7 @@ const toDateOrNull = (value) => {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
-const resolveTaskProofDeadline = (taskLike) => {
-  if (!taskLike) return null
-
-  if (taskLike.category === 'campanha') {
-    const postingDeadline = toDateOrNull(taskLike.posting_deadline)
-    if (postingDeadline) return postingDeadline
-  }
-
-  return toDateOrNull(taskLike.expires_at)
-    || toDateOrNull(taskLike.posting_deadline)
-    || toDateOrNull(taskLike.delivery_deadline)
-    || null
-}
+const resolveTaskProofDeadline = (taskLike) => resolveContentDeadline(taskLike)
 
 const AUTO_EXPIRE_REJECTION_REASON = 'Prazo de envio da prova expirou. Vaga cancelada e devolvida ao pool.'
 
@@ -91,7 +80,13 @@ export const tasksService = {
   async getActiveTasks() {
     const { data, error } = await supabase
       .from('tasks')
-      .select('*')
+      .select(`
+        *,
+        organization:organizations (
+          id,
+          name
+        )
+      `)
       .eq('status', 'active')
       .order('created_at', { ascending: false })
 
@@ -124,7 +119,13 @@ export const tasksService = {
   async getTaskById(taskId) {
     const { data, error } = await supabase
       .from('tasks')
-      .select('*')
+      .select(`
+        *,
+        organization:organizations (
+          id,
+          name
+        )
+      `)
       .eq('id', taskId)
       .single()
 

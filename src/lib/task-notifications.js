@@ -2,6 +2,12 @@ import { differenceInCalendarDays, format, startOfDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { getProofMetricsWindowFromSubmission, getMetricsResubmissionDeadline } from '@/lib/metrics-window'
 import { getTaskAvailabilityReference, isTaskLaunched } from '@/lib/task-scheduling'
+import {
+  resolveApplicationDeadline,
+  resolveScriptDeadline,
+  resolveContentDeadline,
+  resolvePhaseDeadline,
+} from '@/lib/campaign-deadlines'
 
 export const PROOF_APPROACHING_DAYS = 3
 export const METRICS_APPROACHING_DAYS = 3
@@ -25,22 +31,7 @@ const toDateOrNull = (value) => {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
-const resolveApplicationDeadline = (task) =>
-  toDateOrNull(task?.expires_at)
-  || toDateOrNull(task?.posting_deadline)
-  || null
-
-const resolveProofDeadline = (task) => {
-  if (task?.category === 'campanha') {
-    const campaignPostingDeadline = toDateOrNull(task?.posting_deadline)
-    if (campaignPostingDeadline) return campaignPostingDeadline
-  }
-
-  return toDateOrNull(task?.expires_at)
-    || toDateOrNull(task?.posting_deadline)
-    || toDateOrNull(task?.delivery_deadline)
-    || null
-}
+const resolveProofDeadline = (task) => resolveContentDeadline(task)
 
 const formatDeadlineLabel = (date) =>
   format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
@@ -184,8 +175,11 @@ const buildProofDeadlineNotification = ({ task, submission, now }) => {
     : ['application_approved']
   if (!eligibleStatuses.includes(submissionStatus)) return null
 
-  const proofDeadline = resolveProofDeadline(task)
+  const proofDeadline = resolvePhaseDeadline(task, submissionStatus)
   if (!proofDeadline || now > proofDeadline) return null
+
+  const isScriptPhase = task?.category === 'campanha'
+    && ['application_approved', 'script_rejected'].includes(submissionStatus)
 
   const dayLabel = buildApproachingDayLabel(proofDeadline, now, PROOF_APPROACHING_DAYS)
   if (!dayLabel) return null
@@ -193,8 +187,10 @@ const buildProofDeadlineNotification = ({ task, submission, now }) => {
   return baseNotification({
     id: `task-proof-due-${task.id}-${proofDeadline.toISOString().slice(0, 10)}`,
     type: 'task_due_soon',
-    title: 'Prazo da prova se aproximando',
-    message: `Você está perto do prazo para enviar a prova da tarefa "${task.title}" (${dayLabel}).`,
+    title: isScriptPhase ? 'Prazo do roteiro se aproximando' : 'Prazo da prova se aproximando',
+    message: isScriptPhase
+      ? `Você está perto do prazo para enviar o roteiro da campanha "${task.title}" (${dayLabel}).`
+      : `Você está perto do prazo para enviar a prova da tarefa "${task.title}" (${dayLabel}).`,
     task,
     createdDate: proofDeadline.toISOString(),
     linkPath: '/MySubmissions',

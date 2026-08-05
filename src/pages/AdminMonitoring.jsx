@@ -245,7 +245,6 @@ export default function AdminMonitoring() {
   const [participantSearch, setParticipantSearch] = useState('')
   const [participantStatusFilter, setParticipantStatusFilter] = useState('all')
   const [orgTaskSearch, setOrgTaskSearch] = useState('')
-  const [orgTaskCategoryFilter, setOrgTaskCategoryFilter] = useState('all')
   const [orgTaskStatusFilter, setOrgTaskStatusFilter] = useState('all')
   const [participantPage, setParticipantPage] = useState(1)
   const [orgTaskPage, setOrgTaskPage] = useState(1)
@@ -386,15 +385,16 @@ export default function AdminMonitoring() {
   }, [enrichedTasks, taskSearch, taskCategoryFilter, taskStatusFilter, taskSort])
 
   const enrichedOrgs = useMemo(() => {
+    const campaignTasks = enrichedTasks.filter((task) => task.category === 'campanha')
     const tasksByOrgId = new Map()
-    const unassignedTasks = []
+    const unassignedCampaigns = []
 
-    for (const task of enrichedTasks) {
+    for (const task of campaignTasks) {
       if (task.organization_id) {
         if (!tasksByOrgId.has(task.organization_id)) tasksByOrgId.set(task.organization_id, [])
         tasksByOrgId.get(task.organization_id).push(task)
       } else {
-        unassignedTasks.push(task)
+        unassignedCampaigns.push(task)
       }
     }
 
@@ -410,15 +410,15 @@ export default function AdminMonitoring() {
       }
     })
 
-    if (unassignedTasks.length > 0) {
+    if (unassignedCampaigns.length > 0) {
       rows.push({
         id: '__none__',
         name: 'Sem cliente',
-        taskCount: unassignedTasks.length,
-        activeTaskCount: unassignedTasks.filter((t) => t.status === 'active').length,
-        submissionCount: unassignedTasks.reduce((sum, t) => sum + t.submissionCount, 0),
-        completedCount: unassignedTasks.reduce((sum, t) => sum + t.completedCount, 0),
-        tasks: unassignedTasks.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+        taskCount: unassignedCampaigns.length,
+        activeTaskCount: unassignedCampaigns.filter((t) => t.status === 'active').length,
+        submissionCount: unassignedCampaigns.reduce((sum, t) => sum + t.submissionCount, 0),
+        completedCount: unassignedCampaigns.reduce((sum, t) => sum + t.completedCount, 0),
+        tasks: unassignedCampaigns.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
       })
     }
 
@@ -539,7 +539,6 @@ export default function AdminMonitoring() {
 
   useEffect(() => {
     setOrgTaskSearch('')
-    setOrgTaskCategoryFilter('all')
     setOrgTaskStatusFilter('all')
     setOrgTaskPage(1)
   }, [selectedOrg?.id])
@@ -553,13 +552,12 @@ export default function AdminMonitoring() {
     const term = orgTaskSearch.trim().toLowerCase()
 
     return selectedOrg.tasks.filter((task) => {
-      if (orgTaskCategoryFilter !== 'all' && task.category !== orgTaskCategoryFilter) return false
       if (orgTaskStatusFilter !== 'all' && task.status !== orgTaskStatusFilter) return false
       if (!term) return true
-      const haystack = [task.title, CATEGORY_LABELS[task.category], TASK_STATUS_LABELS[task.status]].filter(Boolean).join(' ').toLowerCase()
+      const haystack = [task.title, TASK_STATUS_LABELS[task.status]].filter(Boolean).join(' ').toLowerCase()
       return haystack.includes(term)
     })
-  }, [selectedOrg, orgTaskSearch, orgTaskCategoryFilter, orgTaskStatusFilter])
+  }, [selectedOrg, orgTaskSearch, orgTaskStatusFilter])
 
   const participantTotalPages = Math.max(1, Math.ceil(filteredTaskParticipants.length / PAGE_SIZE))
   const paginatedTaskParticipants = filteredTaskParticipants.slice(
@@ -618,7 +616,7 @@ export default function AdminMonitoring() {
 
   const handleExportOrgs = () => {
     exportCsv(
-      ['Cliente', 'Tarefas', 'Tarefas ativas', 'Inscrições', 'Concluídas'],
+      ['Cliente', 'Campanhas', 'Campanhas ativas', 'Inscrições', 'Concluídas'],
       filteredOrgs.map((org) => [
         org.name,
         org.taskCount,
@@ -1075,7 +1073,7 @@ export default function AdminMonitoring() {
                           <SortButton label="CLIENTE" field="name" sortField={orgSort.field} sortDir={orgSort.dir} onSort={handleOrgSort} />
                         </th>
                         <th className="text-left px-5 py-3">
-                          <SortButton label="TAREFAS" field="tasks" sortField={orgSort.field} sortDir={orgSort.dir} onSort={handleOrgSort} />
+                          <SortButton label="CAMPANHAS" field="tasks" sortField={orgSort.field} sortDir={orgSort.dir} onSort={handleOrgSort} />
                         </th>
                         <th className="text-left px-5 py-3" style={{ fontSize: 10, fontWeight: 700, color: faintColor, letterSpacing: '0.08em' }}>ATIVAS</th>
                         <th className="text-left px-5 py-3">
@@ -1428,14 +1426,14 @@ export default function AdminMonitoring() {
                 <Building2 size={15} style={{ color: C.cyan }} />
                 <div className="min-w-0">
                   <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: textColor }} className="block truncate">{selectedOrg.name}</span>
-                  <span style={{ fontSize: 12, color: mutedColor }}>{selectedOrg.taskCount} tarefa(s) vinculada(s)</span>
+                  <span style={{ fontSize: 12, color: mutedColor }}>{selectedOrg.taskCount} campanha(s) vinculada(s)</span>
                 </div>
               </div>
 
               <div className="p-6 overflow-y-auto flex-1 space-y-6">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
-                    { label: 'Tarefas', value: selectedOrg.taskCount, icon: Target, color: C.orange },
+                    { label: 'Campanhas', value: selectedOrg.taskCount, icon: Target, color: C.orange },
                     { label: 'Ativas', value: selectedOrg.activeTaskCount, icon: TrendingUp, color: C.cyan },
                     { label: 'Inscrições', value: selectedOrg.submissionCount, icon: ClipboardList, color: C.orange },
                     { label: 'Concluídas', value: selectedOrg.completedCount, icon: CheckCircle, color: isLight ? C.darkGreen : C.lime },
@@ -1455,7 +1453,7 @@ export default function AdminMonitoring() {
                     <div className="flex items-center gap-2">
                       <Target size={14} style={{ color: C.lime }} />
                       <span style={{ ...heading, fontSize: 14, fontWeight: 700, color: textColor }}>
-                        Campanhas / Tarefas ({filteredOrgTasks.length}
+                        Campanhas ({filteredOrgTasks.length}
                         {filteredOrgTasks.length !== selectedOrg.tasks.length
                           ? ` de ${selectedOrg.tasks.length}`
                           : ''})
@@ -1471,20 +1469,9 @@ export default function AdminMonitoring() {
                             style={{ ...inputStyle, paddingLeft: 34, paddingTop: 8, paddingBottom: 8, fontSize: 13 }}
                             value={orgTaskSearch}
                             onChange={(e) => { setOrgTaskSearch(e.target.value); setOrgTaskPage(1) }}
-                            placeholder="Buscar tarefa..."
+                            placeholder="Buscar campanha..."
                           />
                         </div>
-                        <select
-                          className={aInputCls}
-                          style={{ ...selectStyle, minWidth: 140, paddingTop: 8, paddingBottom: 8, fontSize: 13 }}
-                          value={orgTaskCategoryFilter}
-                          onChange={(e) => { setOrgTaskCategoryFilter(e.target.value); setOrgTaskPage(1) }}
-                        >
-                          <option value="all" style={optionStyle}>Todas categorias</option>
-                          {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
-                            <option key={value} value={value} style={optionStyle}>{label}</option>
-                          ))}
-                        </select>
                         <select
                           className={aInputCls}
                           style={{ ...selectStyle, minWidth: 120, paddingTop: 8, paddingBottom: 8, fontSize: 13 }}
@@ -1501,15 +1488,15 @@ export default function AdminMonitoring() {
                   </div>
 
                   {selectedOrg.tasks.length === 0 ? (
-                    <p style={{ fontSize: 13, color: faintColor }}>Nenhuma tarefa vinculada a este cliente.</p>
+                    <p style={{ fontSize: 13, color: faintColor }}>Nenhuma campanha vinculada a este cliente.</p>
                   ) : filteredOrgTasks.length === 0 ? (
-                    <p style={{ fontSize: 13, color: faintColor }}>Nenhuma tarefa corresponde aos filtros.</p>
+                    <p style={{ fontSize: 13, color: faintColor }}>Nenhuma campanha corresponde aos filtros.</p>
                   ) : (
                     <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${borderColor}` }}>
                       <table className="min-w-full text-sm">
                         <thead>
                           <tr style={{ backgroundColor: surfaceBgAlt, borderBottom: `1px solid ${isLight ? T.borderMid : 'rgba(var(--ink),0.06)'}` }}>
-                            {['Tarefa', 'Categoria', 'Status', 'Inscrições', 'Concluídas', ''].map((h) => (
+                            {['Campanha', 'Status', 'Inscrições', 'Concluídas', ''].map((h) => (
                               <th key={h || 'actions'} className="text-left px-4 py-2.5" style={{ fontSize: 10, fontWeight: 700, color: faintColor, letterSpacing: '0.06em' }}>{h}</th>
                             ))}
                           </tr>
@@ -1520,11 +1507,6 @@ export default function AdminMonitoring() {
                               <td className="px-4 py-2.5">
                                 <p style={{ fontSize: 13, fontWeight: 600, color: textColor }} className="max-w-[220px] truncate">{task.title}</p>
                                 <p style={{ fontSize: 11, color: faintColor }}>{formatShortDate(task.created_at)}</p>
-                              </td>
-                              <td className="px-4 py-2.5">
-                                <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: `${C.lime}12`, color: isLight ? C.darkGreen : C.lime }}>
-                                  {CATEGORY_LABELS[task.category] || task.category}
-                                </span>
                               </td>
                               <td className="px-4 py-2.5" style={{ fontSize: 12, color: subColor }}>
                                 {TASK_STATUS_LABELS[task.status] || task.status}
