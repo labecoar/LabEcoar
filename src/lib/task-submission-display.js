@@ -155,7 +155,7 @@ export const getTaskSteps = (task, submission) => {
     let metricsDate = null;
     if (submissionStatus === 'approved') {
       const window = getProofMetricsWindowFromSubmission(submission);
-      metricsDate = window?.end || null;
+      metricsDate = window?.start || null;
     }
     steps.push({ label: 'Enviar métricas', date: metricsDate });
   }

@@ -8,7 +8,7 @@ import { CheckCircle, XCircle, User, Calendar, Users, Star, Eye, RotateCcw, Circ
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
-import { C, heading, body } from '@/lib/theme';
+import { C, heading, body, getModalBackground } from '@/lib/theme';
 import { requiresScriptApproval } from '@/lib/campaign-flow';
 import { resolveContentDeadline, resolvePhaseDeadline } from '@/lib/campaign-deadlines';
 import { PageHeader, PageHeaderLabel } from "@/components/layout/PageShell";
@@ -22,6 +22,11 @@ import {
 } from '@/components/admin/AdminPageHelpers';
 
 const CONTACT_HELP_TEXT = 'Se precisar, fale com a equipe no Fórum (categoria Dúvidas) para esclarecimentos.';
+
+const formatDeadlineLabel = (deadline) => {
+  if (!deadline) return null
+  return format(deadline, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+}
 
 const normalizeSubmissionStatus = (status) => {
   const normalized = String(status || '').trim().toLowerCase()
@@ -42,6 +47,7 @@ export default function AdminApplications() {
     textColor, mutedColor, subColor, faintColor, cardBorder,
     surfaceBgAlt, labelColor, pageTitleStyle, pageSubtitleStyle, isLight,
   } = usePageTheme();
+  const modalBg = getModalBackground(isLight);
 
   const { data: pendingSubmissions = [], isLoading } = usePendingSubmissions();
   const approveSubmission = useApproveSubmission();
@@ -108,7 +114,7 @@ export default function AdminApplications() {
       const nextStepDeadline = isCampaign && !requiresScript
         ? resolveContentDeadline(submission.task)
         : resolvePhaseDeadline(submission.task, 'application_approved')
-      const nextStepDeadlineLabel = nextStepDeadline?.toLocaleDateString('pt-BR') || null
+      const nextStepDeadlineLabel = formatDeadlineLabel(nextStepDeadline)
       const nextStepLabel = requiresScript
         ? 'enviar o roteiro'
         : isCampaign
@@ -377,7 +383,7 @@ export default function AdminApplications() {
       <Dialog open={!!selectedTaskPreview} onOpenChange={(open) => { if (!open) setSelectedTaskPreview(null) }}>
         <DialogContent aria-describedby={undefined} className="sm:max-w-xl p-0 border-0 bg-transparent overflow-hidden shadow-none">
           <DialogTitle className="sr-only">Detalhes da Tarefa</DialogTitle>
-          <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: C.card, border: `1px solid ${cardBorder}` }}>
+          <div className="w-full rounded-2xl overflow-hidden" style={{ backgroundColor: modalBg, border: `1px solid ${cardBorder}` }}>
             <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: `1px solid ${cardBorder}` }}>
               <span style={{ ...heading, fontSize: 16, fontWeight: 700, color: textColor }}>
                 {selectedTaskPreview?.task?.title || 'Detalhes da Tarefa'}

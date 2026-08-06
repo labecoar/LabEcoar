@@ -15,10 +15,19 @@ export const METRICS_ADMIN_REVIEW_BUFFER_DAYS = 0
 /** Dias corridos para reenvio após rejeição das métricas */
 export const METRICS_RESUBMISSION_WINDOW_DAYS = 365
 
+/** Horário fixo de abertura da janela de métricas (horário local do navegador). */
+export const METRICS_WINDOW_START_HOUR = 8
+
 export const toDateOrNull = (value) => {
   if (!value) return null
   const parsed = new Date(value)
   return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+const resolveMetricsWindowStart = (baseDate) => {
+  const start = addDays(baseDate, METRICS_WAIT_AFTER_PROOF_DAYS)
+  start.setHours(METRICS_WINDOW_START_HOUR, 0, 0, 0)
+  return start
 }
 
 export const getProofMetricsWindowFromSubmission = (submission) => {
@@ -29,7 +38,7 @@ export const getProofMetricsWindowFromSubmission = (submission) => {
   const baseDate = proofSubmittedAt || proofApprovedAt || fallbackDate
   if (!baseDate) return { start: null, end: null, adminEnd: null }
 
-  const start = addDays(baseDate, METRICS_WAIT_AFTER_PROOF_DAYS)
+  const start = resolveMetricsWindowStart(baseDate)
   const end = addDays(start, METRICS_SUBMISSION_WINDOW_DAYS)
   const adminEnd = addDays(end, METRICS_ADMIN_REVIEW_BUFFER_DAYS)
 

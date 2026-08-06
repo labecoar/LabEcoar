@@ -588,10 +588,10 @@ export const submissionsService = {
       || currentSubmission.status === 'application_rejected'
     ) {
       if (requiresScriptApproval(taskData) && !isScriptSubmissionOpen(taskData)) {
-        throw new Error('O prazo de envio do roteiro já encerrou. Estenda o prazo da campanha antes de selecionar esta candidatura.')
+        throw new Error('Não é possível aprovar: o prazo de envio do roteiro já encerrou. Altere a data da tarefa se quiser prosseguir.')
       }
       if (isCampaignTask(taskData) && !requiresScriptApproval(taskData) && !isContentSubmissionOpen(taskData)) {
-        throw new Error('O prazo de envio do conteúdo já encerrou. Estenda o prazo da campanha antes de selecionar esta candidatura.')
+        throw new Error('Não é possível aprovar: o prazo de envio do conteúdo já encerrou. Altere a data da tarefa se quiser prosseguir.')
       }
 
       const currentParticipants = Number(taskData.current_participants || 0)

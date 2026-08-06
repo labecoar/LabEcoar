@@ -266,8 +266,8 @@ export default function Tasks() {
 
       if (submissionStatus === 'approved') {
         const window = getProofMetricsWindowFromSubmission(submission);
-        dateTimeLabel = formatLaunchDateTime(window?.end || null);
-        dateInfoPrefix = dateTimeLabel ? ' até ' : null;
+        dateTimeLabel = formatLaunchDateTime(window?.start || null);
+        dateInfoPrefix = dateTimeLabel ? ' a partir de ' : null;
       }
 
       if (!dateTimeLabel) {

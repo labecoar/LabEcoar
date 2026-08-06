@@ -84,7 +84,7 @@ export function useApproveSubmission() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ submissionId, pointsAwarded }) => 
+    mutationFn: ({ submissionId, pointsAwarded }) =>
       submissionsService.approveSubmission(submissionId, pointsAwarded),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['submissions'] })

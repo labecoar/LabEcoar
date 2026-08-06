@@ -325,7 +325,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const metricsWindowStart = proofApprovalMetricsWindow.start;
   const metricsWindowEnd = proofApprovalMetricsWindow.end;
   const metricsWindowLabel = metricsWindowStart && metricsWindowEnd
-    ? `${metricsWindowStart.toLocaleDateString('pt-BR')} até ${metricsWindowEnd.toLocaleDateString('pt-BR')}`
+    ? `${formatLaunchDateTime(metricsWindowStart)} até ${formatLaunchDateTime(metricsWindowEnd)}`
     : null;
   const isInsideMetricsWindow =
     metricsWindowStart && metricsWindowEnd
