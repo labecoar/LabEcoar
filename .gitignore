@@ -5,7 +5,13 @@
 .env.production
 .env.development
 
-# Supabase
+# Backend / infra — manter local, não publicar no GitHub
+migrations/
+entities/
+supabase/
+supabase-schema.sql
+
+# Supabase temp
 supabase/.temp
 
 # Logs
