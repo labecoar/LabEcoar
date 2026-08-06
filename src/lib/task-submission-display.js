@@ -8,6 +8,7 @@ import {
   resolvePhaseDeadline,
   isPastDeadline,
 } from '@/lib/campaign-deadlines';
+import { getTaskDisplayCategory, isCampaignTask, requiresScriptApproval } from '@/lib/campaign-flow';
 
 export { resolveProofDeadline };
 
@@ -30,6 +31,8 @@ export const getCategoryStyle = (category) => ({
   color: CATEGORY_ACCENT[category] || C.blue,
   bg: CATEGORY_ACCENT_BG[category] || C.blue_back,
 });
+
+export const getSubmissionTaskDisplayCategory = (task) => getTaskDisplayCategory(task);
 
 export const CATEGORY_ICONS = {
   campanha: 'Megaphone',
@@ -134,19 +137,20 @@ export const getDeadlineState = (expiresAtValue) => {
 
 export const getTaskSteps = (task, submission) => {
   const steps = [];
-  const isCampaign = task?.category === 'campanha';
+  const isCampaign = isCampaignTask(task);
+  const requiresScript = requiresScriptApproval(task);
   steps.push({
     label: 'Candidatar-se',
     date: isCampaign ? resolveApplicationDeadline(task) : (task?.posting_deadline || null),
   });
-  if (isCampaign) {
+  if (requiresScript) {
     steps.push({ label: 'Enviar roteiro', date: resolveScriptDeadline(task) || task?.expires_at || null });
   }
   steps.push({
     label: 'Enviar conteúdo da tarefa',
     date: resolveContentDeadline(task) || task?.expires_at || null,
   });
-  if (task?.category === 'campanha') {
+  if (isCampaign) {
     const submissionStatus = normalizeSubmissionStatus(submission?.status);
     let metricsDate = null;
     if (submissionStatus === 'approved') {
@@ -161,10 +165,11 @@ export const getTaskSteps = (task, submission) => {
 export const getCompletedStepsCount = (task, submission, metricsSubmission) => {
   const submissionStatus = normalizeSubmissionStatus(submission?.status);
   const metricsStatus = String(metricsSubmission?.status || '').trim().toLowerCase();
+  const requiresScript = requiresScriptApproval(task);
   let completed = 0;
-  if (submission) completed++;
-  if (task?.category === 'campanha') {
-    if (['script_pending', 'script_approved', 'proof_pending', 'approved'].includes(submissionStatus)) completed++;
+  if (['application_approved', 'script_pending', 'script_approved', 'script_rejected', 'proof_pending', 'rejected', 'approved'].includes(submissionStatus)) completed++;
+  if (requiresScript) {
+    if (['script_pending', 'script_approved', 'proof_pending', 'rejected', 'approved'].includes(submissionStatus)) completed++;
   }
   if (['proof_pending', 'approved'].includes(submissionStatus)) completed++;
   if (task?.category === 'campanha' && metricsStatus === 'approved') completed++;
@@ -191,16 +196,16 @@ export const resolveNextDeadline = (task, submission, metricsSubmission) => {
   return resolveContentDeadline(task);
 };
 
-export const isSubmissionReopenedByDateChange = (task, submission) => {
-  if (!isAutoExpiredSubmissionRejection(submission)) return false;
-  const phaseDeadline = resolvePhaseDeadline(task, normalizeSubmissionStatus(submission?.status));
-  if (!phaseDeadline) return false;
-  return Date.now() <= phaseDeadline.getTime();
-};
+// A extensão de prazo restaura a fase persistida em tasks.service.
+// A UI nunca deve transformar uma rejeição antiga em nova candidatura por conta própria.
+export const isSubmissionReopenedByDateChange = () => false;
 
 export const shouldShowExpiredStatus = (task, submission) => {
   if (!isAutoExpiredSubmissionRejection(submission)) return false;
-  const phaseDeadline = resolvePhaseDeadline(task, normalizeSubmissionStatus(submission?.status));
+  const reason = String(submission?.rejection_reason || '').toLowerCase();
+  const phaseDeadline = reason.includes('prazo de envio do roteiro')
+    ? resolveScriptDeadline(task)
+    : resolveContentDeadline(task);
   if (!phaseDeadline) return false;
   return Date.now() > phaseDeadline.getTime();
 };
@@ -236,11 +241,14 @@ export const isExpiredSubmission = (submission, metricsSubmission) => {
   const submissionStatus = normalizeSubmissionStatus(submission?.status);
 
   if (taskCategory === 'campanha') {
-    if (['application_approved', 'script_rejected'].includes(submissionStatus)) {
+    if (requiresScriptApproval(task) && ['application_approved', 'script_rejected'].includes(submissionStatus)) {
       const scriptDeadline = resolveScriptDeadline(task);
       if (scriptDeadline && isPastDeadline(scriptDeadline)) return true;
     }
-    if (['script_approved', 'proof_pending', 'rejected'].includes(submissionStatus)) {
+    if (
+      ['script_approved', 'proof_pending', 'rejected'].includes(submissionStatus)
+      || (!requiresScriptApproval(task) && submissionStatus === 'application_approved')
+    ) {
       const contentDeadline = resolveContentDeadline(task);
       if (contentDeadline && isPastDeadline(contentDeadline)) return true;
     }
@@ -328,7 +336,9 @@ export const getUserSubmissionStatusDisplay = (submission, metricsSubmission) =>
   }
   if (submissionStatus === 'application_approved') {
     if (task?.category === 'campanha') {
-      return { key: 'aguardando_roteiro', label: 'Aguardando roteiro', bg: `${C.cyan}18`, color: C.cyan, bucket: 'andamento' };
+      return requiresScriptApproval(task)
+        ? { key: 'aguardando_roteiro', label: 'Aguardando roteiro', bg: `${C.cyan}18`, color: C.cyan, bucket: 'andamento' }
+        : { key: 'aguardando_prova', label: 'Aguardando conteúdo', bg: `${C.cyan}18`, color: C.cyan, bucket: 'andamento' };
     }
     return { key: 'aprovado_fazer', label: 'Aprovado p/ fazer', bg: `${C.cyan}18`, color: C.cyan, bucket: 'andamento' };
   }

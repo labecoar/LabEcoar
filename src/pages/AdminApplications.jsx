@@ -9,6 +9,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
 import { C, heading, body } from '@/lib/theme';
+import { requiresScriptApproval } from '@/lib/campaign-flow';
+import { resolveContentDeadline, resolvePhaseDeadline } from '@/lib/campaign-deadlines';
 import { PageHeader, PageHeaderLabel } from "@/components/layout/PageShell";
 import {
   usePageTheme,
@@ -102,14 +104,21 @@ export default function AdminApplications() {
 
       if (approvedSubmission?.status === 'application_approved') setActiveTab('selected');
 
-      const proofDeadline = submission.task?.delivery_deadline ? new Date(submission.task.delivery_deadline) : null
-      const proofDeadlineLabel = proofDeadline && !Number.isNaN(proofDeadline.getTime()) ? proofDeadline.toLocaleDateString('pt-BR') : null
-      const nextStepLabel = isCampaign ? 'enviar o roteiro' : 'enviar a prova'
-      notifySuccess(proofDeadlineLabel
-        ? `Inscrição aprovada! O usuário já pode ${nextStepLabel} até ${proofDeadlineLabel}.`
+      const requiresScript = requiresScriptApproval(submission.task)
+      const nextStepDeadline = isCampaign && !requiresScript
+        ? resolveContentDeadline(submission.task)
+        : resolvePhaseDeadline(submission.task, 'application_approved')
+      const nextStepDeadlineLabel = nextStepDeadline?.toLocaleDateString('pt-BR') || null
+      const nextStepLabel = requiresScript
+        ? 'enviar o roteiro'
+        : isCampaign
+          ? 'enviar o conteúdo'
+          : 'enviar a prova'
+      notifySuccess(nextStepDeadlineLabel
+        ? `Inscrição aprovada! O usuário já pode ${nextStepLabel} até ${nextStepDeadlineLabel}.`
         : 'Inscrição aprovada!');
     } catch (error) {
-      notifyError('Erro ao aprovar inscrição.');
+      notifyError(error?.message || 'Erro ao aprovar inscrição.');
     }
   };
 
@@ -132,7 +141,7 @@ export default function AdminApplications() {
       await queryClient.refetchQueries({ queryKey: ['submissions', 'pending'] });
       notifySuccess('Inscrição rejeitada.');
     } catch (error) {
-      notifyError('Erro ao rejeitar inscrição.');
+      notifyError(error?.message || 'Erro ao rejeitar inscrição.');
     }
   };
 
@@ -151,7 +160,7 @@ export default function AdminApplications() {
       await queryClient.refetchQueries({ queryKey: ['submissions', 'pending'] });
       notifySuccess('Inscrição voltou para análise pendente.');
     } catch (error) {
-      notifyError('Erro ao reabrir análise.');
+      notifyError(error?.message || 'Erro ao reabrir análise.');
     }
   };
 

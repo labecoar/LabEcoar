@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { shouldSendCampaignEmailOnCreate } from '@/lib/task-scheduling'
 import { resolveContentDeadline } from '@/lib/campaign-deadlines'
+import { requiresScriptApproval } from '@/lib/campaign-flow'
 import { isDevCampaignEmailDisabled } from '@/lib/dev-safety'
 
 const toDateOrNull = (value) => {
@@ -17,6 +18,15 @@ const AUTO_EXPIRE_REJECTION_REASONS = [
   'Prazo da campanha expirou aguardando aprovação do roteiro. Vaga cancelada e devolvida ao pool.',
 ]
 
+const resolveRestoredSubmissionStatus = (reason, task) => {
+  if (reason === AUTO_EXPIRE_REJECTION_REASONS[1]) return 'application_approved'
+  if (reason === AUTO_EXPIRE_REJECTION_REASONS[2]) return 'script_pending'
+  if (reason === AUTO_EXPIRE_REJECTION_REASONS[0]) {
+    return requiresScriptApproval(task) ? 'script_approved' : 'application_approved'
+  }
+  return 'application_pending'
+}
+
 async function reopenAutoExpiredSubmissionsIfDeadlineExtended(previousTask, updatedTask) {
   const previousDeadline = resolveTaskProofDeadline(previousTask)
   const nextDeadline = resolveTaskProofDeadline(updatedTask)
@@ -26,30 +36,52 @@ async function reopenAutoExpiredSubmissionsIfDeadlineExtended(previousTask, upda
 
   const { data: rejectedSubmissions, error: rejectedError } = await supabase
     .from('submissions')
-    .select('id')
+    .select('id, rejection_reason')
     .eq('task_id', updatedTask.id)
     .in('status', ['application_rejected', 'rejected'])
     .in('rejection_reason', AUTO_EXPIRE_REJECTION_REASONS)
 
   if (rejectedError) throw rejectedError
 
-  const toReopenIds = (rejectedSubmissions || []).map((submission) => submission.id)
-
-  if (toReopenIds.length === 0) return
+  if ((rejectedSubmissions || []).length === 0) return
 
   const nowIso = new Date().toISOString()
-  const { error: reopenError } = await supabase
-    .from('submissions')
-    .update({
-      status: 'application_pending',
-      rejection_reason: null,
-      validated_at: null,
-      updated_at: nowIso,
-      points_awarded: 0,
-    })
-    .in('id', toReopenIds)
+  const groupedIds = (rejectedSubmissions || []).reduce((groups, submission) => {
+    const status = resolveRestoredSubmissionStatus(submission.rejection_reason, updatedTask)
+    if (!groups[status]) groups[status] = []
+    groups[status].push(submission.id)
+    return groups
+  }, {})
 
-  if (reopenError) throw reopenError
+  for (const [status, ids] of Object.entries(groupedIds)) {
+    const { error: reopenError } = await supabase
+      .from('submissions')
+      .update({
+        status,
+        rejection_reason: null,
+        validated_at: null,
+        updated_at: nowIso,
+        points_awarded: 0,
+      })
+      .in('id', ids)
+
+    if (reopenError) throw reopenError
+  }
+
+  const restoredParticipantCount = Object.entries(groupedIds)
+    .filter(([status]) => status !== 'application_pending')
+    .reduce((total, [, ids]) => total + ids.length, 0)
+  if (restoredParticipantCount > 0) {
+    const nextParticipants = Number(updatedTask.current_participants || 0) + restoredParticipantCount
+    const { error: participantError } = await supabase
+      .from('tasks')
+      .update({
+        current_participants: nextParticipants,
+        updated_at: nowIso,
+      })
+      .eq('id', updatedTask.id)
+    if (participantError) throw participantError
+  }
 }
 
 async function reactivateTaskIfDeadlineReopened(updatedTask) {
@@ -193,7 +225,7 @@ export const tasksService = {
   async updateTask(taskId, updates) {
     const { data: previousTask, error: previousTaskError } = await supabase
       .from('tasks')
-      .select('id, status, category, expires_at, posting_deadline, delivery_deadline')
+      .select('id, status, category, campaign_type, expires_at, posting_deadline, delivery_deadline, current_participants, max_participants')
       .eq('id', taskId)
       .single()
 

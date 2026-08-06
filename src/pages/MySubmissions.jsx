@@ -33,8 +33,13 @@ import { useThemeMode } from '@/contexts/ThemeContext';
 import { getCategoryStyle } from '@/pages/Tasks';
 import { PageHeader, PageHeaderLabel, PointsBadge } from "@/components/layout/PageShell";
 import { createPageUrl } from '@/utils';
+import { getTaskDisplayCategory } from '@/lib/campaign-flow';
 
 const PAGE_SIZE = 10;
+const USER_CATEGORY_OPTIONS = {
+  ...ACTIVE_USER_CATEGORIES,
+  resposta_rapida: 'Resposta Rápida',
+};
 
 const aInputCls = 'w-full px-4 py-2.5 rounded-xl outline-none transition-all';
 
@@ -164,7 +169,7 @@ function SortButton({ label, field, sortField, sortDir, onSort, isLight, T }) {
 export default function MySubmissions() {
   const navigate = useNavigate();
   const { isLight, T } = useThemeMode();
-  const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [bucketFilter, setBucketFilter] = useState('andamento');
@@ -175,6 +180,9 @@ export default function MySubmissions() {
   const { data: submissions = [], isLoading, error } = useMySubmissions(user?.id);
   const { data: myMetricsSubmissions = [] } = useMyMetricsSubmissions(user?.id);
   const { data: userScore } = useUserScore(user?.id);
+  const selectedSubmission = selectedSubmissionId == null
+    ? null
+    : submissions.find((submission) => String(submission.id) === String(selectedSubmissionId)) || null;
 
   const mutedColor = isLight ? T.textMuted : `${C.cream}50`;
   const subColor = isLight ? T.textSub : `${C.cream}60`;
@@ -208,6 +216,7 @@ export default function MySubmissions() {
       const taskId = getSubmissionTaskId(submission);
       const metricsSubmission = taskId ? getMetricsSubmission(taskId) : null;
       const task = submission.task;
+      const displayCategory = getTaskDisplayCategory(task);
       const nextDeadline = resolveNextDeadline(task, submission, metricsSubmission);
       const deadlineState = getDeadlineState(nextDeadline);
       const statusDisplay = getUserSubmissionStatusDisplay(submission, metricsSubmission);
@@ -219,6 +228,7 @@ export default function MySubmissions() {
       return {
         submission,
         task,
+        displayCategory,
         metricsSubmission,
         nextDeadline,
         deadlineState,
@@ -246,9 +256,9 @@ export default function MySubmissions() {
     let result = enrichedSubmissions.filter((row) => {
       if (bucketFilter !== 'todas' && row.statusDisplay.bucket !== bucketFilter) return false;
       if (statusDetailFilter !== 'all' && row.statusDisplay.key !== statusDetailFilter) return false;
-      if (categoryFilter !== 'all' && row.task?.category !== categoryFilter) return false;
+      if (categoryFilter !== 'all' && row.displayCategory !== categoryFilter) return false;
       if (!term) return true;
-      const haystack = [row.task?.title, row.task?.description, CATEGORY_NAMES[row.task?.category], row.statusDisplay.label]
+      const haystack = [row.task?.title, row.task?.description, USER_CATEGORY_OPTIONS[row.displayCategory], CATEGORY_NAMES[row.displayCategory], row.statusDisplay.label]
         .filter(Boolean).join(' ').toLowerCase();
       return haystack.includes(term);
     });
@@ -259,7 +269,8 @@ export default function MySubmissions() {
         case 'title':
           return dir * String(a.task?.title || '').localeCompare(String(b.task?.title || ''), 'pt-BR');
         case 'category':
-          return dir * String(CATEGORY_NAMES[a.task?.category] || '').localeCompare(String(CATEGORY_NAMES[b.task?.category] || ''), 'pt-BR');
+          return dir * String(USER_CATEGORY_OPTIONS[a.displayCategory] || CATEGORY_NAMES[a.displayCategory] || '')
+            .localeCompare(String(USER_CATEGORY_OPTIONS[b.displayCategory] || CATEGORY_NAMES[b.displayCategory] || ''), 'pt-BR');
         case 'deadline': {
           const aTime = a.nextDeadline ? new Date(a.nextDeadline).getTime() : 0;
           const bTime = b.nextDeadline ? new Date(b.nextDeadline).getTime() : 0;
@@ -381,7 +392,7 @@ export default function MySubmissions() {
                 onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
               >
                 <option value="all" style={optionStyle}>Todas categorias</option>
-                {Object.entries(ACTIVE_USER_CATEGORIES).map(([value, label]) => (
+                {Object.entries(USER_CATEGORY_OPTIONS).map(([value, label]) => (
                   <option key={value} value={value} style={optionStyle}>{label}</option>
                 ))}
               </select>
@@ -494,10 +505,10 @@ export default function MySubmissions() {
                         </td>
                         <td className="px-5 py-3">
                           {(() => {
-                            const { color: catColor, bg: catBg } = getCategoryStyle(row.task?.category);
+                            const { color: catColor, bg: catBg } = getCategoryStyle(row.displayCategory);
                             return (
                               <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: catBg, color: catColor }}>
-                                {ACTIVE_USER_CATEGORIES[row.task?.category] || CATEGORY_NAMES[row.task?.category] || row.task?.category || '—'}
+                                {USER_CATEGORY_OPTIONS[row.displayCategory] || CATEGORY_NAMES[row.displayCategory] || row.displayCategory || '—'}
                               </span>
                             );
                           })()}
@@ -522,7 +533,7 @@ export default function MySubmissions() {
                         <td className="px-5 py-3">
                           <button
                             type="button"
-                            onClick={() => setSelectedSubmission(row.submission)}
+                            onClick={() => setSelectedSubmissionId(row.submission.id)}
                             className="h-8 px-3 rounded-lg flex items-center gap-1.5 transition-all hover:brightness-110"
                             style={{ border: `1px solid ${isLight ? T.border : 'rgba(var(--ink),0.12)'}`, backgroundColor: 'transparent', color: isLight ? T.textSub : `${C.cream}70`, fontSize: 12, fontWeight: 600, ...heading }}
                           >
@@ -543,7 +554,7 @@ export default function MySubmissions() {
       {selectedSubmission && (
         <TaskDetailsModal
           task={selectedSubmission.task || { id: selectedSubmission.task_id, title: 'Tarefa' }}
-          onClose={() => setSelectedSubmission(null)}
+          onClose={() => setSelectedSubmissionId(null)}
           isTaskClaimed={isTaskClaimed(selectedSubmission)}
           isTaskApproved={normalizeSubmissionStatus(selectedSubmission.status) === 'approved'}
           currentSubmission={selectedSubmission}

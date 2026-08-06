@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
 import { usePendingSubmissions } from '@/hooks/useSubmissions'
 import { metricsService } from '@/services/metrics.service'
+import { requiresScriptApproval } from '@/lib/campaign-flow'
 
 const normalizeSubmissionStatus = (status) => {
   const normalized = String(status || '').trim().toLowerCase()
@@ -49,7 +50,7 @@ export function useAdminNavBadges() {
     })
 
     const hasPendingScripts = pendingSubmissions.some((submission) =>
-      String(submission?.task?.category || '') === 'campanha'
+      requiresScriptApproval(submission?.task)
       && normalizeSubmissionStatus(submission.status) === 'script_pending'
     )
 

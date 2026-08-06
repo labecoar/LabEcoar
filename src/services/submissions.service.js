@@ -7,6 +7,7 @@ import {
   isScriptSubmissionOpen,
   isContentSubmissionOpen,
 } from '@/lib/campaign-deadlines'
+import { isCampaignTask, requiresScriptApproval } from '@/lib/campaign-flow'
 
 const APPROVAL_HISTORY_TABLE = 'submission_approval_history'
 
@@ -26,9 +27,6 @@ const toDateOrNull = (value) => {
 }
 
 const resolveProofDeadline = (task) => resolveContentDeadline(task)
-
-const SCRIPT_EXPIRE_REJECTION_REASON = 'Prazo de envio do roteiro expirou. Vaga cancelada e devolvida ao pool.'
-const PROOF_EXPIRE_REJECTION_REASON = 'Prazo de envio da prova expirou. Vaga cancelada e devolvida ao pool.'
 
 async function decrementTaskParticipants(taskId) {
   if (!taskId) return
@@ -51,99 +49,6 @@ async function decrementTaskParticipants(taskId) {
     .eq('id', taskData.id)
 
   if (updateTaskError) throw updateTaskError
-}
-
-async function autoExpireSubmission(submission, reason, fromStatuses) {
-  const allowedStatuses = Array.isArray(fromStatuses) ? fromStatuses : [fromStatuses]
-  const nowIso = new Date().toISOString()
-  const { data, error } = await supabase
-    .from('submissions')
-    .update({
-      status: 'application_rejected',
-      rejection_reason: reason,
-      validated_at: nowIso,
-      updated_at: nowIso,
-    })
-    .eq('id', submission.id)
-    .in('status', allowedStatuses)
-    .select('*')
-    .single()
-
-  if (error) {
-    if (String(error.code || '') === 'PGRST116') return submission
-    throw error
-  }
-
-  await decrementTaskParticipants(submission.task_id)
-  return {
-    ...submission,
-    ...data,
-  }
-}
-
-async function autoCancelApprovedSubmission(submission, reason) {
-  return autoExpireSubmission(submission, reason, ['application_approved'])
-}
-
-async function applySubmissionTaskRules(submission) {
-  const eligibleStatuses = [
-    'application_approved',
-    'script_pending',
-    'script_approved',
-    'script_rejected',
-    'rejected',
-  ]
-  if (!eligibleStatuses.includes(submission?.status)) return submission
-
-  const task = submission.task
-  const now = new Date()
-  const isCampaign = String(task?.category || '') === 'campanha'
-
-  if (isCampaign) {
-    const scriptDeadline = resolveScriptDeadline(task)
-    const contentDeadline = resolveContentDeadline(task)
-
-    if (submission.status === 'application_approved') {
-      if (scriptDeadline && now > scriptDeadline) {
-        return autoExpireSubmission(submission, SCRIPT_EXPIRE_REJECTION_REASON, ['application_approved'])
-      }
-      return submission
-    }
-
-    if (submission.status === 'script_pending') {
-      if (contentDeadline && now > contentDeadline) {
-        return autoExpireSubmission(
-          submission,
-          'Prazo da campanha expirou aguardando aprovação do roteiro. Vaga cancelada e devolvida ao pool.',
-          ['script_pending']
-        )
-      }
-      return submission
-    }
-
-    if (contentDeadline && now > contentDeadline) {
-      return autoExpireSubmission(
-        submission,
-        PROOF_EXPIRE_REJECTION_REASON,
-        ['script_approved', 'script_rejected', 'rejected']
-      )
-    }
-
-    return submission
-  }
-
-  const proofDeadline = resolveProofDeadline(task)
-  if (!proofDeadline) return submission
-
-  if (now > proofDeadline) {
-    return autoExpireSubmission(submission, PROOF_EXPIRE_REJECTION_REASON, ['application_approved'])
-  }
-
-  return submission
-}
-
-async function applyRulesToSubmissions(submissions) {
-  return Promise.all((submissions || []).map((item) => applySubmissionTaskRules(item)))
 }
 
 async function getCurrentReviewerSnapshot() {
@@ -214,6 +119,7 @@ export const submissionsService = {
         title,
         description,
         category,
+        campaign_type,
         points,
         offered_value,
         expires_at,
@@ -235,7 +141,7 @@ export const submissionsService = {
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    return applyRulesToSubmissions(data || [])
+    return data || []
   },
 
   /**
@@ -250,6 +156,7 @@ export const submissionsService = {
           id,
           title,
           category,
+          campaign_type,
           points,
           offered_value,
           max_participants,
@@ -295,7 +202,7 @@ export const submissionsService = {
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    return applyRulesToSubmissions(data || [])
+    return data || []
   },
 
   async getApprovalHistory(limit = 30) {
@@ -321,7 +228,7 @@ export const submissionsService = {
   async createSubmission(submissionData) {
     const { data: taskRequirementRows, error: taskRequirementError } = await supabase
       .from('tasks')
-      .select('id, min_followers, launch_at, created_at, category, organization_id, posting_deadline, expires_at')
+      .select('id, min_followers, launch_at, created_at, category, campaign_type, organization_id, posting_deadline, expires_at')
       .eq('id', submissionData.task_id)
       .limit(1)
 
@@ -541,13 +448,13 @@ export const submissionsService = {
 
     const { data: taskData, error: taskError } = await supabase
       .from('tasks')
-      .select('category, expires_at, posting_deadline, delivery_deadline, launch_at, created_at')
+      .select('category, campaign_type, expires_at, posting_deadline, delivery_deadline, launch_at, created_at')
       .eq('id', currentSubmission.task_id)
       .single()
 
     if (taskError) throw taskError
 
-    if (String(taskData?.category || '') !== 'campanha') {
+    if (!requiresScriptApproval(taskData)) {
       throw new Error('Envio de roteiro disponível apenas para campanhas.')
     }
 
@@ -598,17 +505,18 @@ export const submissionsService = {
 
     const { data: taskData, error: taskError } = await supabase
       .from('tasks')
-      .select('category, points, expires_at, posting_deadline, delivery_deadline, launch_at, created_at')
+      .select('category, campaign_type, points, expires_at, posting_deadline, delivery_deadline, launch_at, created_at')
       .eq('id', currentSubmission.task_id)
       .single()
 
     if (taskError) throw taskError
 
     const isSidequestTest = String(taskData?.category || '') === 'sidequest_teste'
-    const isCampaign = String(taskData?.category || '') === 'campanha'
+    const isCampaign = isCampaignTask(taskData)
+    const requiresScript = requiresScriptApproval(taskData)
     const canSubmitProof = isSidequestTest
       ? ['application_pending', 'application_approved', 'rejected'].includes(currentSubmission.status)
-      : isCampaign
+      : requiresScript
         ? ['script_approved', 'rejected'].includes(currentSubmission.status)
         : ['application_approved', 'rejected'].includes(currentSubmission.status)
 
@@ -646,7 +554,7 @@ export const submissionsService = {
       .eq('id', submissionId)
       .in('status', isSidequestTest
         ? ['application_pending', 'application_approved', 'rejected']
-        : isCampaign
+        : requiresScript
           ? ['script_approved', 'rejected']
           : ['application_approved', 'rejected'])
       .select()
@@ -667,7 +575,7 @@ export const submissionsService = {
 
     const { data: taskData, error: taskError } = await supabase
       .from('tasks')
-      .select('id, title, current_participants, max_participants')
+      .select('id, title, category, campaign_type, current_participants, max_participants, expires_at, posting_deadline, delivery_deadline, launch_at, created_at')
       .eq('id', currentSubmission.task_id)
       .single()
 
@@ -679,6 +587,13 @@ export const submissionsService = {
       || currentSubmission.status === 'pending'
       || currentSubmission.status === 'application_rejected'
     ) {
+      if (requiresScriptApproval(taskData) && !isScriptSubmissionOpen(taskData)) {
+        throw new Error('O prazo de envio do roteiro já encerrou. Estenda o prazo da campanha antes de selecionar esta candidatura.')
+      }
+      if (isCampaignTask(taskData) && !requiresScriptApproval(taskData) && !isContentSubmissionOpen(taskData)) {
+        throw new Error('O prazo de envio do conteúdo já encerrou. Estenda o prazo da campanha antes de selecionar esta candidatura.')
+      }
+
       const currentParticipants = Number(taskData.current_participants || 0)
       const maxParticipants = taskData.max_participants == null ? null : Number(taskData.max_participants)
       if (maxParticipants !== null && currentParticipants >= maxParticipants) {

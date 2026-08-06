@@ -2,6 +2,7 @@ import { differenceInCalendarDays, format, startOfDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { getProofMetricsWindowFromSubmission, getMetricsResubmissionDeadline } from '@/lib/metrics-window'
 import { getTaskAvailabilityReference, isTaskLaunched } from '@/lib/task-scheduling'
+import { requiresScriptApproval } from '@/lib/campaign-flow'
 import {
   resolveApplicationDeadline,
   resolveScriptDeadline,
@@ -114,15 +115,18 @@ const buildApplicationStatusNotification = ({ task, submission }) => {
   if (!task || !submission) return null
 
   const status = normalizeSubmissionStatus(submission.status)
+  const isCampaign = task?.category === 'campanha'
+  const requiresScript = requiresScriptApproval(task)
 
   if (status === 'application_approved') {
-    const isCampaign = task?.category === 'campanha'
     return baseNotification({
       id: `candidatura-aprovada-${submission.id}`,
       type: 'candidatura_aprovada',
       title: 'Inscrição aceita',
       message: isCampaign
-        ? `Sua inscrição na campanha "${task.title}" foi aceita! Envie seu roteiro.`
+        ? requiresScript
+          ? `Sua inscrição na campanha "${task.title}" foi aceita! Envie seu roteiro.`
+          : `Sua inscrição na campanha "${task.title}" foi aceita! Envie seu conteúdo/prova.`
         : `Sua inscrição na tarefa "${task.title}" foi aceita!`,
       task,
       createdDate: submission.validated_at || submission.updated_at || submission.created_at,
@@ -183,18 +187,22 @@ const buildApplicationStatusNotification = ({ task, submission }) => {
 
 const buildProofDeadlineNotification = ({ task, submission, now }) => {
   const submissionStatus = normalizeSubmissionStatus(submission?.status)
+  const isCampaign = task?.category === 'campanha'
+  const requiresScript = requiresScriptApproval(task)
   const eligibleStatuses = task?.category === 'campanha'
     ? ['application_approved', 'script_approved', 'script_rejected']
     : ['application_approved']
   if (!eligibleStatuses.includes(submissionStatus)) return null
 
-  const proofDeadline = resolvePhaseDeadline(task, submissionStatus)
+  const proofDeadline = isCampaign && !requiresScript
+    ? resolveContentDeadline(task)
+    : resolvePhaseDeadline(task, submissionStatus)
   if (!proofDeadline || now > proofDeadline) return null
 
-  const isScriptPhase = task?.category === 'campanha'
+  const isScriptPhase = requiresScript
     && ['application_approved', 'script_rejected'].includes(submissionStatus)
 
-  if (!isScriptPhase && task?.category === 'campanha' && !isContentSubmissionOpen(task, now)) {
+  if (!isScriptPhase && isCampaign && requiresScript && !isContentSubmissionOpen(task, now)) {
     return null
   }
 
@@ -204,10 +212,16 @@ const buildProofDeadlineNotification = ({ task, submission, now }) => {
   return baseNotification({
     id: `task-proof-due-${task.id}-${proofDeadline.toISOString().slice(0, 10)}`,
     type: 'task_due_soon',
-    title: isScriptPhase ? 'Prazo do roteiro se aproximando' : 'Prazo da prova se aproximando',
+    title: isScriptPhase
+      ? 'Prazo do roteiro se aproximando'
+      : isCampaign && !requiresScript
+        ? 'Prazo do conteúdo/prova se aproximando'
+        : 'Prazo da prova se aproximando',
     message: isScriptPhase
       ? `Você está perto do prazo para enviar o roteiro da campanha "${task.title}" (${dayLabel}).`
-      : `Você está perto do prazo para enviar a prova da tarefa "${task.title}" (${dayLabel}).`,
+      : isCampaign && !requiresScript
+        ? `Você está perto do prazo para enviar o conteúdo/prova da campanha "${task.title}" (${dayLabel}).`
+        : `Você está perto do prazo para enviar a prova da tarefa "${task.title}" (${dayLabel}).`,
     task,
     createdDate: proofDeadline.toISOString(),
     linkPath: '/MySubmissions',

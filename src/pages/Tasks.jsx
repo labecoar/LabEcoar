@@ -18,9 +18,17 @@ import {
   resolveApplicationDeadline,
   resolveScriptDeadline,
   resolveContentDeadline,
-  resolvePhaseDeadline,
 } from '@/lib/campaign-deadlines';
 import { stripFormattingForPreview } from '@/lib/task-description-format';
+import {
+  isSubmissionReopenedByDateChange,
+  shouldShowExpiredStatus,
+} from '@/lib/task-submission-display';
+import {
+  getTaskDisplayCategory,
+  isQuickResponseCampaign,
+  requiresScriptApproval,
+} from '@/lib/campaign-flow';
 import { PageShell, PageHeader, PageHeaderLabel, PageContent, PageTitle } from "@/components/layout/PageShell";
 
 const BORDER_COLOR = "rgba(var(--ink),0.07)";
@@ -101,19 +109,6 @@ const firstBusinessDayOnOrAfter = (baseDate) => {
 };
 
 const resolveProofDeadline = (task) => resolveContentDeadline(task);
-
-const isAutoExpiredSubmissionRejection = (submission) => {
-  if (!submission) return false;
-  const status = normalizeSubmissionStatus(submission.status);
-  if (!['application_rejected', 'rejected'].includes(status)) return false;
-  const reason = String(submission.rejection_reason || '').trim().toLowerCase();
-  if (!reason) return false;
-  return reason.includes('prazo de envio da prova expirou')
-    || reason.includes('prazo de envio do roteiro expirou')
-    || reason.includes('prazo da campanha expirou aguardando aprovação do roteiro')
-    || reason.includes('vaga cancelada por inatividade')
-    || reason.includes('primeira tentativa de envio da prova');
-};
 
 const getDeadlineState = (expiresAtValue) => {
   if (!expiresAtValue) return { expiresAt: null, isExpired: false, isCritical: false, isWarning: false, timeLabel: 'Sem data' };
@@ -217,7 +212,8 @@ export default function Tasks() {
     if (selectedCategory === "todas") return tasks;
     if (selectedCategory === "agendadas") return tasks.filter(task => isTaskScheduled(task));
     if (selectedCategory === "concluidas") return tasks.filter(task => isSidequestCompletedThisMonth(task.id));  // ← novo
-    return tasks.filter((task) => task.category === selectedCategory);
+    if (selectedCategory === "resposta_rapida") return tasks.filter(isQuickResponseCampaign);
+    return tasks.filter((task) => getTaskDisplayCategory(task) === selectedCategory);
   })();
 
   const isTaskClaimed = (taskId) => {
@@ -235,20 +231,6 @@ export default function Tasks() {
   const isTaskRejected = (taskId) => {
     const submission = getTaskSubmission(taskId);
     return ['application_rejected', 'rejected'].includes(normalizeSubmissionStatus(submission?.status));
-  };
-
-  const shouldShowExpiredStatus = (task, submission) => {
-    if (!isAutoExpiredSubmissionRejection(submission)) return false;
-    const phaseDeadline = resolvePhaseDeadline(task, normalizeSubmissionStatus(submission?.status));
-    if (!phaseDeadline) return false;
-    return Date.now() > phaseDeadline.getTime();
-  };
-
-  const isSubmissionReopenedByDateChange = (task, submission) => {
-    if (!isAutoExpiredSubmissionRejection(submission)) return false;
-    const phaseDeadline = resolvePhaseDeadline(task, normalizeSubmissionStatus(submission?.status));
-    if (!phaseDeadline) return false;
-    return Date.now() <= phaseDeadline.getTime();
   };
 
   const buildStepWithDeadline = (label, dateVal) => {
@@ -271,7 +253,7 @@ export default function Tasks() {
         ),
     ];
 
-    if (isCampaign) {
+    if (isCampaign && requiresScriptApproval(task)) {
       steps.push(buildStepWithDeadline("Enviar roteiro", resolveScriptDeadline(task)));
     }
 
@@ -302,12 +284,18 @@ export default function Tasks() {
   const getCompletedStepsCount = (task, submission, metricsSubmission) => {
     const submissionStatus = normalizeSubmissionStatus(submission?.status);
     const metricsStatus = String(metricsSubmission?.status || '').trim().toLowerCase();
+    const requiresScript = task.category === 'campanha' && requiresScriptApproval(task);
     let completed = 0;
 
-    if (submission) completed++;
+    const hasApprovedApplication = requiresScript
+      ? ['application_approved', 'script_pending', 'script_approved', 'script_rejected', 'proof_pending', 'rejected', 'approved'].includes(submissionStatus)
+      : ['application_approved', 'proof_pending', 'rejected', 'approved'].includes(submissionStatus);
+    if (hasApprovedApplication) {
+      completed++;
+    }
 
-    if (task.category === 'campanha') {
-      if (['script_pending', 'script_approved', 'proof_pending', 'approved'].includes(submissionStatus)) completed++;
+    if (requiresScript) {
+      if (['script_pending', 'script_approved', 'proof_pending', 'rejected', 'approved'].includes(submissionStatus)) completed++;
     }
 
     if (['proof_pending', 'approved'].includes(submissionStatus)) completed++;
@@ -327,10 +315,12 @@ export default function Tasks() {
   const TaskCard = ({ task }) => {
     const isSidequestBlockedThisMonth = task.category === 'sidequest_teste' && isSidequestCompletedThisMonth(task.id);
     const isCampaignTask = task.category === 'campanha';
+    const isQuickResponseTask = isQuickResponseCampaign(task);
     const isMissionTask = task.category === 'sidequest_teste';
-    const { color: categoryAccent, bg: categoryAccentBg } = getCategoryStyle(task.category);
-    const accent = isLight && isCampaignTask ? C.blue : categoryAccent;
-    const accentBg = isLight && isCampaignTask ? C.blue_back : categoryAccentBg;
+    const displayCategory = getTaskDisplayCategory(task);
+    const { color: categoryAccent, bg: categoryAccentBg } = getCategoryStyle(displayCategory);
+    const accent = isLight && isCampaignTask && !isQuickResponseTask ? C.blue : categoryAccent;
+    const accentBg = isLight && isCampaignTask && !isQuickResponseTask ? C.blue_back : categoryAccentBg;
     const accentText = accent === C.lime
       ? C.onAccent
       : accent === C.blue
@@ -341,7 +331,7 @@ export default function Tasks() {
     const metricsSubmission = getTaskMetricsSubmission(task.id);
     const steps = getTaskSteps(task, submission);
     const completedSteps = getCompletedStepsCount(task, submission, metricsSubmission);
-    const Icon = CATEGORY_ICONS[task.category] || Target;
+    const Icon = CATEGORY_ICONS[displayCategory] || Target;
     const isPaidTask = task.category === 'campanha' || Number(task.offered_value || 0) > 0;
     const missionPointsBg = isMissionTask ? accentBg : C.lime_back;
     const missionPointsColor = isMissionTask ? accent : C.lime;
@@ -389,7 +379,7 @@ export default function Tasks() {
       if (submissionStatus === 'script_rejected')
         return <span style={{ ...base, background: "rgba(255,34,85,0.12)", color: "#FF2255" }}>Roteiro rejeitado</span>;
       if (submissionStatus === 'application_approved')
-        return <span style={{ ...base, background: "rgba(170,102,255,0.12)", color: C.purple }}><Clock size={11} /> {isCampaignTask ? 'Aguardando Roteiro' : 'Aprovado p/ Fazer'}</span>;
+        return <span style={{ ...base, background: "rgba(170,102,255,0.12)", color: C.purple }}><Clock size={11} /> {isQuickResponseTask ? 'Aguardando Prova/Conteúdo' : isCampaignTask ? 'Aguardando Roteiro' : 'Aprovado p/ Fazer'}</span>;
       if (claimed)
         return (
           <span style={{ ...base, background: "rgba(255,136,51,0.12)", color: C.orange }}>
@@ -599,7 +589,7 @@ export default function Tasks() {
           {/* Footer: status */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 10, borderTop: `1px solid ${BORDER_COLOR}` }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, background: accentBg, color: accent, fontSize: 11, fontWeight: 600 }}>
-              <Icon size={9} /> {CATEGORY_NAMES[task.category] || task.category}
+              <Icon size={9} /> {CATEGORY_NAMES[displayCategory] || displayCategory}
             </span>
             <StatusBadge />
           </div>

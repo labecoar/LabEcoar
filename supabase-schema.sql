@@ -833,6 +833,7 @@ CREATE POLICY "Users can submit script on approved applications"
       FROM tasks t
       WHERE t.id = submissions.task_id
         AND t.category = 'campanha'
+        AND COALESCE(t.campaign_type, 'comum') <> 'resposta_rapida'
     )
   )
   WITH CHECK (user_id = auth.uid() AND status = 'script_pending');
@@ -851,6 +852,7 @@ CREATE POLICY "Users can submit proof on approved applications"
           FROM tasks t
           WHERE t.id = submissions.task_id
             AND t.category = 'campanha'
+            AND COALESCE(t.campaign_type, 'comum') <> 'resposta_rapida'
         )
       )
       OR (
@@ -859,8 +861,10 @@ CREATE POLICY "Users can submit proof on approved applications"
           SELECT 1
           FROM tasks t
           WHERE t.id = submissions.task_id
-            AND t.category <> 'campanha'
-            AND t.category <> 'sidequest_teste'
+            AND (
+              (t.category = 'campanha' AND t.campaign_type = 'resposta_rapida')
+              OR (t.category <> 'campanha' AND t.category <> 'sidequest_teste')
+            )
         )
       )
       OR (

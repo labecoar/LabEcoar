@@ -30,6 +30,7 @@ import {
   isScriptSubmissionOpen,
   isContentSubmissionOpen,
 } from '@/lib/campaign-deadlines';
+import { getTaskDisplayCategory, requiresScriptApproval } from '@/lib/campaign-flow';
 import { TaskDescriptionContent } from '@/components/tasks/TaskDescriptionContent';
 import { isRichTextDescription, getDescriptionPlainText } from '@/lib/task-description-format';
 import {
@@ -246,7 +247,8 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
   const isCampaignTask = task?.category === 'campanha';
   const isSidequestTask = task?.category === 'sidequest_teste';
-  const { color: categoryAccent, bg: categoryAccentBg } = getCategoryStyle(task?.category);
+  const displayCategoryKey = getTaskDisplayCategory(task);
+  const { color: categoryAccent, bg: categoryAccentBg } = getCategoryStyle(displayCategoryKey);
   const accent = isLight && isCampaignTask ? C.blue : categoryAccent;
   const accentBg = isLight && isCampaignTask ? C.blue_back : categoryAccentBg;
   const accentText = accent === C.lime
@@ -256,7 +258,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
       : C.cream;
   const actionButtonClassName = "w-full flex justify-center items-center min-h-[48px] px-4 py-3 rounded-xl text-center transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100";
   const actionButtonStyle = { backgroundColor: accent, color: accentText, ...heading, fontSize: 14, fontWeight: 700 };
-  const displayCategory = CATEGORY_NAMES[task?.category] || task?.category || '';
+  const displayCategory = CATEGORY_NAMES[displayCategoryKey] || displayCategoryKey || '';
   const displayProofType = useMemo(() => (task ? getProofTypeLabel(task) : ''), [task]);
   const offeredValue = Number(task.offered_value || task.points || 0);
   const userFollowers = Number(profile?.followers_count || 0);
@@ -288,7 +290,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const shouldShowSubmissionRejectionReason = Boolean(currentSubmission?.rejection_reason) && !isSubmissionReopenedByDateChange;
   const isScheduled = isTaskScheduled(task);
   const launchLabel = isScheduled ? formatLaunchDateTime(task.launch_at) : null;
-  const requiresScript = isCampaignTask;
+  const requiresScript = requiresScriptApproval(task);
   const canApply = (!currentSubmission || isSubmissionReopenedByDateChange) && !isTaskApproved && !isFull && meetsFollowersRequirement && !isScheduled
     && (isCampaignTask ? isApplicationOpen(task) : !isContentDeadlineExpired);
   const canSubmitScript = requiresScript
@@ -429,14 +431,16 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
       steps.push({
         label: "Candidatar-se",
         description: isCampaignTask
-          ? "Clique no botão abaixo para se candidatar a esta campanha. Após a aprovação, você poderá enviar seu roteiro."
+          ? requiresScript
+            ? "Clique no botão abaixo para se candidatar a esta campanha. Após a aprovação, você poderá enviar seu roteiro."
+            : "Clique no botão abaixo para se candidatar a esta resposta rápida. Após a aprovação, você poderá enviar seu conteúdo."
           : "Clique no botão abaixo para se candidatar a esta tarefa. Após a aprovação, você poderá enviar seu conteúdo.",
         dateInfoPrefix: applicationDeadlineLabel ? 'até ' : null,
         dateTimeLabel: applicationDeadlineLabel,
       });
     }
 
-    if (isCampaignTask) {
+    if (requiresScript) {
       steps.push({
         label: "Enviar roteiro",
         description: "Envie seu roteiro em PDF, DOCX, Google Docs ou link.",
@@ -450,7 +454,9 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
       description: isSidequestTask
         ? "Envie o link e/ou o arquivo do seu conteúdo"
         : isCampaignTask
-          ? "Disponível na segunda metade do cronograma, após aprovação do roteiro."
+          ? requiresScript
+            ? "Disponível na segunda metade do cronograma, após aprovação do roteiro."
+            : "Disponível após a aprovação da candidatura."
           : "Envie o link e/ou o arquivo do seu conteúdo para validação.",
       dateInfoPrefix: contentDeadlineLabel ? 'até ' : null,
       dateTimeLabel: contentDeadlineLabel,
@@ -469,7 +475,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     }
 
     return steps;
-  }, [task, isSidequestTask, hasContentDeadline, contentDeadline, scriptDeadline, applicationDeadline, isCampaignTask, metricsWindowStart, metricsWindowEnd]);
+  }, [task, isSidequestTask, hasContentDeadline, contentDeadline, scriptDeadline, applicationDeadline, isCampaignTask, requiresScript, metricsWindowStart, metricsWindowEnd]);
 
 
   const handleApply = async (e) => {

@@ -334,12 +334,13 @@ export default function AdminContentManagement() {
 
     return getCampaignDeadlines({
       category: 'campanha',
+      campaign_type: formData.campaign_type,
       launch_at: launchAtIso,
       created_at: editingTask?.created_at || new Date().toISOString(),
       posting_deadline: finalDate.toISOString(),
       expires_at: finalDate.toISOString(),
     })
-  }, [isCampaign, formData.posting_deadline, formData.schedule_launch, formData.launch_at, editingTask?.created_at])
+  }, [isCampaign, formData.campaign_type, formData.posting_deadline, formData.schedule_launch, formData.launch_at, editingTask?.created_at])
 
   const resetForm = () => {
     setFormData(initialFormData)
@@ -884,10 +885,14 @@ export default function AdminContentManagement() {
                       {campaignDeadlinePreview && (
                         <div style={{ marginTop: 10, fontSize: 11, color: faintColor, lineHeight: 1.65 }}>
                           <p style={{ fontWeight: 600, color: isLight ? T.textSub : `${C.cream}90`, marginBottom: 4 }}>
-                            Cronograma derivado (50% roteiro / 50% conteúdo)
+                            {formData.campaign_type === 'resposta_rapida'
+                              ? 'Cronograma de Resposta Rápida (sem roteiro)'
+                              : 'Cronograma derivado (roteiro / conteúdo)'}
                           </p>
                           <p>Candidatura até: {formatLaunchDateTime(campaignDeadlinePreview.applicationDeadline) || '—'}</p>
-                          <p>Roteiro até: {formatLaunchDateTime(campaignDeadlinePreview.scriptDeadline) || '—'}</p>
+                          {campaignDeadlinePreview.scriptDeadline && (
+                            <p>Roteiro até: {formatLaunchDateTime(campaignDeadlinePreview.scriptDeadline)}</p>
+                          )}
                           <p>Conteúdo até: {formatLaunchDateTime(campaignDeadlinePreview.contentDeadline) || '—'}</p>
                         </div>
                       )}

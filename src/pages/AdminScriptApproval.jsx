@@ -11,6 +11,7 @@ import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
 import { C, heading, body, getModalBackground, colorWithAlpha } from '@/lib/theme';
+import { requiresScriptApproval } from '@/lib/campaign-flow';
 import { PageHeader, PageHeaderLabel } from "@/components/layout/PageShell";
 import {
   usePageTheme,
@@ -98,7 +99,7 @@ export default function AdminScriptApproval() {
   const rejectSubmission = useRejectSubmission();
 
   const campaignSubmissions = pendingSubmissions.filter(
-    (s) => String(s.task?.category || '') === 'campanha'
+    (s) => requiresScriptApproval(s.task)
   );
 
   const scriptPendingSubmissions = campaignSubmissions
@@ -133,7 +134,7 @@ export default function AdminScriptApproval() {
       notifySuccess('Roteiro aprovado! O ecoante já pode enviar a prova.');
       setSelectedSubmission(null);
     } catch (error) {
-      notifyError('Erro ao aprovar roteiro');
+      notifyError(error?.message || 'Erro ao aprovar roteiro');
     }
   };
 
@@ -146,7 +147,7 @@ export default function AdminScriptApproval() {
       setRejectionReason('');
       setIsRejecting(false);
     } catch (error) {
-      notifyError('Erro ao rejeitar roteiro');
+      notifyError(error?.message || 'Erro ao rejeitar roteiro');
     }
   };
 

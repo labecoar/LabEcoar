@@ -10,8 +10,8 @@ const EMAIL_TEMPLATES = {
   application_approved: {
     subject: '✅ Candidatura aprovada!',
     title: 'Candidatura aprovada!',
-    message: (name, taskTitle) =>
-      `Olá, ${name}! Sua candidatura para a tarefa <strong>"${taskTitle}"</strong> foi aprovada. Acesse a plataforma para enviar sua prova.`,
+    message: (name, taskTitle, _points, nextStep = 'prova') =>
+      `Olá, ${name}! Sua candidatura para a tarefa <strong>"${taskTitle}"</strong> foi aprovada. Acesse a plataforma para enviar ${nextStep === 'roteiro' ? 'seu roteiro' : 'seu conteúdo'}.`,
   },
   application_rejected: {
     subject: 'Atualização sobre sua candidatura',
@@ -61,7 +61,7 @@ serve(async (req) => {
     if (!profile?.email) return new Response('no profile', { status: 200 })
 
     const taskRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/tasks?id=eq.${record.task_id}&select=title`,
+      `${SUPABASE_URL}/rest/v1/tasks?id=eq.${record.task_id}&select=title,category,campaign_type`,
       {
         headers: {
           apikey: SUPABASE_SERVICE_ROLE_KEY,
@@ -74,8 +74,11 @@ serve(async (req) => {
 
     const name = profile.display_name || profile.full_name || 'usuário'
     const points = record.points_awarded || 0
-    const messageHtml = record.status === 'approved'
-      ? template.message(name, taskTitle, points)
+    const nextStep = task?.category === 'campanha' && task?.campaign_type !== 'resposta_rapida'
+      ? 'roteiro'
+      : 'conteudo'
+    const messageHtml = record.status === 'approved' || record.status === 'application_approved'
+      ? template.message(name, taskTitle, points, nextStep)
       : template.message(name, taskTitle)
 
     const html = `
