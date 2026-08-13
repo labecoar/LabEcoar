@@ -36,6 +36,23 @@ const STATUS_LABELS = {
   script_rejected: 'Roteiro rejeitado',
 };
 
+/** Status em que o roteiro já foi liberado (aprovado ou bypass admin/SQL). */
+const SCRIPT_APPROVED_OR_PAST_STATUSES = new Set([
+  'script_approved',
+  'proof_pending',
+  'approved',
+]);
+
+const isApprovedScriptSubmission = (submission) => {
+  const status = normalizeSubmissionStatus(submission.status);
+  if (!requiresScriptApproval(submission.task)) return false;
+  if (status === 'script_rejected') return false;
+  if (SCRIPT_APPROVED_OR_PAST_STATUSES.has(status)) return true;
+  // Prova rejeitada depois de roteiro aprovado
+  if (status === 'rejected' && (submission.proof_submitted_at || submission.proof_url)) return true;
+  return false;
+};
+
 const sameUrlHost = (a, b) => {
   try {
     return new URL(a).host === new URL(b).host;
@@ -107,7 +124,7 @@ export default function AdminScriptApproval() {
     .sort((a, b) => new Date(a.script_submitted_at || a.created_at).getTime() - new Date(b.script_submitted_at || b.created_at).getTime());
 
   const approvedSubmissions = campaignSubmissions
-    .filter((s) => normalizeSubmissionStatus(s.status) === 'script_approved')
+    .filter(isApprovedScriptSubmission)
     .sort((a, b) => new Date(b.validated_at || b.updated_at || b.created_at).getTime() - new Date(a.validated_at || a.updated_at || a.created_at).getTime());
 
   const rejectedSubmissions = campaignSubmissions
@@ -153,6 +170,7 @@ export default function AdminScriptApproval() {
 
   const SubmissionCard = ({ submission }) => {
     const status = normalizeSubmissionStatus(submission.status);
+    const scriptApproved = isApprovedScriptSubmission(submission);
 
     return (
       <div
@@ -191,7 +209,7 @@ export default function AdminScriptApproval() {
               <Clock size={10} style={{ display: 'inline', marginRight: 4 }} />Roteiro Pendente
             </span>
           )}
-          {status === 'script_approved' && (
+          {scriptApproved && (
             <span className="px-2.5 py-1 rounded-full text-xs font-semibold"
               style={{ backgroundColor: `${C.lime_back}`, color: C.lime }}>Roteiro Aprovado</span>
           )}
@@ -209,6 +227,10 @@ export default function AdminScriptApproval() {
           {status === 'script_approved' && latestScriptApprovalBySubmission[submission.id] ? (
             <span style={{ fontSize: 11, color: faintColor }}>
               Por {latestScriptApprovalBySubmission[submission.id].approver_name || 'Admin'}
+            </span>
+          ) : scriptApproved && status !== 'script_approved' ? (
+            <span style={{ fontSize: 11, color: faintColor }}>
+              {status === 'proof_pending' ? 'Prova em análise' : 'Etapa concluída'}
             </span>
           ) : (
             <span style={{ fontSize: 11, color: faintColor }}>Toque para abrir</span>

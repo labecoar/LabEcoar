@@ -3,20 +3,15 @@ import { addDays } from 'date-fns'
 /** Em dev, defina VITE_DEV_SKIP_METRICS_WAIT=true no .env para liberar envio imediato */
 const isDevMetricsBypass = import.meta.env.DEV && import.meta.env.VITE_DEV_SKIP_METRICS_WAIT === 'true'
 
-/** Dias corridos após o envio da prova para liberar envio de métricas */
+/** Dias corridos após a aprovação da prova para liberar envio de métricas */
 export const METRICS_WAIT_AFTER_PROOF_DAYS = isDevMetricsBypass ? 0 : 5
 
-/** Dias corridos que o ecoante tem para enviar métricas após a janela abrir */
-export const METRICS_SUBMISSION_WINDOW_DAYS = 365
+/** Dias corridos para reenvio após rejeição das métricas (liberado na hora; prazo máximo). */
+export const METRICS_RESUBMISSION_WINDOW_DAYS = 5
 
-/** Dias corridos extras (só admin) para aprovar métricas após o prazo do ecoante */
-export const METRICS_ADMIN_REVIEW_BUFFER_DAYS = 0
-
-/** Dias corridos para reenvio após rejeição das métricas */
-export const METRICS_RESUBMISSION_WINDOW_DAYS = 365
-
-/** Horário fixo de abertura da janela de métricas (horário local do navegador). */
-export const METRICS_WINDOW_START_HOUR = 8
+/** Horário de abertura no quinto dia-calendário após a aprovação. */
+export const METRICS_WINDOW_START_HOUR = 0
+export const METRICS_WINDOW_START_MINUTE = 1
 
 export const toDateOrNull = (value) => {
   if (!value) return null
@@ -26,23 +21,32 @@ export const toDateOrNull = (value) => {
 
 const resolveMetricsWindowStart = (baseDate) => {
   const start = addDays(baseDate, METRICS_WAIT_AFTER_PROOF_DAYS)
-  start.setHours(METRICS_WINDOW_START_HOUR, 0, 0, 0)
+  start.setHours(METRICS_WINDOW_START_HOUR, METRICS_WINDOW_START_MINUTE, 0, 0)
   return start
 }
 
+/** Janela de envio: abre após METRICS_WAIT_AFTER_PROOF_DAYS; sem data final. */
 export const getProofMetricsWindowFromSubmission = (submission) => {
-  const proofSubmittedAt = toDateOrNull(submission?.proof_submitted_at)
   const proofApprovedAt = toDateOrNull(submission?.validated_at)
+  const proofSubmittedAt = toDateOrNull(submission?.proof_submitted_at)
   const fallbackDate = toDateOrNull(submission?.updated_at)
 
-  const baseDate = proofSubmittedAt || proofApprovedAt || fallbackDate
+  // A regra usa a aprovação. Datas de envio/atualização são apenas fallback
+  // para registros legados que não possuem validated_at.
+  const baseDate = proofApprovedAt || proofSubmittedAt || fallbackDate
   if (!baseDate) return { start: null, end: null, adminEnd: null }
 
   const start = resolveMetricsWindowStart(baseDate)
-  const end = addDays(start, METRICS_SUBMISSION_WINDOW_DAYS)
-  const adminEnd = addDays(end, METRICS_ADMIN_REVIEW_BUFFER_DAYS)
 
-  return { start, end, adminEnd }
+  return { start, end: null, adminEnd: null }
+}
+
+export const isInsideMetricsSubmissionWindow = (submission, now = new Date()) => {
+  const { start, end } = getProofMetricsWindowFromSubmission(submission)
+  if (!start) return false
+  if (now < start) return false
+  if (!end) return true
+  return now.getTime() <= end.getTime()
 }
 
 /** @deprecated Prefer getProofMetricsWindowFromSubmission(submission) */
@@ -62,6 +66,38 @@ export const getMetricsResubmissionDeadline = (reviewedAt) => {
   if (!reviewedDate) return null
 
   return addDays(reviewedDate, METRICS_RESUBMISSION_WINDOW_DAYS)
+}
+
+export const isMetricsResubmissionOpen = (metricsSubmission, now = new Date()) => {
+  if (String(metricsSubmission?.status || '').trim().toLowerCase() !== 'rejected') return false
+  const deadline = getMetricsResubmissionDeadline(metricsSubmission?.reviewed_at)
+  if (!deadline) return true
+  return now.getTime() <= deadline.getTime()
+}
+
+export const canSubmitMetricsNow = ({
+  task,
+  submission,
+  metricsSubmission,
+  now = new Date(),
+}) => {
+  if (String(task?.category || '').trim().toLowerCase() !== 'campanha') return false
+
+  const submissionStatus = String(submission?.status || '').trim().toLowerCase()
+  if (submissionStatus !== 'approved') return false
+
+  const metricsStatus = String(metricsSubmission?.status || '').trim().toLowerCase()
+  if (metricsStatus === 'pending' || metricsStatus === 'approved') return false
+
+  if (metricsStatus === 'rejected') {
+    return isMetricsResubmissionOpen(metricsSubmission, now)
+  }
+
+  if (!metricsSubmission) {
+    return isInsideMetricsSubmissionWindow(submission, now)
+  }
+
+  return false
 }
 
 /** Prazo máximo em que uma campanha permanece visível para o admin (prova no último dia). */

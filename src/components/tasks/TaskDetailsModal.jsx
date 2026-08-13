@@ -5,7 +5,7 @@ import { useCreateSubmission, useSubmitProof, useSubmitScript } from "@/hooks/us
 import { useMyMetricsSubmissions, useSubmitMetricsSubmission } from "@/hooks/useMetrics";
 import { usePaymentInfo } from "@/hooks/usePayments";
 import { useUploadFile } from "@/hooks/useStorage";
-import { getProofMetricsWindowFromSubmission, getMetricsResubmissionDeadline, METRICS_WAIT_AFTER_PROOF_DAYS } from '@/lib/metrics-window';
+import { getProofMetricsWindowFromSubmission, getMetricsResubmissionDeadline, METRICS_WAIT_AFTER_PROOF_DAYS, METRICS_RESUBMISSION_WINDOW_DAYS, canSubmitMetricsNow } from '@/lib/metrics-window';
 import { metricsService } from '@/services/metrics.service';
 import {
   Dialog,
@@ -265,7 +265,9 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const minFollowersRequired = Number(task?.min_followers || 0);
   const meetsFollowersRequirement = userFollowers >= minFollowersRequired;
   const isFull = Boolean(task.max_participants) && Number(task.current_participants || 0) >= Number(task.max_participants);
-  const submissionStatus = currentSubmission?.status;
+  const submissionStatus = currentSubmission?.status
+    ? String(currentSubmission.status).trim().toLowerCase()
+    : null;
   const submittedAt = currentSubmission?.proof_submitted_at
     ? new Date(currentSubmission.proof_submitted_at)
     : null;
@@ -314,7 +316,9 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
       : null),
     [myMetricsSubmissions, task]
   );
-  const metricsStatus = currentMetricsSubmission?.status;
+  const metricsStatus = currentMetricsSubmission?.status
+    ? String(currentMetricsSubmission.status).trim().toLowerCase()
+    : null;
   const now = new Date();
   const metricsResubmissionDeadline = getMetricsResubmissionDeadline(currentMetricsSubmission?.reviewed_at);
   const hasResubmissionWindowExpired = metricsStatus === 'rejected'
@@ -323,19 +327,20 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
   const proofApprovalMetricsWindow = getProofMetricsWindowFromSubmission(currentSubmission);
   const metricsWindowStart = proofApprovalMetricsWindow.start;
-  const metricsWindowEnd = proofApprovalMetricsWindow.end;
-  const metricsWindowLabel = metricsWindowStart && metricsWindowEnd
-    ? `${formatLaunchDateTime(metricsWindowStart)} até ${formatLaunchDateTime(metricsWindowEnd)}`
+  const metricsWindowLabel = metricsWindowStart
+    ? `a partir de ${formatLaunchDateTime(metricsWindowStart)}`
     : null;
-  const isInsideMetricsWindow =
-    metricsWindowStart && metricsWindowEnd
-      ? now >= metricsWindowStart && now <= metricsWindowEnd
-      : true;
-  const canSubmitMetrics = isCampaignTask
-    && submissionStatus === 'approved'
-    && (!currentMetricsSubmission || metricsStatus === 'rejected')
-    && isInsideMetricsWindow;
-  const hasMetricsWindowPassed = metricsWindowEnd ? now > metricsWindowEnd : false;
+  const canSubmitMetrics = canSubmitMetricsNow({
+    task,
+    submission: currentSubmission,
+    metricsSubmission: currentMetricsSubmission,
+    now,
+  });
+  const hasMetricsWindowPassed = metricsStatus === 'rejected'
+    ? hasResubmissionWindowExpired
+    : metricsWindowStart
+      ? now < metricsWindowStart
+      : false;
   const shouldShowMetricsReminder = Boolean(
     isCampaignTask
     && submissionStatus === 'approved'
@@ -367,20 +372,20 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     : STATUS_TEXT[submissionStatus] || 'Inscrição em análise';
 
   const metricsWindowHoverText = metricsWindowLabel
-    ? `Envio de métricas: de ${metricsWindowLabel}.`
+    ? `Envio de métricas liberado ${metricsWindowLabel}.`
     : `A janela de envio de métricas será disponibilizada ${METRICS_WAIT_AFTER_PROOF_DAYS} dias após a aprovação do conteúdo.`;
 
   const metricsSubmitHint = (!metricsFiles || metricsFiles.length === 0)
     ? 'Anexe o arquivo de métricas para enviar.'
     : hasResubmissionWindowExpired
-      ? 'Prazo de reenvio encerrado (2 dias após a rejeição).'
-      : hasMetricsWindowPassed
-        ? 'A janela de envio de métricas foi encerrada.'
-        : !isInsideMetricsWindow
-          ? (metricsWindowLabel
-            ? `As métricas só poderão ser enviadas entre ${metricsWindowLabel}.`
-            : 'As métricas ainda não podem ser enviadas.')
-          : '';
+      ? `Prazo de reenvio encerrado (${METRICS_RESUBMISSION_WINDOW_DAYS} dias após a rejeição).`
+      : metricsStatus === 'rejected' && metricsResubmissionDeadline
+        ? `Reenvie até ${formatLaunchDateTime(metricsResubmissionDeadline)}.`
+      : !canSubmitMetrics && metricsWindowStart && metricsStatus !== 'rejected'
+        ? (metricsWindowLabel
+          ? `As métricas só poderão ser enviadas ${metricsWindowLabel}.`
+          : `As métricas só poderão ser enviadas ${METRICS_WAIT_AFTER_PROOF_DAYS} dias após a aprovação do conteúdo.`)
+        : '';
 
   const metricsInlineHint = (!metricsFiles || metricsFiles.length === 0)
     ? 'Anexe o arquivo de métricas para liberar o envio.'
@@ -388,12 +393,12 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
       ? 'A tarefa precisa estar aprovada para liberar o envio.'
       : metricsStatus === 'rejected' && hasResubmissionWindowExpired
         ? 'Prazo de reenvio encerrado.'
-        : hasMetricsWindowPassed
-          ? 'A janela de envio de métricas já foi encerrada.'
-          : !isInsideMetricsWindow
-            ? (metricsWindowStart
-              ? `Envio liberado a partir de ${metricsWindowStart.toLocaleDateString('pt-BR')} às ${metricsWindowStart.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.`
-              : 'A janela de envio de métricas ainda não começou.')
+        : metricsStatus === 'rejected' && metricsResubmissionDeadline
+          ? `Reenvie até ${formatLaunchDateTime(metricsResubmissionDeadline)}.`
+        : !canSubmitMetrics && metricsWindowStart && metricsStatus !== 'rejected'
+          ? `Envio liberado a partir de ${metricsWindowStart.toLocaleDateString('pt-BR')} às ${metricsWindowStart.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.`
+          : metricsStatus === 'rejected'
+            ? 'Você já pode reenviar as métricas corrigidas.'
             : '';
 
   const metricsButtonTitle = [metricsWindowHoverText, metricsSubmitHint].filter(Boolean).join(' ');
@@ -475,7 +480,7 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     }
 
     return steps;
-  }, [task, isSidequestTask, hasContentDeadline, contentDeadline, scriptDeadline, applicationDeadline, isCampaignTask, requiresScript, metricsWindowStart, metricsWindowEnd]);
+  }, [task, isSidequestTask, hasContentDeadline, contentDeadline, scriptDeadline, applicationDeadline, isCampaignTask, requiresScript, metricsWindowStart]);
 
 
   const handleApply = async (e) => {
@@ -617,12 +622,16 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
   const handleSendMetrics = async (e) => {
     e.preventDefault();
     if (!metricsFiles || metricsFiles.length === 0) return;
-    if (!canSubmitMetrics || !isInsideMetricsWindow) {
-      notifyWarning(
-        metricsWindowStart
-          ? `As métricas só podem ser enviadas a partir de ${metricsWindowStart.toLocaleDateString('pt-BR')} às ${metricsWindowStart.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.`
-          : `As métricas só podem ser enviadas após ${METRICS_WAIT_AFTER_PROOF_DAYS} dias da aprovação do conteúdo.`
-      );
+    if (!canSubmitMetrics) {
+      if (metricsStatus === 'rejected' && hasResubmissionWindowExpired) {
+        notifyWarning(`Prazo de reenvio encerrado (${METRICS_RESUBMISSION_WINDOW_DAYS} dias após a rejeição).`);
+      } else if (!canSubmitMetrics && metricsStatus !== 'rejected') {
+        notifyWarning(
+          metricsWindowStart
+            ? `As métricas só podem ser enviadas a partir de ${metricsWindowStart.toLocaleDateString('pt-BR')} às ${metricsWindowStart.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.`
+            : `As métricas só podem ser enviadas após ${METRICS_WAIT_AFTER_PROOF_DAYS} dias da aprovação do conteúdo.`
+        );
+      }
       return;
     }
 

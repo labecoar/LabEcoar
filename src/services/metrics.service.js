@@ -2,9 +2,9 @@ import { supabase } from '@/lib/supabase'
 import { storageService } from '@/services/storage.service'
 import {
   getProofMetricsWindowFromSubmission,
-  getMetricsResubmissionDeadline,
+  isMetricsResubmissionOpen,
   METRICS_WAIT_AFTER_PROOF_DAYS,
-  METRICS_SUBMISSION_WINDOW_DAYS,
+  METRICS_RESUBMISSION_WINDOW_DAYS,
 } from '@/lib/metrics-window'
 import { LATE_POSTING_SYSTEM_NOTE } from '@/lib/metrics-display'
 
@@ -202,29 +202,6 @@ export const metricsService = {
 
     if (proofSubmissionError) throw proofSubmissionError
 
-    const proofMetricsWindow = getProofMetricsWindowFromSubmission(proofSubmission)
-    const now = new Date()
-    if (!proofMetricsWindow.start || !proofMetricsWindow.end) {
-      throw new Error('A janela de envio de métricas ainda não foi liberada.')
-    }
-
-    if (now < proofMetricsWindow.start) {
-      throw new Error(`As métricas só podem ser enviadas ${METRICS_WAIT_AFTER_PROOF_DAYS} dias após o envio da prova.`)
-    }
-
-    if (now > proofMetricsWindow.end) {
-      throw new Error(`A janela de envio de métricas foi encerrada (${METRICS_SUBMISSION_WINDOW_DAYS} dias após a liberação).`)
-    }
-    
-    // Capture timestamp automatically at submission time (prevents date fraud)
-    const postedAtDate = new Date()
-
-    const postingDeadlineDate = task?.posting_deadline ? new Date(task.posting_deadline) : null
-    const hasValidPostingDeadline = postingDeadlineDate && !Number.isNaN(postingDeadlineDate.getTime())
-    const postedLate = hasValidPostingDeadline ? postedAtDate > postingDeadlineDate : false
-    const latePostingNotice = postedLate ? LATE_POSTING_SYSTEM_NOTE : null
-    const finalDescription = [trimmedDescription, latePostingNotice].filter(Boolean).join('\n\n') || null
-
     const { data: existing, error: existingError } = await supabase
       .from('metrics_submissions')
       .select('id, status, attempt_number, reviewed_at, metrics_file_url, metrics_file_urls')
@@ -233,6 +210,34 @@ export const metricsService = {
       .maybeSingle()
 
     if (existingError) throw existingError
+
+    const proofMetricsWindow = getProofMetricsWindowFromSubmission(proofSubmission)
+    const now = new Date()
+    const isResubmission = existing?.status === METRICS_STATUS.REJECTED
+
+    if (!existing) {
+      if (!proofMetricsWindow.start) {
+        throw new Error('A janela de envio de métricas ainda não foi liberada.')
+      }
+      if (now < proofMetricsWindow.start) {
+        throw new Error(`As métricas só podem ser enviadas no ${METRICS_WAIT_AFTER_PROOF_DAYS}º dia após a aprovação do conteúdo.`)
+      }
+    } else if (isResubmission) {
+      if (!isMetricsResubmissionOpen(existing, now)) {
+        throw new Error(`Prazo de reenvio encerrado (${METRICS_RESUBMISSION_WINDOW_DAYS} dias após a rejeição). Você não receberá pontos nem pagamento para esta campanha.`)
+      }
+    } else {
+      throw new Error('As métricas já foram enviadas e estão em análise ou aprovadas.')
+    }
+
+    // Capture timestamp automatically at submission time (prevents date fraud)
+    const postedAtDate = new Date()
+
+    const postingDeadlineDate = task?.posting_deadline ? new Date(task.posting_deadline) : null
+    const hasValidPostingDeadline = postingDeadlineDate && !Number.isNaN(postingDeadlineDate.getTime())
+    const postedLate = hasValidPostingDeadline ? postedAtDate > postingDeadlineDate : false
+    const latePostingNotice = postedLate ? LATE_POSTING_SYSTEM_NOTE : null
+    const finalDescription = [trimmedDescription, latePostingNotice].filter(Boolean).join('\n\n') || null
 
     if (!existing) {
       const insertPayload = {
@@ -273,18 +278,6 @@ export const metricsService = {
       return legacyData
     }
 
-    if (existing.status !== METRICS_STATUS.REJECTED) {
-      throw new Error('As métricas já foram enviadas e estão em análise ou aprovadas.')
-    }
-
-    const reviewedAt = existing.reviewed_at ? new Date(existing.reviewed_at) : null
-    const resubmissionDeadline = getMetricsResubmissionDeadline(reviewedAt)
-    if (resubmissionDeadline) {
-      if (new Date() > resubmissionDeadline) {
-        throw new Error('Prazo de reenvio encerrado (2 dias após a rejeição). Você não receberá pontos nem pagamento para esta campanha.')
-      }
-    }
-
     const updatePayload = {
       metrics_file_url: (metricsFileUrls && metricsFileUrls.length) ? metricsFileUrls[0] : metricsFileUrl,
       metrics_file_urls: (metricsFileUrls && metricsFileUrls.length) ? metricsFileUrls : null,
@@ -302,6 +295,7 @@ export const metricsService = {
       .from('metrics_submissions')
       .update(updatePayload)
       .eq('id', existing.id)
+      .eq('status', METRICS_STATUS.REJECTED)
       .select()
       .single()
 
@@ -313,6 +307,7 @@ export const metricsService = {
       .from('metrics_submissions')
       .update(legacyUpdatePayload)
       .eq('id', existing.id)
+      .eq('status', METRICS_STATUS.REJECTED)
       .select()
       .single()
 

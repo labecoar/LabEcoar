@@ -9,6 +9,7 @@
 migrations/
 entities/
 supabase/
+scripts/
 supabase-schema.sql
 
 # Supabase temp

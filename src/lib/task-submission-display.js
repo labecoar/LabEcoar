@@ -185,8 +185,7 @@ export const resolveNextDeadline = (task, submission, metricsSubmission) => {
     if (metricsStatus === 'rejected') {
       return toDateOrNull(getMetricsResubmissionDeadline(metricsSubmission?.reviewed_at));
     }
-    const metricsWindow = getProofMetricsWindowFromSubmission(submission);
-    return toDateOrNull(metricsWindow?.end);
+    return null;
   }
 
   if (['application_approved', 'application_pending', 'script_pending', 'script_approved', 'script_rejected', 'proof_pending', 'pending'].includes(submissionStatus)) {
@@ -230,10 +229,8 @@ export const isExpiredSubmission = (submission, metricsSubmission) => {
     const resubmissionDeadline = metricsStatus === 'rejected'
       ? toDateOrNull(getMetricsResubmissionDeadline(metricsSubmission?.reviewed_at))
       : null;
-    const metricsWindowEnd = toDateOrNull(getProofMetricsWindowFromSubmission(submission).end);
-    const deadline = resubmissionDeadline || metricsWindowEnd;
-    if (!deadline) return false;
-    return deadline.getTime() < Date.now();
+    if (!resubmissionDeadline) return false;
+    return resubmissionDeadline.getTime() < Date.now();
   }
 
   if (shouldShowExpiredStatus(task, submission)) return true;

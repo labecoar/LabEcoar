@@ -289,8 +289,7 @@ const resolveMetricsDeadline = ({ submission, metricsSubmission }) => {
     return getMetricsResubmissionDeadline(reviewedAt)
   }
 
-  const metricsWindow = getProofMetricsWindowFromSubmission(submission)
-  return metricsWindow.end
+  return null
 }
 
 const resolveAdminMetricsReviewDeadline = ({ submission, metricsSubmission }) => {
@@ -313,16 +312,17 @@ const buildMetricsSendReminderNotification = ({ task, submission, metricsSubmiss
   const metricsWindow = getProofMetricsWindowFromSubmission(submission)
   if (!metricsWindow.start || now < metricsWindow.start) return null
 
-  const deadline = resolveMetricsDeadline({ submission, metricsSubmission })
-  if (!deadline || now > deadline) return null
-
   if (metricsStatus === 'pending') return null
 
+  const deadline = resolveMetricsDeadline({ submission, metricsSubmission })
+
   return baseNotification({
-    id: `metrics-send-${task.id}-${deadline.toISOString().slice(0, 10)}`,
+    id: `metrics-send-${task.id}-${metricsWindow.start.toISOString().slice(0, 10)}`,
     type: 'metrics_send_reminder',
     title: 'Envie suas métricas',
-    message: `Envie as métricas até ${formatDeadlineLabel(deadline)} para obter seu valor na campanha "${task.title}".`,
+    message: deadline
+      ? `Envie as métricas até ${formatDeadlineLabel(deadline)} para obter seu valor na campanha "${task.title}".`
+      : `Envie as métricas da campanha "${task.title}" para obter seu valor.`,
     task,
     createdDate: metricsWindow.start.toISOString(),
     linkPath: '/MySubmissions',

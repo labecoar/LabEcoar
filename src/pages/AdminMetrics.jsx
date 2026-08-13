@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { notifyError, notifySuccess, notifyWarning } from "@/lib/toast";
 import { C, heading, body, getModalBackground } from '@/lib/theme';
 import { PageHeader, PageHeaderLabel } from "@/components/layout/PageShell";
-import { METRICS_ADMIN_REVIEW_BUFFER_DAYS, METRICS_SUBMISSION_WINDOW_DAYS } from '@/lib/metrics-window';
+import { METRICS_RESUBMISSION_WINDOW_DAYS, METRICS_WAIT_AFTER_PROOF_DAYS } from '@/lib/metrics-window';
 import MetricsFilesList from '@/components/metrics/MetricsFilesList';
 import LatePostingDates from '@/components/metrics/LatePostingDates';
 import { parseMetricsDescription } from '@/lib/metrics-display';
@@ -80,7 +80,7 @@ export default function AdminMetrics() {
       await rejectMetricsMutation.mutateAsync({ metricsSubmissionId: selectedSubmission.id, rejectionReason: reason });
       setSelectedSubmission(null);
       setRejectionReason('');
-      notifySuccess('Métricas rejeitadas. O ecoante pode reenviar em até 2 dias após a rejeição.');
+      notifySuccess(`Métricas rejeitadas. O ecoante pode reenviar em até ${METRICS_RESUBMISSION_WINDOW_DAYS} dias após a rejeição.`);
     } catch (error) {
       console.error('Erro ao rejeitar métricas:', error);
       notifyError('Erro ao rejeitar métricas.');
@@ -313,7 +313,7 @@ export default function AdminMetrics() {
             Aprovação de Métricas
           </h1>
           <p style={pageSubtitleStyle}>
-            Valide as métricas de campanhas enviadas pelos Ecoantes. Ecoantes têm {METRICS_SUBMISSION_WINDOW_DAYS} dias para enviar; campanhas permanecem visíveis por mais {METRICS_ADMIN_REVIEW_BUFFER_DAYS} dias para revisão.
+            Valide as métricas de campanhas enviadas pelos Ecoantes. O envio libera {METRICS_WAIT_AFTER_PROOF_DAYS} dias após a aprovação do conteúdo, sem prazo final.
           </p>
         </div>
 
@@ -391,7 +391,7 @@ export default function AdminMetrics() {
                   Explique o motivo da rejeição de forma clara e construtiva para o Ecoante:
                 </p>
                 <p style={{ fontSize: 11, color: faintColor }}>
-                  Após a rejeição, o ecoante tem até 2 dias para reenviar as métricas.
+                  Após a rejeição, o ecoante tem até {METRICS_RESUBMISSION_WINDOW_DAYS} dias para reenviar as métricas.
                 </p>
 
                 <div className="flex justify-end">
