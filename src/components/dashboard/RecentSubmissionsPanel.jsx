@@ -106,6 +106,7 @@ export default function RecentSubmissionsPanel({ submissions = [], metricsSubmis
 
   const recentRows = useMemo(() => {
     return [...submissions]
+      .filter((submission) => Boolean(submission?.task?.id))
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, RECENT_LIMIT)
       .map((submission) => {

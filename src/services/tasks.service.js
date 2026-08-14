@@ -248,6 +248,22 @@ export const tasksService = {
    * Deletar tarefa (Admin)
    */
   async deleteTask(taskId) {
+    const { error: metricsError } = await supabase
+      .from('metrics_submissions')
+      .delete()
+      .eq('task_id', taskId)
+
+    if (metricsError) {
+      console.warn('Não foi possível remover métricas da tarefa excluída:', metricsError.message)
+    }
+
+    const { error: submissionsError } = await supabase
+      .from('submissions')
+      .delete()
+      .eq('task_id', taskId)
+
+    if (submissionsError) throw submissionsError
+
     const { error } = await supabase
       .from('tasks')
       .delete()

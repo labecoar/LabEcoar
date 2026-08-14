@@ -378,7 +378,7 @@ export default function AdminContentManagement() {
   }
 
   const handleDeleteTask = async (taskId) => {
-    const shouldDelete = window.confirm('Tem certeza que deseja excluir esta tarefa?')
+    const shouldDelete = window.confirm('Tem certeza que deseja excluir esta tarefa? As inscrições vinculadas também serão removidas.')
     if (!shouldDelete) return
 
     try {

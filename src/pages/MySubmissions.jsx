@@ -212,30 +212,32 @@ export default function MySubmissions() {
     myMetricsSubmissions.find((item) => String(item.task_id) === String(taskId)) || null;
 
   const enrichedSubmissions = useMemo(() => {
-    return submissions.map((submission) => {
-      const taskId = getSubmissionTaskId(submission);
-      const metricsSubmission = taskId ? getMetricsSubmission(taskId) : null;
-      const task = submission.task;
-      const displayCategory = getTaskDisplayCategory(task);
-      const nextDeadline = resolveNextDeadline(task, submission, metricsSubmission);
-      const deadlineState = getDeadlineState(nextDeadline);
-      const statusDisplay = getUserSubmissionStatusDisplay(submission, metricsSubmission);
-      const isPaid = task?.category === 'campanha' || Number(task?.offered_value || 0) > 0;
-      const rewardLabel = isPaid
-        ? `R$ ${Number(task?.offered_value || 0).toLocaleString('pt-BR')}`
-        : `${Number(task?.points || 0).toLocaleString('pt-BR')} pts`;
+    return submissions
+      .filter((submission) => Boolean(submission?.task?.id))
+      .map((submission) => {
+        const taskId = getSubmissionTaskId(submission);
+        const metricsSubmission = taskId ? getMetricsSubmission(taskId) : null;
+        const task = submission.task;
+        const displayCategory = getTaskDisplayCategory(task);
+        const nextDeadline = resolveNextDeadline(task, submission, metricsSubmission);
+        const deadlineState = getDeadlineState(nextDeadline);
+        const statusDisplay = getUserSubmissionStatusDisplay(submission, metricsSubmission);
+        const isPaid = task?.category === 'campanha' || Number(task?.offered_value || 0) > 0;
+        const rewardLabel = isPaid
+          ? `R$ ${Number(task?.offered_value || 0).toLocaleString('pt-BR')}`
+          : `${Number(task?.points || 0).toLocaleString('pt-BR')} pts`;
 
-      return {
-        submission,
-        task,
-        displayCategory,
-        metricsSubmission,
-        nextDeadline,
-        deadlineState,
-        statusDisplay,
-        rewardLabel,
-      };
-    });
+        return {
+          submission,
+          task,
+          displayCategory,
+          metricsSubmission,
+          nextDeadline,
+          deadlineState,
+          statusDisplay,
+          rewardLabel,
+        };
+      });
   }, [submissions, myMetricsSubmissions]);
 
   const overview = useMemo(() => ({

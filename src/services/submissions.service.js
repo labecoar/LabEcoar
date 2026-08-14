@@ -11,6 +11,60 @@ import { isCampaignTask, requiresScriptApproval } from '@/lib/campaign-flow'
 
 const APPROVAL_HISTORY_TABLE = 'submission_approval_history'
 
+const TASK_EMBED_FIELDS = `
+  id,
+  title,
+  description,
+  category,
+  campaign_type,
+  points,
+  offered_value,
+  max_participants,
+  current_participants,
+  expires_at,
+  posting_deadline,
+  delivery_deadline,
+  launch_at,
+  created_at,
+  requires_application,
+  organization_id,
+  organization:organizations (
+    id,
+    name
+  )
+`
+
+async function hydrateSubmissionTasks(rows) {
+  const list = Array.isArray(rows) ? rows : []
+  const missingIds = [...new Set(
+    list
+      .filter((row) => !row?.task?.id && row?.task_id)
+      .map((row) => row.task_id),
+  )]
+
+  if (missingIds.length === 0) return list
+
+  const { data: tasksData, error } = await supabase
+    .from('tasks')
+    .select(TASK_EMBED_FIELDS)
+    .in('id', missingIds)
+
+  if (error) {
+    console.warn('Falha ao hidratar tarefas das inscrições:', error.message)
+    return list
+  }
+
+  const taskMap = new Map((tasksData || []).map((task) => [String(task.id), task]))
+  return list.map((row) => {
+    if (row?.task?.id || !row?.task_id) return row
+    return { ...row, task: taskMap.get(String(row.task_id)) || null }
+  })
+}
+
+function excludeOrphanSubmissions(rows) {
+  return (rows || []).filter((row) => Boolean(row?.task?.id))
+}
+
 const isMissingApprovalHistoryTableError = (error) => {
   const raw = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`.toLowerCase()
   return raw.includes('submission_approval_history') && (
@@ -115,22 +169,7 @@ export const submissionsService = {
     const baseSelect = `
       *,
       task:tasks (
-        id,
-        title,
-        description,
-        category,
-        campaign_type,
-        points,
-        offered_value,
-        expires_at,
-        posting_deadline,
-        delivery_deadline,
-        launch_at,
-        created_at,
-        organization:organizations (
-          id,
-          name
-        )
+        ${TASK_EMBED_FIELDS}
       )
     `
 
@@ -141,7 +180,9 @@ export const submissionsService = {
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    return data || []
+
+    const hydrated = await hydrateSubmissionTasks(data || [])
+    return excludeOrphanSubmissions(hydrated)
   },
 
   /**
@@ -153,25 +194,7 @@ export const submissionsService = {
       .select(`
         *,
         task:tasks (
-          id,
-          title,
-          category,
-          campaign_type,
-          points,
-          offered_value,
-          max_participants,
-          current_participants,
-          expires_at,
-          posting_deadline,
-          delivery_deadline,
-          launch_at,
-          created_at,
-          requires_application,
-          organization_id,
-          organization:organizations (
-            id,
-            name
-          )
+          ${TASK_EMBED_FIELDS}
         ),
         profile:profiles (
           id,
@@ -202,7 +225,7 @@ export const submissionsService = {
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    return data || []
+    return hydrateSubmissionTasks(data || [])
   },
 
   async getApprovalHistory(limit = 30) {
