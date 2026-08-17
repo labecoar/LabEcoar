@@ -304,7 +304,9 @@ export default function AdminContentManagement() {
   }
 
   useEffect(() => {
-    if (!isCampaign) return
+    // O tipo é definido automaticamente apenas na criação. Ao editar uma
+    // campanha, preserve o fluxo existente mesmo que o prazo seja alterado.
+    if (!isCampaign || editingTask) return
 
     const { finalDeadline } = calculateDerivedCampaignDeadlines(formData.posting_deadline)
     if (!finalDeadline) {
@@ -320,7 +322,7 @@ export default function AdminContentManagement() {
         ? prev
         : { ...prev, campaign_type: nextCampaignType }
     ))
-  }, [isCampaign, formData.posting_deadline])
+  }, [isCampaign, editingTask, formData.posting_deadline])
 
   const campaignDeadlinePreview = useMemo(() => {
     if (!isCampaign || !formData.posting_deadline) return null
@@ -527,7 +529,9 @@ export default function AdminContentManagement() {
         delivery_deadline: isCampaign && postingDeadline ? postingDeadline.slice(0, 10) : null,
         max_participants: maxParticipants,
         campaign_type: isCampaign
-          ? (businessDaysUntilFinal <= QUICK_CAMPAIGN_MAX_BUSINESS_DAYS ? 'resposta_rapida' : 'comum')
+          ? (editingTask
+            ? formData.campaign_type
+            : (businessDaysUntilFinal <= QUICK_CAMPAIGN_MAX_BUSINESS_DAYS ? 'resposta_rapida' : 'comum'))
           : formData.campaign_type,
         requires_application: formData.requires_application,
         profile_requirements: formData.profile_requirements || null,
