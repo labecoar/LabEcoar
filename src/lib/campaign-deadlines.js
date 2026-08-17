@@ -87,6 +87,10 @@ export const isApplicationOpen = (task, now = new Date()) =>
 export const isScriptSubmissionOpen = (task, now = new Date()) =>
   !requiresScriptApproval(task) || !isPastDeadline(resolveScriptDeadline(task), now)
 
+/** Roteiros rejeitados podem ser corrigidos até o prazo final do conteúdo. */
+export const isScriptResubmissionOpen = (task, now = new Date()) =>
+  !isPastDeadline(resolveContentDeadline(task), now)
+
 /** Conteúdo só libera na 2ª metade do cronograma (a partir do prazo do roteiro). */
 export const isContentSubmissionOpen = (task, now = new Date()) => {
   if (!isCampaignTask(task)) {

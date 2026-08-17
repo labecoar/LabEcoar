@@ -28,6 +28,7 @@ import {
   resolveContentDeadline,
   isApplicationOpen,
   isScriptSubmissionOpen,
+  isScriptResubmissionOpen,
   isContentSubmissionOpen,
 } from '@/lib/campaign-deadlines';
 import { getTaskDisplayCategory, requiresScriptApproval } from '@/lib/campaign-flow';
@@ -297,7 +298,9 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
     && (isCampaignTask ? isApplicationOpen(task) : !isContentDeadlineExpired);
   const canSubmitScript = requiresScript
     && ['application_approved', 'script_rejected'].includes(submissionStatus)
-    && isScriptSubmissionOpen(task);
+    && (submissionStatus === 'script_rejected'
+      ? isScriptResubmissionOpen(task)
+      : isScriptSubmissionOpen(task));
   const canSubmitProof = requiresScript
     ? ['script_approved', 'rejected'].includes(submissionStatus) && isContentSubmissionOpen(task)
     : (
@@ -519,7 +522,11 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
 
   const handleSendScript = async (e) => {
     e.preventDefault();
-    if (!canSubmitScript || !currentSubmission?.id) return;
+    if (!currentSubmission?.id) return;
+    if (!canSubmitScript) {
+      notifyWarning('O prazo disponível para envio do roteiro encerrou.');
+      return;
+    }
 
     const trimmedScriptLink = String(scriptLink || '').trim();
 
@@ -1078,13 +1085,15 @@ export default function TaskDetailsModal({ task, onClose, isTaskClaimed, isTaskA
                     )}
                     <button
                       type="submit"
-                      disabled={submissionStatus === 'script_pending' || isSubmitting || uploadFile.isPending || submitScript.isPending}
+                      disabled={submissionStatus === 'script_pending' || !canSubmitScript || isSubmitting || uploadFile.isPending || submitScript.isPending}
                       className={actionButtonClassName}
                       style={actionButtonStyle}
                     >
                       <Upload className="w-4 h-4 mr-2 shrink-0" />
                       {submissionStatus === 'script_pending'
                         ? 'Seu roteiro foi enviado e está em análise pelo administrador.'
+                        : !canSubmitScript
+                          ? 'Prazo de envio do roteiro encerrado'
                         : isSubmitting || uploadFile.isPending || submitScript.isPending
                           ? 'Enviando roteiro...'
                           : 'Enviar roteiro para validação'}

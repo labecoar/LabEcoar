@@ -5,6 +5,7 @@ import {
   resolveScriptDeadline,
   isApplicationOpen,
   isScriptSubmissionOpen,
+  isScriptResubmissionOpen,
   isContentSubmissionOpen,
 } from '@/lib/campaign-deadlines'
 import { isCampaignTask, requiresScriptApproval } from '@/lib/campaign-flow'
@@ -486,8 +487,12 @@ export const submissionsService = {
       throw new Error('Esta submissão não está apta para envio de roteiro no momento.')
     }
 
-    if (!isScriptSubmissionOpen(taskData)) {
-      throw new Error('Prazo de envio do roteiro expirou para esta campanha.')
+    const isSubmissionWindowOpen = currentSubmission.status === 'script_rejected'
+      ? isScriptResubmissionOpen(taskData)
+      : isScriptSubmissionOpen(taskData)
+
+    if (!isSubmissionWindowOpen) {
+      throw new Error('Prazo disponível para envio do roteiro expirou para esta campanha.')
     }
 
     const { data, error } = await supabase
